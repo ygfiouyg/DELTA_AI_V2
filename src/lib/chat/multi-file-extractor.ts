@@ -166,17 +166,14 @@ async function callLLM(
   model: string = 'glm-4-flash'
 ): Promise<string> {
   try {
-    const result = await Promise.race([
-      callLLMStreamed(systemPrompt, userMessage, model),
-      new Promise<null>((resolve) => setTimeout(() => resolve(null), timeoutMs)),
-    ]);
+    const result = await callLLMStreamed(systemPrompt, userMessage, model); // V.55: timeout removed
 
-    if (result !== null) {
+    if (result) {
       return result;
     }
 
-    // Timed out — retry once with simpler prompt
-    console.warn(`[MultiFileExtractor] LLM call timed out after ${timeoutMs}ms, retrying with simpler prompt`);
+    // Empty result — retry once with simpler prompt
+    console.warn(`[MultiFileExtractor] LLM call returned empty, retrying with simpler prompt`);
     return retryWithSimplerPrompt(systemPrompt, userMessage, model);
   } catch (error) {
     console.error('[MultiFileExtractor] LLM call error:', error instanceof Error ? error.message : String(error));
@@ -455,8 +452,8 @@ STEP 1 — Information Architecture:
 - لا تخرج "جدار نص" غير منسق أبداً
 
 STEP 2 — Visual Hierarchy:
-- اكتب ملخص تنفيذي (جملتين فقط) يلتقط جوهر المادة
-- حول المقارنات لجداول، حول العمليات لخطوات مرقمة
+- اكتب ملخص تنفيذي (فقرة واحدة متماسكة من 4-6 جمل) يلتقط جوهر المادة
+- لا تستخدم bullet points داخل الملخص — فقرة نثرية واحدة فقط
 
 STEP 3 — Smart Callouts:
 - استخدم :::callout-hook للنقاط الجوهرية
@@ -477,12 +474,9 @@ STEP 1 — Information Architecture (Semantic Extraction):
 - لا تخرج "جدار نص" غير منسق أبداً — كل فقرة لازم تكون محددة وواضحة
 
 STEP 2 — Visual Hierarchy & Smart Formatting:
-- اكتب ملخص تنفيذي (جملتين) يلتقط جوهر المادة كلها
-- لما تلاقي مقارنات أو عمليات أو بيانات متعددة المتغيرات → حولها لجدول
-- استخدم callout cards:
-  :::callout-hook → 📌 مفهوم جوهري
-  :::callout-rule → 💡 قاعدة ذهبية
-  :::callout-error → ⚠️ خطأ شائع / فخ امتحاني
+- اكتب ملخص تنفيذي (فقرة واحدة متماسكة من 5-8 جمل) يلتقط جوهر المادة كلها
+- مهم جداً: الملخص لازم يكون فقرة نثرية واحدة متصلة (paragraph واحد) — مش bullet points ولا قائمة
+- استخدم callout cards في الـ keyPoints مش في الـ summary
 
 STEP 3 — Deep Analytical Thinking:
 1. اقرأ المحتوى كامل بتركيز — ما الموضوع الأساسي؟
@@ -493,9 +487,9 @@ STEP 3 — Deep Analytical Thinking:
 6. حدد المصطلحات المهمة واشرحها ببساطة
 7. اذكر أمثلة أو تطبيقات لو موجودة
 
-أجب بصيغة JSON:
+أجب بصيغة JSON فقط (بدون markdown إضافي):
 {
-  "summary": "ملخص تحليلي عميق — يشرح المفاهيم، يربط بينها، ويبسط الصعب",
+  "summary": "فقرة واحدة متماسكة (5-8 جمل) تشرح الموضوع كامل — مش قائمة ولا bullets",
   "keyPoints": [
     "📌 مفهوم جوهري مع شرح وسبب أهميته",
     "💡 قاعدة ذهبية مع شرح متى تنطبق",
@@ -514,13 +508,9 @@ STEP 1 — Information Architecture (Semantic Extraction):
 - نظف العناوين: لا أرقام عشوائية، لا مسارات ملفات، لا hex values
 
 STEP 2 — Visual Hierarchy & Smart Formatting:
-- اكتب ملخص تنفيذي (جملتين) يلتقط جوهر المادة كلها
-- لما تلاقي مقارنات أو عمليات أو بيانات متعددة المتغيرات → حولها لجدول
-- استخدم callout cards:
-  :::callout-hook → 📌 مفهوم جوهري — تعريف مختصر وواضح
-  :::callout-rule → 💡 قاعدة ذهبية — متى تنطبق ومتى لا
-  :::callout-error → ⚠️ فخ امتحاني — الخطأ الشائع والتصحيح
-- كل قسم يبدأ بـ ## عنوان واضح، وينتهي بملخص صغير
+- اكتب ملخص تنفيذي (فقرة واحدة متماسكة من 6-10 جمل) يلتقط جوهر المادة كلها
+- مهم جداً: الملخص لازم يكون فقرة نثرية واحدة متصلة (paragraph واحد) — مش bullet points ولا قائمة ولا عناوين فرعية
+- استخدم callout cards في الـ keyPoints مش في الـ summary
 
 STEP 3 — 8-Step Deep Analytical Thinking:
 1. **القراءة العميقة**: اقرأ كل فقرة بتمعن. ما الفكرة الأساسية؟ ما السياق؟
@@ -532,18 +522,15 @@ STEP 3 — 8-Step Deep Analytical Thinking:
 7. **المراجعة**: راجع كل نقطة — هل شرحتها كفاية؟ هل الطالب هي فهمها؟
 8. **التنظيم**: رتب النقاط من الأسهل للأصعب، من العام للخاص
 
-أجب بصيغة JSON:
+أجب بصيغة JSON فقط (بدون markdown إضافي):
 {
-  "summary": "تحليل شامل عميق — يشرح كل مفهوم، يربط بين الأفكار، يبسط الصعب، وينظم المعلومات",
+  "summary": "فقرة واحدة متماسكة (6-10 جمل) تشرح الموضوع كامل — مش قائمة ولا bullets",
   "keyPoints": [
     "📌 مفهوم جوهري مع شرح مفصل وسبب أهميته",
     "💡 قاعدة ذهبية مع شرح متى تنطبق ومتى لا",
     "⚠️ فخ امتحاني — الخطأ الشائع والتصحيح",
     "🔗 علاقة بين مفهومين مع توضيح كيف يؤثر كل منهما على الآخر",
-    "📖 مصطلح تقني مع تعريفه وشرح استخدامه",
-    "🔬 خطوة تحليلية مع شرح كل خطوة والنتيجة",
-    "🎯 نقطة امتحانية حرجة مع تنبيه للطلاب",
-    "⚖️ مقارنة بين مفهومين متشابهين في جدول"
+    "📖 مصطلح تقني مع تعريفه وشرح استخدامه"
   ]
 }`,
 };
@@ -576,30 +563,40 @@ Answer in JSON format only:
 
 const CROSS_SUMMARY_PROMPT_AR = `أنت كاتب محترف. لديك ملخصات لعدة ملفات. مهمتك هي:
 
-1. كتابة ملخص شامل يجمع المعلومات من جميع الملفات
-2. تحديد المواضيع المشتركة التي تظهر في أكثر من ملف
+1. كتابة ملخص تنفيذي شامل (فقرة نثرية واحدة متماسكة من 6-10 جمل) يجمع المعلومات من جميع الملفات
+2. تحديد 4 مواضيع مشتركة تظهر في أكثر من ملف — كل موضوع عبارة عن عنوان قصير (3-6 كلمات)
+
+مهم جداً:
+- الـ crossSummary لازم يكون فقرة واحدة متصلة (paragraph واحد) — مش قائمة ولا bullets
+- الـ commonThemes لازم تكون بالظبط 4 عناصر (لا أكثر ولا أقل)
+- كل theme عبارة عن عنوان مختصر يلخص موضوع رئيسي
 
 الملخصات:
 {PER_FILE_SUMMARIES}
 
 أجب بصيغة JSON فقط:
 {
-  "crossSummary": "ملخص شامل يجمع كل المعلومات من جميع الملفات",
-  "commonThemes": ["الموضوع المشترك 1", "الموضوع المشترك 2", "الموضوع المشترك 3"]
+  "crossSummary": "فقرة واحدة متماسكة (6-10 جمل) تجمع كل المعلومات من جميع الملفات",
+  "commonThemes": ["الموضوع المشترك 1", "الموضوع المشترك 2", "الموضوع المشترك 3", "الموضوع المشترك 4"]
 }`;
 
 const CROSS_SUMMARY_PROMPT_EN = `You are a professional writer. You have summaries of multiple files. Your task is to:
 
-1. Write a comprehensive summary combining information from all files
-2. Identify common themes that appear in more than one file
+1. Write a comprehensive executive summary (one cohesive paragraph of 6-10 sentences) combining information from all files
+2. Identify exactly 4 common themes that appear in more than one file — each theme is a short title (3-6 words)
+
+CRITICAL:
+- crossSummary MUST be a single cohesive paragraph — NOT a list, NOT bullets
+- commonThemes MUST be exactly 4 items (no more, no less)
+- Each theme is a short title summarizing a key topic
 
 Summaries:
 {PER_FILE_SUMMARIES}
 
 Answer in JSON format only:
 {
-  "crossSummary": "A comprehensive summary combining all information from all files",
-  "commonThemes": ["Common theme 1", "Common theme 2", "Common theme 3"]
+  "crossSummary": "One cohesive paragraph (6-10 sentences) combining all information from all files",
+  "commonThemes": ["Common theme 1", "Common theme 2", "Common theme 3", "Common theme 4"]
 }`;
 
 export async function summarizeFiles(
