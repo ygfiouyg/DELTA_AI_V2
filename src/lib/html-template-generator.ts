@@ -511,12 +511,13 @@ function generateCSS(designReasoning?: DesignReasoningBlock, language: 'ar' | 'e
     }
 
     /* Decorative geometric shapes — CSS circles with low opacity */
+    /* V.60: Fixed positions to stay WITHIN the page (no negative offsets) */
     .cover-deco-circle-1 {
       position: absolute;
-      top: -120px;
-      right: -80px;
-      width: 400px;
-      height: 400px;
+      top: 20px;
+      right: 20px;
+      width: 280px;
+      height: 280px;
       border-radius: 50%;
       border: 1px solid rgba(${coverAccentRgb.r}, ${coverAccentRgb.g}, ${coverAccentRgb.b}, 0.1);
       pointer-events: none;
@@ -524,10 +525,10 @@ function generateCSS(designReasoning?: DesignReasoningBlock, language: 'ar' | 'e
     }
     .cover-deco-circle-2 {
       position: absolute;
-      bottom: -100px;
-      left: -60px;
-      width: 320px;
-      height: 320px;
+      bottom: 20px;
+      left: 20px;
+      width: 240px;
+      height: 240px;
       border-radius: 50%;
       background: radial-gradient(circle, rgba(${coverAccentRgb.r}, ${coverAccentRgb.g}, ${coverAccentRgb.b}, 0.06) 0%, transparent 70%);
       pointer-events: none;
@@ -2603,7 +2604,7 @@ export function generateHTMLTemplate(options: HTMLTemplateOptions): string {
 
       <div class="cover-badges">
         ${batchMeta ? `<div class="cover-badge filled">${batchMeta.totalLectures} ${isRTL ? 'محاضرة' : 'Lectures'}</div>` : ''}
-        ${cp ? `<div class="cover-badge filled">${cp.type === 'islamic' ? 'إسلامي' : cp.type === 'medical' ? 'طبي' : cp.type === 'academic' ? 'أكاديمي' : cp.type === 'financial' ? 'مالي' : cp.type === 'technical' ? 'تقني' : cp.type === 'legal' ? 'قانوني' : cp.type === 'creative' ? 'أدبي' : 'عام'}</div>` : ''}
+        ${cp && ['islamic','medical','academic','financial','technical','legal','creative','general'].includes(cp.type) ? `<div class="cover-badge filled">${cp.type === 'islamic' ? 'إسلامي' : cp.type === 'medical' ? 'طبي' : cp.type === 'academic' ? 'أكاديمي' : cp.type === 'financial' ? 'مالي' : cp.type === 'technical' ? 'تقني' : cp.type === 'legal' ? 'قانوني' : cp.type === 'creative' ? 'أدبي' : 'عام'}</div>` : ''}
       </div>
       ${bottomDotsHtml}
     </div>
