@@ -7,7 +7,6 @@ dev.log
 upload/
 download/
 tool-results/
-skills/
 .zscripts/
 mobile-app/dist/
 mobile-app/.expo/
