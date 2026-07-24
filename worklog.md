@@ -3801,3 +3801,59 @@ Stage Summary:
 - ✅ HF Space شغال بـ V.57
 
 *Last updated: 2025-07-24 (Round 57) · V.57 Master Sanitizer deployed*
+
+---
+Task ID: v58-hardcoded-sanitizer
+Agent: main (Z.ai Code)
+Task: CRITICAL BACKEND FIX — Hardcoded sanitization middleware RIGHT BEFORE HTML-to-PDF
+
+Work Log:
+- أنشأت src/lib/pdf-sanitizer.ts بـ forceCleanPDFContent() — hardcoded regex sanitizer:
+  1. Strip [DELTA_PDF_REF:...] raw reference IDs
+  2. Strip 0000 0000 zero artifacts
+  3. Strip '000 pdf' / '1000 pdf' variable injections
+  4. Clean .pdf.pdf duplicate extensions
+  5. Decode \u26A1 Unicode escapes (incl. surrogate pairs)
+  6. Remove empty ** markdown syntax
+  7. Strip (cid:N) artifacts
+  8. Strip null bytes
+  9. Strip hex dumps (8+ hex chars)
+  10. Strip UUIDs
+  11. Strip base64 fragments (40+ chars)
+  12. Strip raw file paths
+  13. Collapse whitespace
+
+- forceCleanHTMLDocument(html) — ينضف text nodes ONLY، بيحافظ على HTML tags/CSS
+- forceCleanTitle(title) — aggressive title sanitizer
+
+- دمج forceCleanHTMLDocument في rendering-pipeline.ts:
+  * Step 2.5: V.58 HARDCODED SANITIZATION MIDDLEWARE
+  * بيشتغل AFTER generateHTMLTemplate()، BEFORE Playwright renderHTMLToPDF()
+  * non-negotiable final gate
+  * بيسجل كام حرف garbage اتشال
+
+### V.58b: إزالة "بعقل هادي" من كل الملفات
+- اكتشفت إن "بعقل هادي" لسه موجود في Playwright headerTemplate (playwright-renderer.ts:234)
+- ده بيتحط فوق كل صفحة في الـ PDF، ومش بيمر على الـ content sanitizer
+- مسحت "بعقل هادي" من 22 ملف بالكامل:
+  * src/lib/playwright-renderer.ts (السبب الرئيسي)
+  * src/lib/rendering-pipeline.ts
+  * src/lib/design-reasoning.ts
+  * src/lib/content-strategy-prompt.ts
+  * src/lib/chat/smart-doc-v2.ts
+  * src/app/api/chat/stream/route.ts (4 instances)
+  * src/components/chat/DocumentGenDialog.tsx (6 instances)
+  * + 14 ملف تاني
+
+### Verification على HF:
+- V.58: SHA fab36bc5 — sanitizer شغال
+- V.58b: SHA ea88e025 — "بعقل هادي" اتشال من Playwright header
+- النتيجة: 0 instances of "بعقل هادي" في src/
+
+Stage Summary:
+- ✅ forceCleanPDFContent() شغال في rendering-pipeline.ts قبل Playwright
+- ✅ "بعقل هادي" اتشال من 22 ملف (مفيش ولا instance في src/)
+- ✅ Playwright header دلوقتي "DeltaAI" فقط
+- ✅ HF Space شغال بـ V.58b (SHA: ea88e025)
+
+*Last updated: 2025-07-24 (Round 58) · V.58+58b Hardcoded sanitizer + branding cleanup*
