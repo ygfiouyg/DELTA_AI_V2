@@ -155,6 +155,25 @@ export async function renderToPDF(request: RenderingRequest): Promise<RenderingR
       html = generateSimpleHTML(content, title, author, language, generateUniquePalette(content || 'default', userColorPreference));
     }
 
+    // ─── Step 2.5: V.58 HARDCODED SANITIZATION MIDDLEWARE ────────────
+    // CRITICAL: Enforced sanitizer RIGHT BEFORE HTML-to-PDF rendering.
+    // Prompt-based rules alone cannot stop LLM variable/metadata leaks.
+    // This is the FINAL hardcoded gate — non-negotiable.
+    // Cleans: [DELTA_PDF_REF], 0000 artifacts, .pdf.pdf, \u26A1 escapes,
+    //         CID artifacts, null bytes, hex dumps, UUIDs, base64, file paths.
+    // Preserves: HTML tags, attributes, CSS (only cleans text nodes).
+    try {
+      const { forceCleanHTMLDocument } = await import('./pdf-sanitizer');
+      const originalLength = html.length;
+      html = forceCleanHTMLDocument(html);
+      const cleanedLength = html.length;
+      if (cleanedLength !== originalLength) {
+        console.log(`[Rendering Pipeline] V.58 Sanitizer: stripped ${originalLength - cleanedLength} chars of garbage before Playwright`);
+      }
+    } catch (sanitizeError) {
+      console.error('[Rendering Pipeline] V.58 Sanitizer failed (non-fatal, continuing):', sanitizeError);
+    }
+
     // ─── Step 3: Playwright Rendering ────────────
     let playwrightAvailable = false;
     try {
