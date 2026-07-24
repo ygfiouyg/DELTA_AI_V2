@@ -75,3 +75,12 @@ upload-temp/
 upload/
 *.db
 mobile-app/dist/
+skills/design/
+skills/*/scripts/
+skills/*/templates/
+skills/*/*.py
+skills/*/*.js
+skills/*/*.html
+skills/*/*.webp
+skills/*/*.jpg
+skills/*/*.png
