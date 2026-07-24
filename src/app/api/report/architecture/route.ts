@@ -879,7 +879,7 @@ function generateArchitectureReportHTML(): string {
   <div class="cover-line-left"></div>
   <div class="cover-logo">◆</div>
   <div class="cover-brand">DeltaAI</div>
-  <div class="cover-channel">بعقل هادي</div>
+  <div class="cover-channel">DeltaAI</div>
   <div class="cover-divider"></div>
   <div class="cover-title">التقرير التقني المعماري</div>
   <div class="cover-subtitle">
@@ -1454,7 +1454,7 @@ function generateArchitectureReportHTML(): string {
     margin: { top: <span class="code-string">'25mm'</span>, bottom: <span class="code-string">'20mm'</span>, left: <span class="code-string">'18mm'</span>, right: <span class="code-string">'18mm'</span> },
     printBackground: <span class="code-keyword">true</span>,
     displayHeaderFooter: <span class="code-keyword">true</span>,
-    headerTemplate: <span class="code-string">\`DeltaAI | بعقل هادي\`</span>,
+    headerTemplate: <span class="code-string">\`DeltaAI | DeltaAI\`</span>,
     footerTemplate: <span class="code-string">\`صفحة X من Y\`</span>,
   }),
   <span class="code-keyword">new</span> <span class="code-type">Promise</span>((_, reject) =&gt;
@@ -2014,7 +2014,7 @@ function generateArchitectureReportHTML(): string {
   <div style="text-align:center; padding: 24px 0; color: ${mutedText}; font-size: 11px;">
     <div style="font-size: 16px; margin-bottom: 8px;">◆</div>
     <div style="font-weight:700; color: ${primaryColor}; font-size: 14px;">DeltaAI — التقرير التقني المعماري</div>
-    <div>بعقل هادي | v1.0 | مارس 2026</div>
+    <div>DeltaAI | v1.0 | مارس 2026</div>
     <div style="margin-top: 4px;">تم إنشاء هذا التقرير تلقائياً عبر خط أنابيب Playwright PDF</div>
   </div>
 </div>

@@ -167,7 +167,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                   <span className="text-2xl">🌊</span>
                 </div>
                 <h3 className="text-lg font-bold">Anzaro AI</h3>
-                <p className="text-xs text-muted-foreground">بعقل هادي، هنوصل 🌊</p>
+                <p className="text-xs text-muted-foreground">DeltaAI، هنوصل 🌊</p>
               </div>
 
               <Separator />

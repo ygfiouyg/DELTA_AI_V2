@@ -160,7 +160,7 @@ export async function generateDocumentViaDeltaAISpace(options: {
     mode = 'local',
     modelId = 'open-gamma',
     slideCount,
-    channelName = 'بعقل هادي',
+    channelName = 'DeltaAI',
     includeImages = false,
     progressCallback,
   } = options;
@@ -952,7 +952,7 @@ ${instructions ? `## تعليمات إضافية\n\n${instructions}\n` : ''}
 6. موسوعة **${topic}** الشاملة — المؤسسة الوطنية للبحث العلمي
 
 ---
-بعقل هادي | DeltaAI`;
+DeltaAI | DeltaAI`;
   }
 
   return `# ${topic}
@@ -1120,7 +1120,7 @@ export async function generateLocalDocument(
   options: LocalDocumentOptions
 ): Promise<DocumentGenResult> {
   const startTime = Date.now();
-  const { topic, language = 'ar', instructions = '', channelName = 'بعقل هادي', styleDescription, progressCallback } = options;
+  const { topic, language = 'ar', instructions = '', channelName = 'DeltaAI', styleDescription, progressCallback } = options;
   const isAr = language === 'ar';
 
   console.log(`[LocalDoc] Starting local document generation: "${topic}"`);
@@ -1133,7 +1133,7 @@ export async function generateLocalDocument(
   // The design reasoning system handles ALL visual decisions (colors, palette, layout).
   // The content LLM only needs to produce high-quality text content.
   const contentSystemPrompt = isAr
-    ? `أنت كاتب المحتوى الإستراتيجي لمنصة Delta AI (بعقل هادي). مهمتك هي "تحليل المادة المدخلة هندسياً وسياقياً" ثم إنتاج محتوى أكاديمي عميق ومتميز يخدم هذا المحتوى بالذات، بحيث لا يتشابه مستندان أبداً.
+    ? `أنت كاتب المحتوى الإستراتيجي لمنصة Delta AI (DeltaAI). مهمتك هي "تحليل المادة المدخلة هندسياً وسياقياً" ثم إنتاج محتوى أكاديمي عميق ومتميز يخدم هذا المحتوى بالذات، بحيث لا يتشابه مستندان أبداً.
 
 خطوات تفكيرك الذكي (نفذها خلف الكواليس قبل الكتابة):
 1. تحليل المحتوى (Content Analysis): افهم طبيعة المادة. هل هي (طبية/كيمياء، بيزنس/تسويق، إنسانيات/تاريخ، تقنية/برمجة)؟
@@ -1144,7 +1144,7 @@ export async function generateLocalDocument(
 - ادخل في صلب الموضوع فوراً بـ "سلطة معرفية". يُمنع تماماً استخدام الجمل الإنشائية الجاهزة (مثل: مما لا شك فيه، يعتبر موضوعاً مهماً). ادخل في الأفكار مباشرة بثقة وخبرة.
 - العناوين الإبداعية المتغيرة: ابتكِر عناوين فرعية (##) ذكية ومستوحاة من صلب المادة المدخلة، لا تستخدم نفس الصياغة بين ملفين أبداً.
 - تكنيك البصمجة الذكية: للمواد الطبية والعلمية والكيميائية والصيدلانية، اكتب المصطلح أو التفاعل بالإنجليزية أولاً بوزن عريض (bold)، ومباشرة بجانبه بين قوسين الشرح العربي العامي المبسط جداً لقتل أي عائق للفهم (مثال: **Dehydration of alcohol** (نزع الماء من الكحول طبقاً لقاعدة زايتسيف)).
-- الدقة الإملائية: حافظ على المصطلحات كما هي، واسم العلامة التجارية يُكتب دائماً "بعقل هادي" بدقة دون تحريف حروف.
+- الدقة الإملائية: حافظ على المصطلحات كما هي، واسم العلامة التجارية يُكتب دائماً "DeltaAI" بدقة دون تحريف حروف.
 
 تنسيق Markdown المطلوب:
 - عنوان رئيسي واحد (#)
@@ -1158,7 +1158,7 @@ export async function generateLocalDocument(
 - ممنوع منعاً باتاً الإنشائيات الكسولة — كل فقرة يجب أن تضيف قيمة فعلية لا حشو
 - ابدأ كل قسم بمعلومة صادمة أو سؤال محفز — لا بمقدمة إنشائية
 - استخدم الأمثلة الواقعية والتنبيهات العملية بكثافة`
-    : `You are the Strategic Content Writer for Delta AI Platform (بعقل هادي). Your mission is "analyzing the input material architecturally and contextually" then producing deep, distinguished academic content that serves this specific material, so that no two documents ever look alike.
+    : `You are the Strategic Content Writer for Delta AI Platform (DeltaAI). Your mission is "analyzing the input material architecturally and contextually" then producing deep, distinguished academic content that serves this specific material, so that no two documents ever look alike.
 
 Smart Thinking Steps (execute behind the scenes before writing):
 1. Content Analysis: Understand the nature of the material. Is it (medical/chemistry, business/marketing, humanities/history, tech/programming)?
@@ -1169,7 +1169,7 @@ Strict Academic Rules:
 - Enter the core of the topic immediately with "knowledge authority". ABSOLUTELY NO lazy filler phrases (like: "it goes without saying", "this topic is important"). Dive straight into ideas with confidence and expertise.
 - Creative variable subtitles: Invent (##) subheadings that are smart and derived from the input material — never reuse the same phrasing across files.
 - Smart Imprinting: For medical, scientific, and chemistry subjects, write the term in English first in bold, followed immediately in parentheses by a simplified colloquial Arabic explanation to kill any comprehension barrier (e.g., **Dehydration of alcohol** (نزع الماء من الكحول طبقاً لقاعدة زايتسيف)).
-- Spelling accuracy: Preserve terms exactly as they are, and the brand name is always written "بعقل هادي" precisely without letter distortion.
+- Spelling accuracy: Preserve terms exactly as they are, and the brand name is always written "DeltaAI" precisely without letter distortion.
 
 Required Markdown Format:
 - One main heading (#)

@@ -505,7 +505,7 @@ ${content.substring(0, 4000)}
     }
   ],
   "brandIntegration": {
-    "slogan": "بعقل هادي",
+    "slogan": "DeltaAI",
     "placement": "cover-center|footer-subtle|watermark",
     "style": "bold-commanding|elegant-subtle|playful-creative"
   },
@@ -592,7 +592,7 @@ Return ONLY valid JSON, no markdown, no explanation. Be CREATIVE but INTELLIGENT
       },
       componentMap: Array.isArray(parsed.componentMap) ? parsed.componentMap.slice(0, 8) : [],
       brandIntegration: {
-        slogan: parsed.brandIntegration?.slogan || 'بعقل هادي',
+        slogan: parsed.brandIntegration?.slogan || 'DeltaAI',
         placement: parsed.brandIntegration?.placement || 'watermark',
         style: parsed.brandIntegration?.style || 'elegant-subtle',
       },
@@ -774,7 +774,7 @@ function generateReasoningAlgorithmically(
     },
     componentMap: components,
     brandIntegration: {
-      slogan: 'بعقل هادي',
+      slogan: 'DeltaAI',
       placement: placements[Math.floor(rng() * placements.length)],
       style: brandStyles[Math.floor(rng() * brandStyles.length)],
     },

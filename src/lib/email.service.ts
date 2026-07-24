@@ -231,7 +231,7 @@ function generateOtpEmailHtml(code: string, language: 'ar' | 'en' = 'ar'): strin
           <div class="logo">Δ</div>
         </div>
         <div class="brand-name">DeltaAI</div>
-        <div class="tagline">${isArabic ? 'بعقل هادي' : 'With a Calm Mind'}</div>
+        <div class="tagline">${isArabic ? 'DeltaAI' : 'With a Calm Mind'}</div>
         <div class="greeting">${content.greeting}</div>
       </div>
 

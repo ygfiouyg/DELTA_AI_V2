@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
           if (systemMsg) {
             systemMsg.content += drivePrompt;
           } else {
-            messages.unshift({ role: 'system', content: `أنت مساعد ذكي من DeltaAI (بعقل هادي). أجب بالعربية إذا سأل المستخدم بالعربية.${drivePrompt}` });
+            messages.unshift({ role: 'system', content: `أنت مساعد ذكي من DeltaAI (DeltaAI). أجب بالعربية إذا سأل المستخدم بالعربية.${drivePrompt}` });
           }
           console.log('[HF-Chat] Drive RAG context injected into system prompt');
         }

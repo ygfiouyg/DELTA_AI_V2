@@ -32,7 +32,7 @@ export interface PDFGenerationOptions {
   topicCategory?: TopicCategory;
   /** Design Reasoning Block — when provided, overrides static theme system */
   designReasoning?: DesignReasoningBlock;
-  /** Channel name displayed on cover page and footer (default: "بعقل هادي") */
+  /** Channel name displayed on cover page and footer (default: "DeltaAI") */
   channelName?: string;
 }
 

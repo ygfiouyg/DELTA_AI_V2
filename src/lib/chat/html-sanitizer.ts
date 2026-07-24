@@ -183,7 +183,7 @@ export function markdownToSimpleHTML(content: string, title: string, language: '
   <hr style="margin: 16px 0; border: none; border-top: 2px solid #0f172a;">
   <p>${htmlContent}</p>
   <hr style="margin: 24px 0; border: none; border-top: 1px solid #e2e8f0;">
-  <p style="text-align: center; color: #94a3b8; font-size: 10px;">DeltaAI | بعقل هادي</p>
+  <p style="text-align: center; color: #94a3b8; font-size: 10px;">DeltaAI | DeltaAI</p>
 </body>
 </html>`;
 }

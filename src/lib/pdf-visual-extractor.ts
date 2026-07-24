@@ -881,7 +881,7 @@ function generateVisualSummaryHTML(
   </div>
 
   <div class="footer">
-    DeltaAI | بعقل هادي — ${isRTL ? 'ملخص بصري تلقائي' : 'Auto Visual Summary'} — ${new Date().toLocaleDateString(isRTL ? 'ar-EG' : 'en-US')}
+    DeltaAI | DeltaAI — ${isRTL ? 'ملخص بصري تلقائي' : 'Auto Visual Summary'} — ${new Date().toLocaleDateString(isRTL ? 'ar-EG' : 'en-US')}
   </div>
 </body>
 </html>`;

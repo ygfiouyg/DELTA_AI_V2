@@ -793,7 +793,7 @@ async function generatePDFFromContent(
     documentType: 'summary',
     batchMeta: fileCount && fileCount > 1 ? {
       lectures: Array.from({ length: fileCount }, (_, i) => ({ title: `محاضرة ${i + 1}`, index: i })),
-      channelName: channelName || 'بعقل هادي',
+      channelName: channelName || 'DeltaAI',
       totalLectures: fileCount,
     } : undefined,
   };

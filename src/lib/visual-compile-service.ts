@@ -906,7 +906,7 @@ function generateDynamicCompileHtml(
   </div>` : ''}
 
   <div class="footer">
-    DeltaAI | بعقل هادي — ${isRTL ? 'تجميعة ذكية تلقائية' : 'Auto Smart Compilation'} — ${new Date().toLocaleDateString(isRTL ? 'ar-EG' : 'en-US')}
+    DeltaAI | DeltaAI — ${isRTL ? 'تجميعة ذكية تلقائية' : 'Auto Smart Compilation'} — ${new Date().toLocaleDateString(isRTL ? 'ar-EG' : 'en-US')}
   </div>
 </body>
 </html>`;

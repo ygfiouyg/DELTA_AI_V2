@@ -43,7 +43,7 @@ export function ShareDialog({ open, onOpenChange }: ShareDialogProps) {
       const role = msg.role === 'user' ? '**👤 المستخدم**' : '**🤖 المساعد**';
       return `${role}\n\n${msg.content}`;
     });
-    return `# ${title}\n\n---\n\n${lines.join('\n\n---\n\n')}\n\n---\n\n*تم المشاركة من Anzaro AI — بعقل هادي، هنوصل 🌊*`;
+    return `# ${title}\n\n---\n\n${lines.join('\n\n---\n\n')}\n\n---\n\n*تم المشاركة من Anzaro AI — DeltaAI، هنوصل 🌊*`;
   }, [activeConversation]);
 
   const handleCopyText = useCallback(async () => {

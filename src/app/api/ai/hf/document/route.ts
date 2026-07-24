@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
           topic,
           language: language || 'ar',
           instructions: instructions || '',
-          channelName: channelName || 'بعقل هادي',
+          channelName: channelName || 'DeltaAI',
           includeImages: shouldIncludeImages,
           styleDescription: styleDescription || undefined,
         });
@@ -241,7 +241,7 @@ export async function POST(request: NextRequest) {
         topic,
         language: language || 'ar',
         instructions: instructions || '',
-        channelName: channelName || 'بعقل هادي',
+        channelName: channelName || 'DeltaAI',
         includeImages: shouldIncludeImages,
         styleDescription: styleDescription || undefined,
       });

@@ -88,7 +88,7 @@ const result = await generateLocalDocument({
   topic,
   language: language || 'ar',
   instructions: instructions || '',
-  channelName: channelName || 'بعقل هادي',
+  channelName: channelName || 'DeltaAI',
   includeImages: shouldIncludeImages,
 });
 \`\`\`
@@ -151,7 +151,7 @@ html = generateHTMLTemplate({
 \`\`\`
 
 القالب يشمل:
-- صفحة غلاف مع شعار DeltaAI و"بعقل هادي"
+- صفحة غلاف مع شعار DeltaAI و"DeltaAI"
 - فهرس المحتويات (TOC)
 - أقسام محتوى بتنسيق احترافي (Callout Boxes, Feature Boxes, Data Tables, Timelines)
 - تذييل بأرقام الصفحات
@@ -256,7 +256,7 @@ function enforceRTLAndInjectStyles(html, language, designReasoning) {
 headerTemplate: \`
   <div style="width:100%; padding:0 18mm; font-family:'Cairo',sans-serif;">
     <div style="font-size:7px; color:#94a3b8; text-align:center;">
-      DeltaAI | بعقل هادي
+      DeltaAI | DeltaAI
     </div>
     <div style="border-bottom:0.5px solid #94a3b8; margin-top:2px;"></div>
   </div>
@@ -569,7 +569,7 @@ No Persistent Browser: كان يمكن أن يُحسن الأداء إذا اس�
 
 ---
 
-بعقل هادي | DeltaAI | Technical Architecture Report v1.0
+DeltaAI | DeltaAI | Technical Architecture Report v1.0
 `;
 
 async function main() {

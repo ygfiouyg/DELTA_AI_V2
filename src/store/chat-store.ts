@@ -1531,7 +1531,7 @@ export const useChatStore = create<ChatState>()(
               topic: files.map(f => f.name.replace(/\.[^.]+$/, '')).join(' + ') || 'ملخص محاضرات',
               lectures,
               language: resolvedLanguage === 'egyptian' ? 'ar' : resolvedLanguage,
-              channelName: 'بعقل هادي',
+              channelName: 'DeltaAI',
               includeAiImages: false,
             }),
           });

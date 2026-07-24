@@ -231,7 +231,7 @@ export async function renderHTMLToPDF(options: PlaywrightPDFOptions): Promise<Pl
         displayHeaderFooter: true,
         headerTemplate: `
           <div style="width:100%; padding:0 18mm; box-sizing:border-box; font-family:'Cairo',sans-serif;">
-            <div style="font-size:7px; color:#94a3b8; text-align:center;">DeltaAI | بعقل هادي</div>
+            <div style="font-size:7px; color:#94a3b8; text-align:center;">DeltaAI</div>
             <div style="border-bottom:0.5px solid #94a3b8; margin-top:2px;"></div>
           </div>
         `,

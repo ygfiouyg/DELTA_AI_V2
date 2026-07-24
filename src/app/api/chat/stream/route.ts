@@ -1106,7 +1106,7 @@ export async function POST(request: NextRequest) {
                         message,
                         attachments: virtualFiles,
                         language: (language as 'ar' | 'en') || 'ar',
-                        channelName: 'بعقل هادي',
+                        channelName: 'DeltaAI',
                         userId: user?.id,
                         intent: docIntent!,
                       }, (stage, progress, msg, detail) => {
@@ -1173,7 +1173,7 @@ export async function POST(request: NextRequest) {
                     topic: docTopic,
                     language: (language as 'ar' | 'en') || 'ar',
                     instructions: instructionsForLLM,
-                    channelName: 'بعقل هادي',
+                    channelName: 'DeltaAI',
                     includeImages: false,
                     styleDescription: undefined,
                     progressCallback: (stage, progress, msg) => {
@@ -1266,7 +1266,7 @@ export async function POST(request: NextRequest) {
                       language: (language as 'ar' | 'en') || 'ar',
                       instructions: message.length > 3000 ? message.slice(0, 50000) : message,
                       mode: 'local',
-                      channelName: 'بعقل هادي',
+                      channelName: 'DeltaAI',
                       progressCallback: (stage, progress, msg) => {
                         controller.enqueue(
                           encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage, progress, message: msg } })}\n\n`)
@@ -1327,7 +1327,7 @@ export async function POST(request: NextRequest) {
                   message,
                   attachments: pipelineFiles,
                   language: (language as 'ar' | 'en') || 'ar',
-                  channelName: 'بعقل هادي',
+                  channelName: 'DeltaAI',
                   userId: user?.id,
                   intent: docIntent!,
                 }, (stage, progress, msg, detail) => {

@@ -45,7 +45,7 @@ export function Header({ mode, onModeChange, isStreaming }: HeaderProps) {
             <div className="flex items-center gap-2">
               <h1 className="text-base font-bold tracking-tight">Anzaro AI</h1>
               <Badge variant="secondary" className="h-5 text-[10px] font-mono bg-gradient-to-r from-blue-500 to-blue-500 text-blue-600 dark:text-blue-300 border-blue-500">
-                بعقل هادي 🌊
+                DeltaAI 🌊
               </Badge>
             </div>
             <p className="text-[11px] text-muted-foreground leading-tight">منصة الأدمن الذكية</p>

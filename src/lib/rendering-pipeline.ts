@@ -328,7 +328,7 @@ function generateSimpleHTML(
   <hr style="margin: 16px 0; border: none; border-top: 2px solid ${p.primary};">
   <p>${htmlContent}</p>
   <hr style="margin: 24px 0; border: none; border-top: 1px solid ${p.border};">
-  <p style="text-align: center; color: ${p.textMuted}; font-size: 10px;">DeltaAI | بعقل هادي</p>
+  <p style="text-align: center; color: ${p.textMuted}; font-size: 10px;">DeltaAI</p>
 </body>
 </html>`;
 }

@@ -237,7 +237,7 @@ export function DocumentGenDialog({
   const [template, setTemplate] = useState('Basic');
   const [includeImages, setIncludeImages] = useState(true);
   const [selectedModel, setSelectedModel] = useState(DEFAULT_MODEL);
-  const [singleChannelName, setSingleChannelName] = useState('بعقل هادي');
+  const [singleChannelName, setSingleChannelName] = useState('DeltaAI');
   const [singleAiImages, setSingleAiImages] = useState(true); // Default ON: images included
   // designTemplateId is kept as undefined (auto mode) — AI decides the best design
   // When user provides a styleDescription, it becomes the primary design driver
@@ -267,7 +267,7 @@ export function DocumentGenDialog({
   // batch designTemplateId removed — AI-driven design only
   const [batchStyleDescription, setBatchStyleDescription] = useState('');
   const [batchSelectedChip, setBatchSelectedChip] = useState('');
-  const [batchChannelName, setBatchChannelName] = useState('بعقل هادي');
+  const [batchChannelName, setBatchChannelName] = useState('DeltaAI');
   const [isBatchGenerating, setIsBatchGenerating] = useState(false);
   const [batchProgress, setBatchProgress] = useState<ProgressState | null>(null);
   const [batchResult, setBatchResult] = useState<{
@@ -678,7 +678,7 @@ export function DocumentGenDialog({
           includeAiImages: batchAiImages,
           // designTemplateId removed — AI-driven design only
           styleDescription: batchStyleDescription.trim() || undefined,
-          channelName: batchChannelName.trim() || 'بعقل هادي',
+          channelName: batchChannelName.trim() || 'DeltaAI',
           language: 'ar',
         }),
         signal: controller.signal,
@@ -927,7 +927,7 @@ export function DocumentGenDialog({
       setTemplate('Basic');
       setIncludeImages(true);
       setSelectedModel(DEFAULT_MODEL);
-      setSingleChannelName('بعقل هادي');
+      setSingleChannelName('DeltaAI');
       setSingleAiImages(true);
       setStyleDescription('');
       setSelectedChip('');
@@ -942,7 +942,7 @@ export function DocumentGenDialog({
       setBatchAiImages(false);
       setBatchStyleDescription('');
       setBatchSelectedChip('');
-      setBatchChannelName('بعقل هادي');
+      setBatchChannelName('DeltaAI');
       setIsBatchGenerating(false);
       setBatchProgress(null);
       setBatchResult(null);
@@ -1136,7 +1136,7 @@ export function DocumentGenDialog({
                 id="single-channel"
                 value={singleChannelName}
                 onChange={(e) => setSingleChannelName(e.target.value)}
-                placeholder="بعقل هادي"
+                placeholder="DeltaAI"
                 dir="auto"
                 disabled={isGenerating}
               />
@@ -1669,7 +1669,7 @@ export function DocumentGenDialog({
                 id="batch-channel"
                 value={batchChannelName}
                 onChange={(e) => setBatchChannelName(e.target.value)}
-                placeholder="بعقل هادي"
+                placeholder="DeltaAI"
                 dir="auto"
                 disabled={isBatchGenerating}
               />

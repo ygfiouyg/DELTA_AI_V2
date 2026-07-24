@@ -84,7 +84,7 @@ async function sendReminderEmail(toEmail: string, taskText: string): Promise<voi
         </p>
         <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
         <p style="font-size: 12px; color: #9ca3af; text-align: center;">
-          هذا التذكير أُرسل من منصة DeltaAI — بعقل هادي، هنوصل 🌊
+          هذا التذكير أُرسل من منصة DeltaAI — DeltaAI، هنوصل 🌊
         </p>
       </div>
     </div>
