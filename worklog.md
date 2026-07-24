@@ -4205,3 +4205,87 @@ Stage Summary:
 - ✅ All test assertions passing
 
 *Last updated: 2025-07-24 (Round 62) · V.62 Skill Discovery Pipeline complete*
+
+---
+Task ID: v63-omni-agent
+Agent: main (Z.ai Code)
+Task: Omni-Agent Skills Integration — universal tool registry + autonomous install
+
+Work Log:
+### V.63: Omni-Agent Architecture
+
+**1. Tool Registry** (src/lib/tool-registry.ts):
+- autonomous_install_skill: tool بيخلي أي model يثبت skills
+- search_skills: tool بيخلي أي model يبحث في الـ skills
+- getToolSchemas(provider): بترجع schemas متوافقة مع:
+  - OpenAI function calling format
+  - Anthropic tools format (input_schema)
+  - ZAI/GLM format
+  - Generic format
+
+**2. Skill Installer** (src/lib/skill-installer.ts):
+- installSkillFromGitHub(): بيحمّل SKILL.md من GitHub
+- SKILL_CATALOG: بيـ map keywords لـ repos
+- searchSkillsSh(): بيبحث في skills.sh
+- downloadFromUrl: تحميل مباشر من URL
+- fetchFromRepo: تحميل من repo
+
+**3. Tools API** (src/app/api/chat/tools/route.ts):
+- GET /api/chat/tools?provider=openai|anthropic|zai
+- POST /api/chat/tools: تنفيذ tool calls
+
+**4. Validation Test** (scripts/test-global-pipeline.ts):
+- يختبر tool schemas لكل providers
+- يختبر skill search
+- يختبر autonomous installation
+- يختبر cross-model sharing
+- يختبر Context Blender
+
+### Verification على HF:
+```
+GET /api/chat/tools?provider=openai
+  ✅ search_skills (function format)
+  ✅ autonomous_install_skill (function format)
+
+GET /api/chat/tools?provider=anthropic
+  ✅ search_skills (input_schema format)
+  ✅ autonomous_install_skill (input_schema format)
+
+POST /api/chat/tools {tool: search_skills, args: {query: "pdf"}}
+  ✅ Success: Found 5 matching skills
+```
+
+### Test Results:
+[GLOBAL SUCCESS] Multi-model interoperability verified
+  ✅ Tool schemas work with OpenAI, Anthropic, ZAI formats
+  ✅ Skill search is functional
+  ✅ Autonomous skill installation is functional (INSTALLED)
+  ✅ Cross-model skill sharing works (shared skills/ directory)
+  ✅ Context Blender integrates with LLM pipeline
+
+### Architecture:
+```
+Any Model (OpenAI/Claude/GLM)
+         ↓
+    getToolSchemas(provider) → tool schemas
+         ↓
+    Model calls autonomous_install_skill(search_query)
+         ↓
+    skill-installer.ts downloads SKILL.md from GitHub
+         ↓
+    Saves to shared skills/ directory (hot-loaded)
+         ↓
+    All models can immediately access the new skill
+         ↓
+    Context Blender injects skills into any model's prompt
+```
+
+Stage Summary:
+- ✅ V.63 deployed على HF (SHA: 2b7e6ab0)
+- ✅ Universal tool registry شغال مع كل providers
+- ✅ Autonomous skill installation شغال
+- ✅ Cross-model sharing شغال
+- ✅ Context Blender شغال
+- ✅ All test assertions passing
+
+*Last updated: 2025-07-24 (Round 63) · V.63 Omni-Agent Skills Integration complete*
