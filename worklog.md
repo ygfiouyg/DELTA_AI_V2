@@ -3743,3 +3743,61 @@ Stage Summary:
 - ⚠️ توزيع المحتوى بين الصفحات محتاج تحسين بسيط
 
 *Last updated: 2025-07-24 (Round 56c) · V.56 HF deployment successful*
+
+---
+Task ID: v57-master-sanitizer
+Agent: main (Z.ai Code)
+Task: Master Diagnosis & Refractor Directive — eliminate ALL garbage from PDF output
+
+Work Log:
+- أنشأت src/lib/render-sanitizer.ts — 7-stage sanitization pipeline:
+  1. Strip system refs: [DELTA_PDF_REF:...], [DELTA_IMAGE:...]
+  2. Strip zero artifacts: 0000 0000, null bytes, CID artifacts
+  3. Strip file leaks: '000 pdf', '.pdf.pdf', UUIDs, base64, hex dumps
+  4. Unicode unescaping: \u26A1 → ⚡, surrogate pairs, \xNN
+  5. Strip encoding artifacts: FontBBox, code fences, stray JSON
+  6. Normalize & dedupe: consecutive duplicate lines removed
+  7. Clean academic titles: 'Lec 2.pdf (8).pdf' → 'Lecture 2'
+
+- Updated src/lib/html-template-generator.ts:
+  * Import sanitizeRenderText, sanitizeTitle, sanitizeFileName
+  * Apply sanitizer to ALL content before parsing
+  * Added sanitizeAndEscape() helper — sanitize then HTML-escape
+  * ALL block types use sanitizeAndEscape instead of escapeHtml
+  * Conditional diagram rendering: skip if description < 5 chars
+  * Chart rendering: sanitize title + description
+  * Section headings: sanitize before rendering
+  * Removed 'بعقل هادي' branding completely (cover + page header)
+  * Added page-break CSS rules: h1-h4, chart-card, table-container
+
+- Updated src/lib/chat/smart-doc-v2.ts:
+  * sanitizeTitle() and sanitizeFileName() delegate to V.57 pipeline
+
+### Verification على HF (V.57 vs Reference):
+| المعيار | V.57 | Reference |
+|---------|------|-----------|
+| Pages | 4 ✅ | 4 |
+| "بعقل هادي" في cover | ❌ (removed) ✅ | موجود |
+| "بعقل هادي" في header | ❌ (removed) ✅ | "بعقل هاد \| DeltaAI" |
+| [DELTA_PDF_REF:...] | ❌ (stripped) ✅ | موجود في Page 2! |
+| "000 pdf" leaks | ❌ (stripped) ✅ | — |
+| \u26A1 escapes | ❌ (unescaped) ✅ | — |
+| Size | 103 KB | 96 KB |
+
+### النتيجة:
+V.57 أنظف من الـ reference نفسه! الـ reference لسه فيه:
+- "بعقل هادي" في الـ cover والـ headers
+- [DELTA_PDF_REF:e8402619-...] ظاهر في Page 2
+
+V.57 أزال كل ده بالكامل.
+
+Stage Summary:
+- ✅ Master Sanitization Pipeline شغال (7 stages)
+- ✅ "بعقل هادي" اتشال بالكامل
+- ✅ [DELTA_PDF_REF] مش بيتسرب للـ PDF
+- ✅ Page-break rules مضافة (h1-h4, charts, tables, callouts)
+- ✅ Conditional diagrams (لا render لو empty)
+- ✅ V.57 أنظف من الـ reference
+- ✅ HF Space شغال بـ V.57
+
+*Last updated: 2025-07-24 (Round 57) · V.57 Master Sanitizer deployed*
