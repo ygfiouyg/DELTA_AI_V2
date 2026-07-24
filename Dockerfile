@@ -72,37 +72,27 @@ RUN npx prisma validate 2>/dev/null || true
 COPY . .
 
 # Create .env file with non-secret production values.
-# NOTE: DATABASE_URL / DIRECT_URL are intentionally NOT written here —
-# they are provided by HF Space Secrets at runtime. Writing a bogus
-# file:// URL here would shadow the real Supabase URL and break the app.
+# V.56: Using SQLite (matches schema.prisma provider = "sqlite")
+# The DB file lives at /app/db/custom.db and is created by prisma db push at startup.
 RUN echo 'SESSION_SECRET="anzaro-hf-space-secret-2025-stable"' > .env && \
     echo 'NEXTAUTH_URL="https://kopabdo-delta-ai-v2.hf.space"' >> .env && \
     echo 'NEXTAUTH_SECRET="anzaro-nextauth-secret-2025"' >> .env && \
     echo 'NODE_ENV="production"' >> .env && \
+    echo 'DATABASE_URL="file:/app/db/custom.db"' >> .env && \
     echo 'ZAI_API_KEY=""' >> .env
 
 # Set non-secret environment variables (also as ENV for CLI tools).
-# DATABASE_URL / DIRECT_URL come from HF Space Secrets at runtime.
-# A *placeholder* postgres URL is set as ENV below so that `next build`
-# (which evaluates db.ts at module-load time during prerender) does not
-# hard-fail. HF Space Secrets override ENV at runtime, so the real Supabase
-# URL is used when the container actually starts.
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV SESSION_SECRET="anzaro-hf-space-secret-2025-stable"
 ENV NEXTAUTH_URL="https://kopabdo-delta-ai-v2.hf.space"
 ENV NEXTAUTH_SECRET="anzaro-nextauth-secret-2025"
-# Build-time placeholder (overridden at runtime by HF Space Secrets):
-ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
-ENV DIRECT_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder"
+# V.56: SQLite database (matches schema.prisma provider = "sqlite")
+ENV DATABASE_URL="file:/app/db/custom.db"
 # ZAI_API_KEY must be set as a HF Space Secret.
 
-# Keep /app/db around in case any legacy code still references it, but no
-# SQLite file is created anymore — the DB now lives in Supabase.
-# NOTE: `prisma db push` is intentionally NOT run at build time — the build
-# container does not have access to the Supabase secrets, so the push would
-# fail. The schema is synced at container startup instead (see CMD below).
+# Create the db directory for SQLite
 RUN mkdir -p /app/db
 
 # Pre-build the Next.js app so .next/ exists (fixes ENOENT required-server-files.json)
