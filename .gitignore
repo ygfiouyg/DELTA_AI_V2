@@ -50,8 +50,8 @@ test
 prompt
 
 server.log
-# Skills directory
-/skills/
+# Skills directory (V.61: allow our custom .md skill files)
+!/skills/*.md
 # logs & scripts (Tailwind v4 scans these — must ignore)
 .zscripts/
 dev.log

@@ -29,7 +29,8 @@ let _lastLoadTime = 0;
 const CACHE_TTL = 60_000; // 1 minute
 
 /**
- * Read all .md files from the skills/ directory
+ * Read all SKILL.md and *.md files from the skills/ directory
+ * Scans both top-level .md files AND subdirectory/SKILL.md files
  */
 export async function loadSkills(): Promise<Skill[]> {
   // Cache for 1 minute
@@ -41,21 +42,33 @@ export async function loadSkills(): Promise<Skill[]> {
   const skills: Skill[] = [];
 
   try {
-    const files = await fs.readdir(skillsDir);
-    const mdFiles = files.filter(f => f.endsWith('.md'));
+    const entries = await fs.readdir(skillsDir, { withFileTypes: true });
 
-    for (const file of mdFiles) {
+    for (const entry of entries) {
       try {
-        const filePath = path.join(skillsDir, file);
-        const content = await fs.readFile(filePath, 'utf-8');
-        const skill = parseSkillFile(content, filePath);
-        if (skill) skills.push(skill);
+        if (entry.isFile() && entry.name.endsWith('.md')) {
+          // Top-level .md file (our custom skills)
+          const filePath = path.join(skillsDir, entry.name);
+          const content = await fs.readFile(filePath, 'utf-8');
+          const skill = parseSkillFile(content, filePath);
+          if (skill) skills.push(skill);
+        } else if (entry.isDirectory()) {
+          // Subdirectory — look for SKILL.md
+          const skillFile = path.join(skillsDir, entry.name, 'SKILL.md');
+          try {
+            const content = await fs.readFile(skillFile, 'utf-8');
+            const skill = parseSkillFile(content, skillFile);
+            if (skill) skills.push(skill);
+          } catch {
+            // No SKILL.md in this directory — skip
+          }
+        }
       } catch (e) {
-        console.error(`[SkillDiscovery] Failed to read ${file}:`, e);
+        // Skip this entry on error
       }
     }
   } catch (e) {
-    // skills/ directory doesn't exist yet
+    // skills/ directory doesn't exist
     console.log('[SkillDiscovery] No skills/ directory found');
   }
 
