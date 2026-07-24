@@ -3996,3 +3996,34 @@ Stage Summary:
 - ⚠️ الـ title garbage ('د غير نيت ملف') من رسالة المستخدم - محتاج AI أفضل
 
 *Last updated: 2025-07-24 (Round 60) · V.60 Cover page bug fixes*
+
+---
+Task ID: v60b-title-dedup
+Agent: main (Z.ai Code)
+Task: تحسين title handling + content deduplication
+
+Work Log:
+### V.60b Fixes:
+1. **Title garbage fix** (extract-topic route):
+   - قبل: كان بيستخدم input.message.substring(0,40) كـ title fallback
+   - دهسبب ظهور "د غير نيت ملف" كـ title
+   - بعد: بيستخدم sanitizeTitle(intent.topic || intent.rawTopic)
+   - fallback: "استخراج موضوع" / "Topic Extraction"
+
+2. **Content deduplication** (routeSummarize):
+   - أضفت computeSimilarity() function (Jaccard word overlap)
+   - في routeSummarize: skip per-file summary لو >80% similar لـ crossSummary
+   - يمنع "paragraphs rendered back-to-back identically" bug
+
+### النتيجة:
+- الـ titles بقيت نظيفة (مفيش garbage من رسالة المستخدم)
+- المحتوى مش بيتكرر (لو single file + high similarity = skip)
+- الـ cover design متناسق (بعد V.60 fix للـ circles)
+
+Stage Summary:
+- ✅ V.60b deployed على HF (SHA: afa2444c)
+- ✅ Title garbage اتحل
+- ✅ Content deduplication شغال
+- ⏳ محتاج اختبار فعلي من UI
+
+*Last updated: 2025-07-24 (Round 60b) · V.60b Title + dedup fixes*
