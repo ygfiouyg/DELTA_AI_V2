@@ -4132,3 +4132,76 @@ Stage Summary:
 - ⏳ محتاج اختبار فعلي لتوليد PDF بالـ skills
 
 *Last updated: 2025-07-24 (Round 61) · V.61 Skill Discovery System deployed*
+
+---
+Task ID: v62-skill-pipeline
+Agent: main (Z.ai Code)
+Task: Skill Discovery Pipeline — bulk sync + GitHub install + context blender
+
+Work Log:
+### V.62: Skill Discovery Pipeline كامل
+
+**1. Bulk Sync Script** (scripts/bulk-sync-skills.ts):
+- بيـ fetch SKILL.md files من أي GitHub repo
+- بيـ build lightweight keyword index (بدون ChromaDB)
+- بيـ save لـ skills-index.json
+
+**2. Sync API** (src/app/api/skills/sync/route.ts):
+- POST /api/skills/sync — trigger bulk sync
+- بيـ fetch من GitHub + يـ index محلياً
+
+**3. Improved Skill Matching** (skill-discovery.ts V.62):
+- Direct keyword→skill mapping (+100 bonus)
+- Category-based keyword scoring (+15)
+- Priority bonus (high: +10, medium: +2)
+- النتيجة: custom skills بتـ match صح
+
+**4. Test Script** (scripts/test-agent-routing.ts):
+- Tests skill loading, matching, prompt enhancement
+- All tests passing
+
+### Verification على HF:
+```
+Skills: 68
+Custom skills: 4
+  ✅ Academic Summary Skill (content-quality)
+  ✅ Arabic RTL Skill (localization)
+  ✅ PDF Design Master (pdf-design)
+  ✅ Visual Components Skill (visual-design)
+
+Skill matching test:
+Query: "اجمعلي اهم النقاط اللي في ال pdf"
+✅ PDF Design Master (high priority)
+✅ Academic Summary Skill (high priority)
+```
+
+### Architecture:
+```
+GitHub repos → bulk-sync → skills/*.md + skills/*/SKILL.md
+                                ↓
+                          loadSkills() (60s cache)
+                                ↓
+                          findMatchingSkills(userPrompt)
+                                ↓
+                          buildSkillSystemPrompt()
+                                ↓
+                          callLLM(enhancedPrompt)
+                                ↓
+                          LLM responds with skill-guided output
+```
+
+### Endpoints:
+- GET /api/skills — list all skills
+- POST /api/skills — search matching skills
+- POST /api/skills/install — install from GitHub URL
+- POST /api/skills/sync — bulk sync from GitHub repo
+
+Stage Summary:
+- ✅ 68 skills deployed على HF
+- ✅ Skill matching شغال (PDF Design + Academic Summary for PDF requests)
+- ✅ GitHub URL install endpoint جاهز
+- ✅ Bulk sync endpoint جاهز
+- ✅ LLM injection شغال في multi-file-extractor
+- ✅ All test assertions passing
+
+*Last updated: 2025-07-24 (Round 62) · V.62 Skill Discovery Pipeline complete*
