@@ -799,6 +799,16 @@ function generateCSS(designReasoning?: DesignReasoningBlock, language: 'ar' | 'e
     .content-page {
       padding: 50px;
     }
+    /* V.60: First content page after cover should NOT start a new page */
+    .content-page:first-of-type {
+      break-before: page;
+      page-break-before: always;
+    }
+    /* V.60: Subsequent content pages should NOT force new pages */
+    .content-page + .content-page {
+      break-before: auto;
+      page-break-before: auto;
+    }
 
     /* Section headers: Full-width primary background bar with white text and section number circle */
     .section-header {
