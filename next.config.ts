@@ -12,6 +12,8 @@ const nextConfig: NextConfig = {
   experimental: {
     cpus: 1,
     workerThreads: false,
+    // Optimize package imports to reduce bundle size and memory usage
+    // V.56: Consolidated duplicate experimental blocks (was causing TS error + wasted memory)
     optimizePackageImports: [
       'lucide-react',
       'recharts',
@@ -20,6 +22,16 @@ const nextConfig: NextConfig = {
       'date-fns',
       'react-markdown',
       '@tanstack/react-query',
+      '@radix-ui/react-accordion',
+      '@radix-ui/react-alert-dialog',
+      '@radix-ui/react-avatar',
+      '@radix-ui/react-checkbox',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-select',
+      '@radix-ui/react-tabs',
+      '@radix-ui/react-tooltip',
     ],
   },
   // SECURITY FIX: Enable React Strict Mode to catch potential issues
@@ -51,32 +63,6 @@ const nextConfig: NextConfig = {
     "qrcode",
     "z-ai-web-dev-sdk",
   ],
-  // Reduce build memory usage — use 1 worker instead of auto-detecting all CPUs
-  // This prevents OOM on constrained environments like HuggingFace Spaces
-  experimental: {
-    cpus: 1,
-    workerThreads: false,
-    // Optimize package imports to reduce bundle size and memory usage
-    optimizePackageImports: [
-      'lucide-react',
-      'recharts',
-      'framer-motion',
-      '@radix-ui/react-icons',
-      'date-fns',
-      'react-markdown',
-      '@tanstack/react-query',
-      '@radix-ui/react-accordion',
-      '@radix-ui/react-alert-dialog',
-      '@radix-ui/react-avatar',
-      '@radix-ui/react-checkbox',
-      '@radix-ui/react-dialog',
-      '@radix-ui/react-dropdown-menu',
-      '@radix-ui/react-popover',
-      '@radix-ui/react-select',
-      '@radix-ui/react-tabs',
-      '@radix-ui/react-tooltip',
-    ],
-  },
   // Fix: Handle Node.js built-in modules in browser bundle
   // Some packages (googleapis, etc.) reference Node built-ins that don't exist in browser
   webpack: (config, { isServer, webpack }) => {

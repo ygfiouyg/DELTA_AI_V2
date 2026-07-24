@@ -3641,3 +3641,47 @@ Stage Summary:
 - ⚠️ محتاج verification فعلي بعد ما الـ memory issue يتحل
 
 *Last updated: 2025-07-24 (Round 56) · V.56 exact replica structure + emoji fix*
+
+---
+Task ID: v56-verification
+Agent: main (Z.ai Code)
+Task: Verification of V.56 changes + fix OOM issues
+
+Work Log:
+- حاولت عمل verification بـ agent-browser بس السيرفر بيموت من OOM
+- اكتشفت إن next.config.ts فيه `experimental` block متكرر (مرتين) — ده خطأ TypeScript
+- أصلحت next.config.ts: دمجت الـ experimental blocks المتكررة في block واحد
+- الـ keep-alive loop اشتغل بنجاح: بيعيد تشغيل السيرفر لو مات
+- الصفحة الرئيسية compile بنجاح مرة واحدة (HTTP 200) بس الـ memory بيوصل 2.8GB
+- أي request إضافي (زي agent-browser أو API call) بيسبب OOM
+
+### Verification Results:
+- ✅ الكود سليم (مفيش lint errors في ملفاتي)
+- ✅ next.config.ts اتصلح (experimental متكرر اتمسح)
+- ✅ V.56 changes موجودة في:
+  - src/lib/chat/smart-doc-v2.ts (routeSummarize)
+  - src/lib/chat/multi-file-extractor.ts (prompts)
+  - src/lib/html-template-generator.ts (emoji escapes + callout rendering)
+- ⚠️ Dev server OOM عند compile — مشكلة sandbox memory (3.9GB total, 2.7GB for compile)
+- ⚠️ محتاج verification فعلي لما الـ memory issue يتحل
+
+### OOM Analysis:
+- المشروع حجمه كبير جداً: 203K lines من TS/TSX
+- chat stream route لوحده 4320 lines
+- html-template-generator 2611 lines
+- أي compile بياخد 2.5-2.8GB RSS
+- الـ sandbox فيه 3.9GB RAM و 0 swap
+- الحلول المحتملة:
+  1. تقليل حجم المشروع (split routes)
+  2. إضافة swap file (محتاج sudo)
+  3. استخدام build بدل dev (مش مسموح)
+  4. تحسين الـ tree shaking
+
+Stage Summary:
+- ✅ V.56 changes كاملة وموجودة في الكود
+- ✅ next.config.ts اتصلح (experimental duplicate removed)
+- ✅ Keep-alive loop شغال
+- ⚠️ Dev server OOM عند compile — مشكلة sandbox memory
+- ⚠️ Verification الفعلي محتاج حل الـ memory issue
+
+*Last updated: 2025-07-24 (Round 56b) · V.56 verification + next.config fix*
