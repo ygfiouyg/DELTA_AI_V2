@@ -3857,3 +3857,53 @@ Stage Summary:
 - ✅ HF Space شغال بـ V.58b (SHA: ea88e025)
 
 *Last updated: 2025-07-24 (Round 58) · V.58+58b Hardcoded sanitizer + branding cleanup*
+
+---
+Task ID: v59-visual-architecture
+Agent: main (Z.ai Code)
+Task: Master Visual Directive V.59 — Visual Component Architecture (KPI/Timeline/Concept/Comparison)
+
+Work Log:
+- أضفت 4 Visual Components جديدة (Academic-Grade Minimalist):
+  * Component A: KPI & Metric Callout Grid (:::kpi-grid)
+    - value | label format, auto-fit grid, gradient cards
+    - 28pt values, accent border-top, slate color scheme
+  * Component B: Process Flow & Timelines (:::timeline)
+    - number | title | desc format
+    - CSS timeline nodes with blue dots, numbered badges
+  * Component C: Concept Cards (:::concept-card)
+    - First line = header, rest = body
+    - #F8F9FA bg, 8px radius, accent left border
+  * Component D: Side-by-Side Comparison (:::comparison)
+    - pro/con/neutral | title | desc
+    - 2-col grid: green (pro), red (con), gray (neutral)
+
+- CSS updates:
+  * @page setup: A4, 20mm 15mm margins
+  * page-break-inside: avoid on ALL new components
+  * Modern slate (#0F172A) + tech-blue (#2563EB) defaults
+
+- Parser updates:
+  * 4 new block types in ParsedBlock interface
+  * Parser detects :::kpi-grid, :::timeline, :::concept-card, :::comparison
+  * Multi-line content accumulation until ::: terminator
+
+- Renderer updates:
+  * kpi-grid: parses 'value | label' → kpi-card divs
+  * timeline: parses 'num | title | desc' → timeline-step with dots
+  * concept-card: first line=header, rest=body
+  * comparison-grid: 'type | title | desc' → colored cards
+  * All content sanitized via sanitizeRenderText
+
+- Prompt updates:
+  * PER_FILE_SUMMARY_PROMPT_AR (detailed) now instructs LLM to use all
+    visual components with syntax examples
+
+Stage Summary:
+- ✅ 4 Visual Components CSS + Parser + Renderer
+- ✅ Page-break rules on all components
+- ✅ LLM prompts updated to use components
+- ✅ Pushed to HF (SHA: 4547076)
+- ⏳ Waiting for HF rebuild + verification
+
+*Last updated: 2025-07-24 (Round 59) · V.59 Visual Component Architecture*
