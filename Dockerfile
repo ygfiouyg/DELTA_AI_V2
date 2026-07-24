@@ -102,11 +102,12 @@ RUN npx next build --webpack 2>&1 || echo "Build failed, will use dev mode"
 EXPOSE 3000
 
 # Start the application.
-# 1. `prisma db push --skip-generate --accept-data-loss` syncs the schema
-#    to Supabase on every container start (idempotent). At runtime, HF Space
-#    Secrets override the placeholder ENV, so this actually connects to
-#    Supabase. `--accept-data-loss` skips the interactive prompt.
-# 2. `next start` serves the prebuilt app (falls back to `next dev` if the
-#    build had failed).
-CMD npx prisma db push --skip-generate --accept-data-loss 2>&1 | tail -10; \
-    npx next start -p 3000 -H 0.0.0.0 2>/dev/null || npx next dev -p 3000 -H 0.0.0.0 --webpack
+# V.56: Force DATABASE_URL to SQLite (overrides any HF Space Secret that might
+# still point to PostgreSQL). This matches schema.prisma provider=sqlite.
+# 1. `prisma db push --skip-generate --accept-data-loss` creates/syncs the
+#    SQLite schema at /app/db/custom.db
+# 2. `next start` serves the prebuilt app with DATABASE_URL forced to SQLite
+CMD export DATABASE_URL="file:/app/db/custom.db" && \
+    npx prisma db push --skip-generate --accept-data-loss 2>&1 | tail -20 && \
+    echo "[Startup] Database schema synced. Starting Next.js..." && \
+    DATABASE_URL="file:/app/db/custom.db" npx next start -p 3000 -H 0.0.0.0
