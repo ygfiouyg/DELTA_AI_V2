@@ -511,6 +511,14 @@ STEP 2 — Visual Hierarchy & Smart Formatting:
 - اكتب ملخص تنفيذي (فقرة واحدة متماسكة من 6-10 جمل) يلتقط جوهر المادة كلها
 - مهم جداً: الملخص لازم يكون فقرة نثرية واحدة متصلة (paragraph واحد) — مش bullet points ولا قائمة ولا عناوين فرعية
 - استخدم callout cards في الـ keyPoints مش في الـ summary
+- V.59: استخدم المكونات البصرية التالية لما يناسب المحتوى:
+  * :::kpi-grid — للأرقام والنسب والإحصائيات (كل سطر: value | label)
+  * :::timeline — للخطوات والمراحل والتسلسل الزمني (كل سطر: number | title | desc)
+  * :::concept-card — للمصطلحات والتعريفات (أول سطر = العنوان، الباقي = الشرح)
+  * :::comparison — للمقارنات (كل سطر: pro/con/neutral | title | desc)
+  * :::callout-hook — للنقاط الجوهرية
+  * :::callout-rule — للقواعد الذهبية
+  * :::callout-error — للأخطاء الشائعة
 
 STEP 3 — 8-Step Deep Analytical Thinking:
 1. **القراءة العميقة**: اقرأ كل فقرة بتمعن. ما الفكرة الأساسية؟ ما السياق؟

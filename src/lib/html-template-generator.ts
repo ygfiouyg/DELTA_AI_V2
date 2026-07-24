@@ -139,7 +139,7 @@ interface ParsedSection {
 }
 
 interface ParsedBlock {
-  type: 'paragraph' | 'bullet' | 'table' | 'blockquote' | 'code' | 'numbered' | 'note' | 'warning' | 'tip' | 'image' | 'h2' | 'h3' | 'definition' | 'hr' | 'callout' | 'feature';
+  type: 'paragraph' | 'bullet' | 'table' | 'blockquote' | 'code' | 'numbered' | 'note' | 'warning' | 'tip' | 'image' | 'h2' | 'h3' | 'definition' | 'hr' | 'callout' | 'feature' | 'kpi-grid' | 'timeline' | 'concept-card' | 'comparison-grid';
   content: string;
   items?: string[];
   subItems?: string[];
@@ -239,8 +239,14 @@ function parseContent(raw: string): ParsedSection[] {
     // Callout blocks: :::callout, :::callout-hook, :::callout-rule, :::callout-error
     const calloutMatch = line.match(/^:::callout(?:-(hook|rule|error))?\s*(.*)/i);
     const featureMatch = line.match(/^:::feature\s*(.*)/i);
+    // V.59: Visual Component blocks
+    const kpiMatch = line.match(/^:::kpi-grid\s*(.*)/i);
+    const timelineMatch = line.match(/^:::timeline\s*(.*)/i);
+    const conceptCardMatch = line.match(/^:::concept-card\s*(.*)/i);
+    const comparisonMatch = line.match(/^:::comparison\s*(.*)/i);
 
-    if (endBoxMatch && currentBlock && ['note', 'warning', 'tip', 'callout', 'feature'].includes(currentBlock.type)) {
+    const componentBlockTypes = ['note', 'warning', 'tip', 'callout', 'feature', 'kpi-grid', 'timeline', 'concept-card', 'comparison-grid'];
+    if (endBoxMatch && currentBlock && componentBlockTypes.includes(currentBlock.type)) {
       flushBlock();
       continue;
     }
@@ -258,9 +264,30 @@ function parseContent(raw: string): ParsedSection[] {
       currentBlock = { type: 'feature', content: restContent, index: featureIndex };
       continue;
     }
-    // Accumulate content for callout/feature blocks until :::
-    if (currentBlock && (currentBlock.type === 'callout' || currentBlock.type === 'feature')) {
-      currentBlock.content += (currentBlock.content ? ' ' : '') + line;
+    // V.59: Visual component blocks
+    if (kpiMatch) {
+      flushBlock();
+      currentBlock = { type: 'kpi-grid', content: kpiMatch[1] || '' };
+      continue;
+    }
+    if (timelineMatch) {
+      flushBlock();
+      currentBlock = { type: 'timeline', content: timelineMatch[1] || '' };
+      continue;
+    }
+    if (conceptCardMatch) {
+      flushBlock();
+      currentBlock = { type: 'concept-card', content: conceptCardMatch[1] || '' };
+      continue;
+    }
+    if (comparisonMatch) {
+      flushBlock();
+      currentBlock = { type: 'comparison-grid', content: comparisonMatch[1] || '' };
+      continue;
+    }
+    // Accumulate content for component blocks until :::
+    if (currentBlock && componentBlockTypes.includes(currentBlock.type)) {
+      currentBlock.content += (currentBlock.content ? '\n' : '') + line;
       continue;
     }
     if (noteMatch) { flushBlock(); currentBlock = { type: 'note', content: noteMatch[1] || 'ملاحظة' }; continue; }
@@ -1642,6 +1669,185 @@ function generateCSS(designReasoning?: DesignReasoningBlock, language: 'ar' | 'e
       .content-page:first-of-type { break-before: auto; }
       /* V.57: Table containers */
       .table-container { break-inside: avoid; page-break-inside: avoid; }
+
+      /* ═══ V.59: Visual Component Architecture — page-break rules ═══ */
+      .kpi-grid,
+      .timeline-container,
+      .concept-card,
+      .comparison-grid,
+      .stat-card,
+      .feature-box,
+      .callout-box {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+      }
+    }
+
+    /* ═══ V.59: Visual Component CSS (Academic-Grade Minimalist) ═══ */
+    /* @page setup */
+    @page {
+      size: A4;
+      margin: 20mm 15mm 20mm 15mm;
+    }
+
+    /* ── Component A: KPI & Metric Callout Grid ── */
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .kpi-card {
+      background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 18px 14px;
+      text-align: center;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      border-top: 3px solid var(--kpi-accent, #2563EB);
+    }
+    .kpi-value {
+      display: block;
+      font-size: 28pt;
+      font-weight: 800;
+      color: #0F172A;
+      line-height: 1.1;
+      margin-bottom: 6px;
+      letter-spacing: -0.5px;
+    }
+    .kpi-label {
+      display: block;
+      font-size: 10pt;
+      color: #64748B;
+      font-weight: 500;
+      line-height: 1.3;
+    }
+
+    /* ── Component B: Process Flow & Timelines ── */
+    .timeline-container {
+      margin: 20px 0;
+      position: relative;
+      padding-${isRTL ? 'right' : 'left'}: 28px;
+      border-${isRTL ? 'right' : 'left'}: 2px solid #e2e8f0;
+    }
+    .timeline-step {
+      position: relative;
+      margin-bottom: 20px;
+      padding-${isRTL ? 'right' : 'left'}: 8px;
+    }
+    .timeline-step::before {
+      content: '';
+      position: absolute;
+      ${isRTL ? 'right' : 'left'}: -35px;
+      top: 4px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: #2563EB;
+      border: 3px solid #fff;
+      box-shadow: 0 0 0 2px #2563EB;
+    }
+    .timeline-step .step-number {
+      display: inline-block;
+      font-size: 9pt;
+      font-weight: 700;
+      color: #2563EB;
+      background: #DBEAFE;
+      padding: 2px 10px;
+      border-radius: 12px;
+      margin-bottom: 6px;
+      letter-spacing: 1px;
+    }
+    .timeline-step .step-content h4 {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #0F172A;
+      margin: 0 0 6px 0;
+      line-height: 1.3;
+    }
+    .timeline-step .step-content p {
+      font-size: 10pt;
+      color: #475569;
+      line-height: 1.6;
+      margin: 0;
+    }
+
+    /* ── Component C: Concept Cards ── */
+    .concept-card {
+      background: #F8F9FA;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin: 14px 0;
+      overflow: hidden;
+      border-${isRTL ? 'right' : 'left'}: 4px solid var(--card-accent, #8B5CF6);
+    }
+    .concept-card .card-header {
+      background: linear-gradient(135deg, rgba(139,92,246,0.08) 0%, rgba(37,99,235,0.05) 100%);
+      padding: 10px 16px;
+      font-size: 12pt;
+      font-weight: 700;
+      color: #0F172A;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .concept-card .card-body {
+      padding: 12px 16px;
+      font-size: 10pt;
+      color: #334155;
+      line-height: 1.7;
+    }
+
+    /* ── Component D: Side-by-Side Comparison ── */
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin: 18px 0;
+    }
+    .comparison-grid .card {
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 10pt;
+      line-height: 1.6;
+    }
+    .comparison-grid .card h4 {
+      font-size: 12pt;
+      font-weight: 700;
+      margin: 0 0 8px 0;
+      padding-bottom: 6px;
+      border-bottom: 1px solid;
+    }
+    .comparison-grid .card-pro {
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-top: 3px solid #22C55E;
+    }
+    .comparison-grid .card-pro h4 { color: #15803D; border-color: #BBF7D0; }
+    .comparison-grid .card-con {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-top: 3px solid #EF4444;
+    }
+    .comparison-grid .card-con h4 { color: #B91C1C; border-color: #FECACA; }
+    .comparison-grid .card-neutral {
+      background: #F8F9FA;
+      border: 1px solid #e2e8f0;
+      border-top: 3px solid #64748B;
+    }
+    .comparison-grid .card-neutral h4 { color: #334155; border-color: #e2e8f0; }
+
+    /* ── Stat Card (inline metric) ── */
+    .stat-card {
+      display: inline-block;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 6px 12px;
+      margin: 4px;
+      font-size: 10pt;
+    }
+    .stat-card .stat-value {
+      font-weight: 700;
+      color: #2563EB;
     }
 
     /* ─── BiDi Support ───────────────────────── */
@@ -1929,8 +2135,70 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
     case 'hr':
       return '<hr class="section-divider">';
 
+    // ═══ V.59: Visual Component Renderers ═══
+
+    case 'kpi-grid': {
+      // Parse content: each line = "value | label" or "value :: label"
+      const lines = (block.content || '').split('\n').filter(l => l.trim());
+      const kpiCards = lines.map(line => {
+        const parts = line.split(/\s*[|｜]\s*|\s*::\s*/);
+        const value = sanitizeRenderText(parts[0] || '').trim();
+        const label = sanitizeRenderText(parts.slice(1).join(' ') || '').trim();
+        if (!value) return '';
+        return `<div class="kpi-card"><span class="kpi-value">${escapeHtml(value)}</span><span class="kpi-label">${escapeHtml(label)}</span></div>`;
+      }).filter(Boolean).join('\n');
+      return kpiCards ? `<div class="kpi-grid">${kpiCards}</div>` : '';
+    }
+
+    case 'timeline': {
+      // Parse content: each line = "number | title | description"
+      const lines = (block.content || '').split('\n').filter(l => l.trim());
+      const steps = lines.map(line => {
+        const parts = line.split(/\s*[|｜]\s*/);
+        const num = sanitizeRenderText(parts[0] || '').trim().padStart(2, '0');
+        const title = sanitizeRenderText(parts[1] || '').trim();
+        const desc = sanitizeRenderText(parts.slice(2).join(' ') || '').trim();
+        if (!title) return '';
+        return `<div class="timeline-step">
+          <div class="step-content">
+            ${num ? `<div class="step-number">${escapeHtml(num)}</div>` : ''}
+            <h4>${escapeHtml(title)}</h4>
+            ${desc ? `<p>${escapeHtml(desc)}</p>` : ''}
+          </div>
+        </div>`;
+      }).filter(Boolean).join('\n');
+      return steps ? `<div class="timeline-container">${steps}</div>` : '';
+    }
+
+    case 'concept-card': {
+      // First line = header, rest = body
+      const lines = (block.content || '').split('\n').filter(l => l.trim());
+      if (lines.length === 0) return '';
+      const header = sanitizeRenderText(lines[0]).trim();
+      const body = sanitizeRenderText(lines.slice(1).join('\n')).trim();
+      return `<div class="concept-card">
+        <div class="card-header">${escapeHtml(header)}</div>
+        <div class="card-body">${escapeHtml(body)}</div>
+      </div>`;
+    }
+
+    case 'comparison-grid': {
+      // Parse content: each line = "type | title | description"
+      // type: pro, con, neutral
+      const lines = (block.content || '').split('\n').filter(l => l.trim());
+      const cards = lines.map(line => {
+        const parts = line.split(/\s*[|｜]\s*/);
+        const type = (parts[0] || 'neutral').trim().toLowerCase();
+        const title = sanitizeRenderText(parts[1] || '').trim();
+        const desc = sanitizeRenderText(parts.slice(2).join(' ') || '').trim();
+        const cssClass = type === 'pro' ? 'card-pro' : type === 'con' ? 'card-con' : 'card-neutral';
+        return `<div class="card ${cssClass}"><h4>${escapeHtml(title)}</h4><p>${escapeHtml(desc)}</p></div>`;
+      }).filter(c => c).join('\n');
+      return cards ? `<div class="comparison-grid">${cards}</div>` : '';
+    }
+
     default:
-      return block.content ? `<div class="paragraph">${escapeHtml(block.content)}</div>` : '';
+      return block.content ? `<div class="paragraph">${sanitizeAndEscape(block.content)}</div>` : '';
   }
 }
 
