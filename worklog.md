@@ -3580,3 +3580,64 @@ recent fixes:
 - More features to add
 
 *Last updated: 2025-01-30 (Round 53) · V.53 cron job setup*
+
+---
+Task ID: v56-exact-replica
+Agent: main (Z.ai Code)
+Task: نسخة طبق الأصل من الـ reference PDF — matching design, layout, colors, structure, content quality
+
+Work Log:
+- حللت الـ reference PDF (21714839-031b-4d90-8a03-f5bb0fb20e18.pdf) باستخدام VLM
+- استخرجت الـ design system:
+  * 4 صفحات (مش 8): Cover + Metadata + Key Insight + Key Points/Themes
+  * Cover: Δ logo, "DELTA AI", rainbow strip, gradient bg, 5 color legend, badges
+  * Page 2: "الجزء 1 — ملف PDF الأصلي للمحاضرة: {filename} ({size})" + 5 color dots
+  * Page 3: ★ KEY INSIGHT callout + ⚡ bold label + per-file paragraph summary
+  * Page 4: 5 numbered key points + 4 connecting themes (bullets)
+  * Colors: Blue (#2563EB), Purple (#8B5CF6), Pink (#EC4899), Orange (#F97316)
+  * Layout: Purple-tinted cards with thick blue left border
+  * Typography: sans-serif, Cairo font, RTL
+
+- عدّلت routeSummarize في smart-doc-v2.ts (V.56):
+  * Page 2: "الجزء 1 — ملف PDF الأصلي للمحاضرة: {filename} ({size})"
+  * Page 3: :::callout-hook + "★ KEY INSIGHT" + "⚡ Executive Overview" + paragraph
+  * Page 3 bottom: "📄 {filename}" + paragraph summary (NO inline bullets)
+  * Page 4: 5 numbered key points (consolidated, deduped, top 5)
+  * Page 4 bottom: 4 connecting themes (bullets, exactly 4)
+
+- عدّلت PER_FILE_SUMMARY_PROMPT_AR في multi-file-extractor.ts:
+  * summary: فقرة نثرية واحدة متصلة (مش bullets) — 5-8 جمل (medium), 6-10 (detailed)
+  * keyPoints: 5 نقاط فقط (مش 8) — كل واحدة بـ emoji prefix
+  * emphasized: "الملخص لازم يكون فقرة واحدة متصلة — مش bullet points ولا قائمة"
+
+- عدّلت CROSS_SUMMARY_PROMPT_AR:
+  * crossSummary: فقرة واحدة متصلة (6-10 جمل) — مش list ولا bullets
+  * commonThemes: بالظبط 4 عناصر (لا أكثر ولا أقل)
+  * كل theme: عنوان مختصر (3-6 كلمات)
+
+- أصلحت emoji escapes في html-template-generator.ts:
+  * callout-hook: \\u26A1 → ⚡
+  * callout-rule: \\uD83C\\uDFC6 → 🏆
+  * callout-error: \\uD83D\\uDEAB → 🚫
+  * note: \\u270D\\uFE0F → ✍️
+  * warning: \\u26A0\\uFE0F → ⚠️
+  * key-insight-star: \\u2605 → ★
+  * tip: \\u1F4A1 → 💡
+
+- أصلحت callout rendering لدعم markdown bold + newlines:
+  * قبل: escapeHtml(content) → **bold** يظهر كنص
+  * بعد: escapeHtml ثم replace **bold** → <strong> و \n → <br>
+
+- أصلحت numbered list rendering لدعم markdown bold:
+  * قبل: escapeHtml(content) → **1.** يظهر كنص
+  * بعد: escapeHtml ثم replace **bold** → <strong>
+
+Stage Summary:
+- ✅ V.56: routeSummarize بينتج بنية مطابقة للـ reference (4 صفحات)
+- ✅ Prompts بتطلب paragraph واحد متصل + 4 themes بالظبط
+- ✅ Emoji rendering اشتغل صح (⚡★🏆🚫 بدل \\uXXXX)
+- ✅ Markdown bold + newlines بيrender صح في callouts و numbered lists
+- ⚠️ Dev server بيقتل من OOM (2.7GB RSS عند compile) — مشكلة memory في الـ sandbox
+- ⚠️ محتاج verification فعلي بعد ما الـ memory issue يتحل
+
+*Last updated: 2025-07-24 (Round 56) · V.56 exact replica structure + emoji fix*

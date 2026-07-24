@@ -1706,7 +1706,7 @@ function renderComponentWrapper(
       return `<div class="definition-list">${blocksHtml}</div>`;
 
     case 'callout-box':
-      return `<div class="key-insight"><span class="key-insight-star">\\u2605</span>${blocksHtml}</div>`;
+      return `<div class="key-insight"><span class="key-insight-star">★</span>${blocksHtml}</div>`;
 
     case 'feature-grid':
       return `<div class="features-table">${blocksHtml}</div>`;
@@ -1741,12 +1741,17 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
           <span class="bullet-content">${escapeHtml(block.content)}</span>
         </div>`;
 
-    case 'numbered':
+    case 'numbered': {
+      // V.56: Parse markdown bold (**text**) in numbered items
+      const numContent = block.content || '';
+      const numHtml = escapeHtml(numContent)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       return `
         <div class="numbered-item">
           <span class="numbered-badge">${block.index || 1}</span>
-          <span style="flex:1; line-height:1.8">${escapeHtml(block.content)}</span>
+          <span style="flex:1; line-height:1.8">${numHtml}</span>
         </div>`;
+    }
 
     case 'blockquote':
       return `
@@ -1757,7 +1762,7 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
     case 'note':
       return `
         <div class="callout callout-note">
-          <span class="callout-icon">\\u270D\\uFE0F</span>
+          <span class="callout-icon">✍️</span>
           <div class="callout-content">
             <div class="callout-label">${isRTL ? 'ملاحظة' : 'Note'}</div>
             <div class="callout-text">${escapeHtml(block.content)}</div>
@@ -1767,7 +1772,7 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
     case 'warning':
       return `
         <div class="callout callout-warning">
-          <span class="callout-icon">\\u26A0\\uFE0F</span>
+          <span class="callout-icon">⚠️</span>
           <div class="callout-content">
             <div class="callout-label">${isRTL ? 'تحذير' : 'Warning'}</div>
             <div class="callout-text">${escapeHtml(block.content)}</div>
@@ -1777,7 +1782,7 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
     case 'tip':
       return `
         <div class="callout callout-tip">
-          <span class="callout-icon">\\u1F4A1</span>
+          <span class="callout-icon">💡</span>
           <div class="callout-content">
             <div class="callout-label">${isRTL ? 'نصيحة' : 'Tip'}</div>
             <div class="callout-text">${escapeHtml(block.content)}</div>
@@ -1787,9 +1792,9 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
     case 'callout': {
       const variant = block.variant || 'hook';
       const icons: Record<string, string> = {
-        hook: '\\u26A1',
-        rule: '\\uD83C\\uDFC6',
-        error: '\\uD83D\\uDEAB',
+        hook: '⚡',
+        rule: '🏆',
+        error: '🚫',
       };
       const labels: Record<string, string> = {
         hook: isRTL ? 'نقطة صاعقة' : 'Key Insight',
@@ -1797,12 +1802,19 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
         error: isRTL ? 'خطأ شائع' : 'Common Mistake',
       };
       const label = block.label || labels[variant];
+      // V.56: Parse callout content - it may contain markdown bold (**text**)
+      // and multi-line content. Render bold properly, preserve line breaks.
+      const rawContent = block.content || '';
+      // Convert **bold** to <strong>, preserve newlines as <br>
+      const htmlContent = escapeHtml(rawContent)
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
       return `
         <div class="callout-box callout-box-${variant}">
           <span class="callout-box-icon">${icons[variant]}</span>
           <div class="callout-box-content">
             <strong class="callout-box-label">${escapeHtml(label)}</strong>
-            <p class="callout-box-text">${escapeHtml(block.content)}</p>
+            <p class="callout-box-text">${htmlContent}</p>
           </div>
         </div>`;
     }
