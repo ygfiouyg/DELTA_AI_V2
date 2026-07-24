@@ -71,3 +71,7 @@ server.log
 *.hbc
 .git-rewrite/
 filter-branch-backup/
+upload-temp/
+upload/
+*.db
+mobile-app/dist/
