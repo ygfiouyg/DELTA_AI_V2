@@ -1,88 +1,54 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { getSkillsMetadata, findMatchingSkills } from '@/lib/skill-discovery';
+
 /**
- * /api/skills
- * ===========
- * GET  — قائمة كل الـ skills (المستخدمين يشفوا approved بس، الأدمن يشفوا الكل)
- * POST — approve/reject skill (أدمن بس)
+ * GET /api/skills - List all available skills
+ * POST /api/skills - Search for matching skills
  */
-
-import { NextRequest, NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { getUserFromToken, extractBearerToken } from "@/lib/auth";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const token = extractBearerToken(request.headers.get("Authorization"));
-    const user = token ? await getUserFromToken(token) : null;
-    if (!user) {
-      return NextResponse.json({ error: "مطلوب تسجيل الدخول" }, { status: 401 });
-    }
-
-    const isAdmin = user.role === "admin";
-    const status = isAdmin ? undefined : "approved";
-
-    const skills = await db.gitHubSkill.findMany({
-      where: status ? { status } : {},
-      orderBy: { createdAt: "desc" },
-      select: {
-        id: true,
-        githubUrl: true,
-        repoName: true,
-        repoOwner: true,
-        name: true,
-        description: true,
-        status: true,
-        submittedBy: true,
-        fileCount: true,
-        aiReview: isAdmin ? true : false,
-        skillMd: status === "approved" || isAdmin ? true : false,
-        toolsNeeded: true,
-        createdAt: true,
-        reviewedAt: true,
-      },
+    const skills = await getSkillsMetadata();
+    return NextResponse.json({
+      success: true,
+      count: skills.length,
+      skills,
     });
-
-    return NextResponse.json({ success: true, skills, isAdmin });
-  } catch (error: any) {
-    return NextResponse.json({ error: error?.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Failed to load skills' },
+      { status: 500 }
+    );
   }
 }
 
-// ── POST: approve/reject (admin only) ──
 export async function POST(request: NextRequest) {
   try {
-    const token = extractBearerToken(request.headers.get("Authorization"));
-    const user = token ? await getUserFromToken(token) : null;
-    if (!user || user.role !== "admin") {
-      return NextResponse.json({ error: "مطلوب صلاحيات أدمن" }, { status: 403 });
-    }
-
     const body = await request.json();
-    const { skillId, action } = body as { skillId: string; action: "approve" | "reject" };
+    const { query } = body;
 
-    if (!skillId || !action) {
-      return NextResponse.json({ error: "skillId و action مطلوبين" }, { status: 400 });
+    if (!query) {
+      return NextResponse.json(
+        { success: false, error: 'Query is required' },
+        { status: 400 }
+      );
     }
 
-    const newStatus = action === "approve" ? "approved" : "rejected";
-
-    const updated = await db.gitHubSkill.update({
-      where: { id: skillId },
-      data: {
-        status: newStatus,
-        reviewedBy: user.email,
-        reviewedAt: new Date(),
-      },
-    });
-
+    const matched = await findMatchingSkills(query, 5);
     return NextResponse.json({
       success: true,
-      skill: updated,
-      message: action === "approve" ? "تم نشر المهارة ✅" : "تم رفض المهارة ❌",
+      query,
+      matchedCount: matched.length,
+      skills: matched.map(s => ({
+        name: s.name,
+        description: s.description,
+        category: s.category,
+        priority: s.priority,
+      })),
     });
-  } catch (error: any) {
-    return NextResponse.json({ error: error?.message }, { status: 500 });
+  } catch (error) {
+    return NextResponse.json(
+      { success: false, error: 'Search failed' },
+      { status: 500 }
+    );
   }
 }

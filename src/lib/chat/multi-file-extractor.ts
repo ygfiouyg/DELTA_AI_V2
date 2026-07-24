@@ -166,7 +166,17 @@ async function callLLM(
   model: string = 'glm-4-flash'
 ): Promise<string> {
   try {
-    const result = await callLLMStreamed(systemPrompt, userMessage, model); // V.55: timeout removed
+    // V.61: Inject matching skills into the system prompt
+    let enhancedPrompt = systemPrompt;
+    try {
+      const { enhancePromptWithSkills } = await import('../skill-blender');
+      const skillResult = await enhancePromptWithSkills(userMessage, systemPrompt);
+      enhancedPrompt = skillResult.prompt;
+    } catch (e) {
+      // Non-fatal — continue with original prompt
+    }
+
+    const result = await callLLMStreamed(enhancedPrompt, userMessage, model); // V.55: timeout removed
 
     if (result) {
       return result;
