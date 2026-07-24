@@ -5,44 +5,52 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// Prisma Client Initialization — Supabase PostgreSQL (production-safe)
+// Prisma Client Initialization — SQLite (production-safe)
 // ═══════════════════════════════════════════════════════════════════════
-// The app now uses Supabase PostgreSQL (persistent across HF Space rebuilds).
-// The DATABASE_URL and DIRECT_URL env vars are configured as HF Space Secrets.
+// V.56: Reverted to SQLite (matches schema.prisma provider = "sqlite").
+// The DB file lives at /app/db/custom.db on HuggingFace Space.
 //
-// Next.js production build INLINES process.env vars at build time. If
-// DATABASE_URL is empty/undefined during build, it stays undefined at runtime
-// even if the ENV var is later set. To prevent silent SQLite fallbacks that
-// caused the previous data-loss bug, we now HARD-FAIL if DATABASE_URL is
-// missing instead of guessing a file path.
+// If DATABASE_URL env var is set and starts with "file:", use it directly.
+// If DATABASE_URL is set to a PostgreSQL URL (legacy), override with SQLite
+// to match the schema.prisma provider.
+// If DATABASE_URL is not set, default to ./db/custom.db (local dev).
 // ═══════════════════════════════════════════════════════════════════════
 
 function resolveDatabaseUrl(): string {
   const envUrl = process.env.DATABASE_URL
-  if (envUrl && envUrl.trim().length > 0) {
+
+  // V.56: If DATABASE_URL is a file: URL, use it directly (SQLite)
+  if (envUrl && envUrl.trim().startsWith('file:')) {
     return envUrl.trim()
   }
 
-  // Hard-fail: no silent SQLite fallback (caused data loss on HF Space).
-  throw new Error(
-    '[DB] FATAL: DATABASE_URL env var is not set. ' +
-      'Configure it as a HF Space Secret pointing to your Supabase PostgreSQL connection string ' +
-      '(format: postgresql://postgres.<project>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres). ' +
-      'Also set DIRECT_URL for migrations (port 5432).'
-  )
+  // V.56: If DATABASE_URL is a PostgreSQL URL but schema uses SQLite,
+  // override with SQLite to prevent PrismaClientInitializationError.
+  // This happens when HF Space Secrets still have the old PostgreSQL URL.
+  if (envUrl && envUrl.trim().startsWith('postgresql:')) {
+    console.log('[DB] V.56: DATABASE_URL is PostgreSQL but schema uses SQLite — overriding to SQLite')
+    return 'file:/app/db/custom.db'
+  }
+
+  // Default: local development SQLite path
+  const defaultPath = process.cwd() + '/db/custom.db'
+  console.log('[DB] No DATABASE_URL set, using default SQLite:', defaultPath)
+  return `file:${defaultPath}`
 }
 
 const databaseUrl = resolveDatabaseUrl()
 
 // Mask credentials when logging — never print the password.
 function maskUrl(url: string): string {
+  if (url.startsWith('file:')) {
+    return url // No credentials in file: URLs
+  }
   try {
     const u = new URL(url)
     if (u.password) u.password = '***'
     if (u.username) u.username = u.username // keep username for debugging
     return u.toString()
   } catch {
-    // Not a URL (shouldn't happen with postgresql:// but be safe)
     return url.replace(/:[^:@/]+@/, ':***@')
   }
 }
