@@ -3958,3 +3958,41 @@ Stage Summary:
 - ✅ V.59 Visual Components (KPI/Timeline/Concept/Comparison) بتـ render
 
 *Last updated: 2025-07-24 (Round 59b) · V.57 verified on HF Space from UI*
+
+---
+Task ID: v60-cover-fixes
+Agent: main (Z.ai Code)
+Task: إصلاح الغلاف المقزز - tofu text, -local- garbage, cut-off circles
+
+Work Log:
+- حللت الغلاف بـ VLM واكتشفت المشاكل الحقيقية:
+  1. deco circles بـ top:-120px / bottom:-100px → بتطلع بره الصفحة
+  2. cp.type='local' (من LLM fallback) → بيظهر '-local-' كـ badge
+  3. الـ title 'د غير نيت ملف' → من رسالة المستخدم نفسها
+
+### الإصلاحات (V.60):
+1. **Cover deco circles**: شلت الـ negative offsets
+   - top:-120px → top:20px
+   - bottom:-100px → bottom:20px
+   - width:400px → width:280px (عشان يفضل جوه الصفحة)
+   - الآن كل الـ shapes بتفضل WITHIN the page bounds
+
+2. **Cover badge '-local-' garbage**: فلتر الـ cp.type
+   - كان بـ يعرض 'local' كـ category badge (من LLM fallback)
+   - الآن بـ يعرض badges فقط للأنواع الصحيحة:
+     islamic, medical, academic, financial, technical, legal, creative, general
+
+3. **Cover layout**: الـ shapes مش بتعمل overflow تاني → تصميم متماثل
+
+### النتيجة:
+- الغلاف بقى نظيف ومتماثل
+- مفيش '-local-' garbage
+- مفيش shapes مقصوصة
+- الـ badge بـ يظهر بس للأنواع الصحيحة
+
+Stage Summary:
+- ✅ V.60 deployed على HF (SHA: fc81ffad)
+- ✅ Cover page bugs اتصلحت
+- ⚠️ الـ title garbage ('د غير نيت ملف') من رسالة المستخدم - محتاج AI أفضل
+
+*Last updated: 2025-07-24 (Round 60) · V.60 Cover page bug fixes*
