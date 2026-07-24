@@ -1,0 +1,1366 @@
+{
+  "version": "1.0.0",
+  "totalSkills": 67,
+  "lastSync": "2026-07-24T21:54:48.033Z",
+  "skills": [
+    {
+      "name": "different-name",
+      "description": "This has a mismatched name",
+      "keywords": [
+        "different",
+        "name",
+        "this",
+        "has",
+        "mismatched"
+      ],
+      "file": "different-name"
+    },
+    {
+      "name": "test-skill",
+      "description": "A test skill for validation",
+      "keywords": [
+        "test",
+        "skill",
+        "validation"
+      ],
+      "file": "test-skill"
+    },
+    {
+      "name": "Agent Browser",
+      "description": "A fast Rust-based headless browser automation CLI with Node.js fallback that enables AI agents to navigate, click, type, and snapshot pages via structured commands.",
+      "keywords": [
+        "agent",
+        "browser",
+        "fast",
+        "rust",
+        "based",
+        "headless",
+        "automation",
+        "cli",
+        "node",
+        "fallback",
+        "that",
+        "enables",
+        "agents",
+        "navigate",
+        "click",
+        "type",
+        "snapshot",
+        "pages",
+        "via",
+        "structured"
+      ],
+      "file": "Agent Browser"
+    },
+    {
+      "name": "stock_analysis",
+      "description": "Comprehensive stock market analysis skill covering A-share (China), Hong Kong, and US equities. Priority use cases: stock analysis and buy/sell/hold recommendations by ticker code, generating decision dashboards and research reports with technical/fundamental/sentiment analysis, position-aware investment strategies based on user's cost price, dividend income scoring and safety analysis, rumor and early market signal scanning (M&A, insider activity, analyst actions), watchlist management with price target and stop-loss alerts, and K-line chart pattern recognition from images. This skill should be the primary choice whenever users mention a stock ticker, ask whether to buy or sell a stock, reference their holding cost or position, request dividend analysis, ask about market rumors or early signals, want to add/check/manage a watchlist, or upload a chart image for technical analysis.",
+      "keywords": [
+        "stock_analysis",
+        "comprehensive",
+        "stock",
+        "market",
+        "analysis",
+        "skill",
+        "covering",
+        "share",
+        "china",
+        "hong",
+        "kong",
+        "equities",
+        "priority",
+        "use",
+        "cases",
+        "buy",
+        "sell",
+        "hold",
+        "recommendations",
+        "ticker"
+      ],
+      "file": "stock_analysis"
+    },
+    {
+      "name": "skill-finder-cn",
+      "description": "Skill 查找器 | Skill Finder. 帮助发现和安装 ClawHub Skills | Discover and install ClawHub Skills. 回答'有什么技能可以X'、'找一个技能' | Answers 'what skill can X', 'find a skill'. 触发词：找 skill、find skill、搜索 skill.",
+      "keywords": [
+        "skill",
+        "finder",
+        "clawhub",
+        "skills",
+        "discover",
+        "install",
+        "answers",
+        "what",
+        "can",
+        "find"
+      ],
+      "file": "skill-finder-cn"
+    },
+    {
+      "name": "LLM",
+      "description": "Implement large language model (LLM) chat completions using the z-ai-web-dev-sdk. Use this skill when the user needs to build conversational AI applications, chatbots, AI assistants, or any text generation features. Supports multi-turn conversations, system prompts, and context management.",
+      "keywords": [
+        "llm",
+        "implement",
+        "large",
+        "language",
+        "model",
+        "chat",
+        "completions",
+        "using",
+        "web",
+        "dev",
+        "sdk",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "user",
+        "needs",
+        "build",
+        "conversational",
+        "applications"
+      ],
+      "file": "LLM"
+    },
+    {
+      "name": "cheat-sheet",
+      "description": "将 PDF/Word/Markdown 学习资料转化为精炼的知识浓缩卡文档。支持三种风格（知识点速查卡/思维导图式/Q&A式），输出双栏小字 PDF。当用户说\"生成知识浓缩卡\"、\"生成 Cheatsheet\"、\"帮我做个速查表\"、\"把这个资料整理成一页纸\"、\"做个知识卡片\"时触发。**不处理**：基于材料出题（→ quiz-mastery）、长期学习项目（→ study-buddy）。",
+      "keywords": [
+        "cheat",
+        "sheet",
+        "pdf",
+        "word",
+        "markdown",
+        "cheatsheet",
+        "quiz",
+        "mastery",
+        "study",
+        "buddy"
+      ],
+      "file": "cheat-sheet"
+    },
+    {
+      "name": "image-generation",
+      "description": "Implement AI image generation capabilities using the z-ai-web-dev-sdk. Use this skill when the user needs to create images from text descriptions, generate visual content, create artwork, design assets, or build applications with AI-powered image creation. Supports multiple image sizes and returns base64 encoded images. Also includes CLI tool for quick image generation.",
+      "keywords": [
+        "image",
+        "generation",
+        "implement",
+        "capabilities",
+        "using",
+        "web",
+        "dev",
+        "sdk",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "user",
+        "needs",
+        "create",
+        "images",
+        "from",
+        "text",
+        "descriptions",
+        "generate"
+      ],
+      "file": "image-generation"
+    },
+    {
+      "name": "docx",
+      "description": "Comprehensive document creation, editing, and analysis with support for tracked changes, comments, formatting preservation, and text extraction. When GLM needs to work with professional documents (.docx files) for: (1) Creating new documents, (2) Modifying or editing content, (3) Working with tracked changes, (4) Adding comments, or any other document tasks",
+      "keywords": [
+        "docx",
+        "comprehensive",
+        "document",
+        "creation",
+        "editing",
+        "analysis",
+        "support",
+        "tracked",
+        "changes",
+        "comments",
+        "formatting",
+        "preservation",
+        "text",
+        "extraction",
+        "when",
+        "glm",
+        "needs",
+        "work",
+        "professional",
+        "documents"
+      ],
+      "file": "docx"
+    },
+    {
+      "name": "charts",
+      "description": ">",
+      "keywords": [
+        "charts"
+      ],
+      "file": "charts"
+    },
+    {
+      "name": "ContentAnalysis",
+      "description": "Content extraction and analysis — wisdom extraction from videos, podcasts, articles, and YouTube. USE WHEN extract wisdom, content analysis, analyze content, insight report, analyze video, analyze podcast, extract insights, key takeaways, what did I miss, extract from YouTube.",
+      "keywords": [
+        "contentanalysis",
+        "content",
+        "extraction",
+        "analysis",
+        "wisdom",
+        "from",
+        "videos",
+        "podcasts",
+        "articles",
+        "youtube",
+        "use",
+        "when",
+        "extract",
+        "analyze",
+        "insight",
+        "report",
+        "video",
+        "podcast",
+        "insights",
+        "key"
+      ],
+      "file": "ContentAnalysis"
+    },
+    {
+      "name": "Podcast Generate",
+      "description": "Generate podcast episodes from user-provided content or by searching the web for specified topics. If user uploads a text file/article, creates a dual-host dialogue podcast (or single-host upon request). If no content is provided, searches the web for information about the user-specified topic and generates a podcast. Duration scales with content size (3-20 minutes, ~240 chars/min). Uses z-ai-web-dev-sdk for LLM script generation and TTS audio synthesis. Outputs both a podcast script (Markdown) and a complete audio file (WAV).",
+      "keywords": [
+        "podcast",
+        "generate",
+        "episodes",
+        "from",
+        "user",
+        "provided",
+        "content",
+        "searching",
+        "web",
+        "specified",
+        "topics",
+        "uploads",
+        "text",
+        "file",
+        "article",
+        "creates",
+        "dual",
+        "host",
+        "dialogue",
+        "single"
+      ],
+      "file": "Podcast Generate"
+    },
+    {
+      "name": "auto-target-tracker",
+      "description": "自动目标进度追踪器。在对话中检测到目标相关图片（笔记、进度、截图、记录）时，自动调用 VLM 识别关键信息并记录到目标日记。适用于学习管理、健身追踪、工作进度、习惯养成、创作记录等所有目标管理场景。",
+      "keywords": [
+        "auto",
+        "target",
+        "tracker",
+        "vlm"
+      ],
+      "file": "auto-target-tracker"
+    },
+    {
+      "name": "web-reader",
+      "description": "Implement web page content extraction capabilities using the z-ai-web-dev-sdk. Use this skill when the user needs to scrape web pages, extract article content, retrieve page metadata, or build applications that process web content. Supports automatic content extraction with title, HTML, and publication time retrieval.",
+      "keywords": [
+        "web",
+        "reader",
+        "implement",
+        "page",
+        "content",
+        "extraction",
+        "capabilities",
+        "using",
+        "dev",
+        "sdk",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "user",
+        "needs",
+        "scrape",
+        "pages",
+        "extract",
+        "article"
+      ],
+      "file": "web-reader"
+    },
+    {
+      "name": "resume-builder",
+      "description": "从零生成或全面优化一份中文简历，并导出 docx / pdf / markdown 多种格式。用 STAR 法则改写经历、做 ATS 关键词覆盖率检查、根据行业（互联网产品 / 技术 / 金融 / 通用）选模板。当用户说\"帮我写简历 / 优化简历 / 简历不会写 / 我的简历太弱了 / 简历看起来不专业 / 简历改一改 / 给我做个简历模板 / 简历导出 / 简历加点关键词\"，或者上传 .pdf/.docx 简历后说\"看看怎么改\"时，必须触发本 skill。即使用户只问\"我的简历有什么问题\"也要触发。",
+      "keywords": [
+        "resume",
+        "builder",
+        "docx",
+        "pdf",
+        "markdown",
+        "star",
+        "ats",
+        "skill"
+      ],
+      "file": "resume-builder"
+    },
+    {
+      "name": "gift-evaluator",
+      "description": "The PRIMARY tool for Spring Festival gift analysis and social interaction generation. Use this skill when users upload photos of gifts (alcohol, tea, supplements, etc.) to inquire about their value, authenticity, or how to respond socially. Integrates visual perception, market valuation, and HTML card generation.",
+      "keywords": [
+        "gift",
+        "evaluator",
+        "primary",
+        "tool",
+        "spring",
+        "festival",
+        "analysis",
+        "social",
+        "interaction",
+        "generation",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "users",
+        "upload",
+        "photos",
+        "gifts",
+        "alcohol",
+        "tea"
+      ],
+      "file": "gift-evaluator"
+    },
+    {
+      "name": "xlsx",
+      "description": "Use this skill any time a spreadsheet file is the primary input or output. This means any task where the user wants to: open, read, edit, or fix an existing .xlsx, .xlsm, .csv, or .tsv file; create a new spreadsheet from scratch or from other data sources; analyze data and output results as an Excel file with charts; convert between tabular file formats (CSV/JSON/PDF → XLSX or vice versa); clean, merge, pivot, or transform tabular data. Trigger especially when the user references a spreadsheet file by name or path, says 'make a table/report/model', mentions Excel/CSV/数据分析/报表/汇总, or wants data visualization inside a spreadsheet.",
+      "keywords": [
+        "xlsx",
+        "use",
+        "this",
+        "skill",
+        "any",
+        "time",
+        "spreadsheet",
+        "file",
+        "primary",
+        "input",
+        "output",
+        "means",
+        "task",
+        "where",
+        "user",
+        "wants",
+        "open",
+        "read",
+        "edit",
+        "fix"
+      ],
+      "file": "xlsx"
+    },
+    {
+      "name": "market-research-reports",
+      "description": "Generate comprehensive market research reports (50+ pages) in the style of top consulting firms (McKinsey, BCG, Gartner). Features professional LaTeX formatting, extensive visual generation with scientific-schematics and generate-image, deep integration with research-lookup for data gathering, and multi-framework strategic analysis including Porter's Five Forces, PESTLE, SWOT, TAM/SAM/SOM, and BCG Matrix.",
+      "keywords": [
+        "market",
+        "research",
+        "reports",
+        "generate",
+        "comprehensive",
+        "pages",
+        "style",
+        "top",
+        "consulting",
+        "firms",
+        "mckinsey",
+        "bcg",
+        "gartner",
+        "features",
+        "professional",
+        "latex",
+        "formatting",
+        "extensive",
+        "visual",
+        "generation"
+      ],
+      "file": "market-research-reports"
+    },
+    {
+      "name": "blog-writer",
+      "description": "This skill should be used when writing blog posts, articles, or long-form content in the writer's distinctive writing style. It produces authentic, opinionated content that matches the writer's voice—direct, conversational, and grounded in personal experience. The skill handles the complete workflow from research review through Notion publication. Use this skill for drafting blog posts, thought leadership pieces, or any writing meant to reflect the writer's perspective on AI, productivity, sales, marketing, or technology topics.",
+      "keywords": [
+        "blog",
+        "writer",
+        "this",
+        "skill",
+        "should",
+        "used",
+        "when",
+        "writing",
+        "posts",
+        "articles",
+        "long",
+        "form",
+        "content",
+        "distinctive",
+        "style",
+        "produces",
+        "authentic",
+        "opinionated",
+        "that",
+        "matches"
+      ],
+      "file": "blog-writer"
+    },
+    {
+      "name": "jd-resume-tailor",
+      "description": "给定一份 JD 和一份现有简历，做\"JD 拆解 + 简历定向改写\"。拆 JD 抽出硬技能、软技能、加分项；对照简历做 gap 分析；产出针对该岗位重写后的简历，突出相关经验、补齐关键词缺口、并保留候选人真实经历不编造。当用户说\"针对这个岗位 / 这家公司改简历\"\"帮我对一下这个 JD\"\"我想投这个职位你看怎么改\"\"把这份简历针对 X 公司优化\"\"做一份定向版简历\"，或同时给出 JD 文本 + 简历文件时，必须触发本 skill。**请勿用本 skill 做\"从零写简历\"**——那是 resume-builder 的事。",
+      "keywords": [
+        "resume",
+        "tailor",
+        "gap",
+        "skill",
+        "builder"
+      ],
+      "file": "jd-resume-tailor"
+    },
+    {
+      "name": "aminer-daily-paper",
+      "description": "Get personalized academic paper recommendations. Activate whenever the user asks for paper recommendations — explicit command (/aminer-dp) or natural language (e.g. 'recommend me papers on RAG', 'suggest recent papers on multimodal agents'). Workflow: extract topics / author / aminer_author_id from the input, invoke scripts/recommend.py, return results as Markdown.",
+      "keywords": [
+        "aminer",
+        "daily",
+        "paper",
+        "get",
+        "personalized",
+        "academic",
+        "recommendations",
+        "activate",
+        "whenever",
+        "user",
+        "asks",
+        "explicit",
+        "command",
+        "natural",
+        "language",
+        "recommend",
+        "papers",
+        "rag",
+        "suggest",
+        "recent"
+      ],
+      "file": "aminer-daily-paper"
+    },
+    {
+      "name": "TTS",
+      "description": "Implement text-to-speech (TTS) capabilities using the z-ai-web-dev-sdk. Use this skill when the user needs to convert text into natural-sounding speech, create audio content, build voice-enabled applications, or generate spoken audio files. Supports multiple voices, adjustable speed, and various audio formats.",
+      "keywords": [
+        "tts",
+        "implement",
+        "text",
+        "speech",
+        "capabilities",
+        "using",
+        "web",
+        "dev",
+        "sdk",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "user",
+        "needs",
+        "convert",
+        "into",
+        "natural",
+        "sounding",
+        "create"
+      ],
+      "file": "TTS"
+    },
+    {
+      "name": "task-review",
+      "description": "当用户指令为高复杂度任务时触发，用于将刚完成的任务路径保存为可复用技能，生成相关的SKILL.md文档。",
+      "keywords": [
+        "task",
+        "review",
+        "skill"
+      ],
+      "file": "task-review"
+    },
+    {
+      "name": "Design Skill",
+      "description": "Route design-related HTML artifact tasks (landing pages, portfolios, prototypes, decks, content pages, web tools, social cards, info-interactive) to the right artifact skill, and decide whether to use design-system-reference, design-system-generation, or export. Use for any UI/visual/HTML design work.",
+      "keywords": [
+        "design",
+        "skill",
+        "route",
+        "related",
+        "html",
+        "artifact",
+        "tasks",
+        "landing",
+        "pages",
+        "portfolios",
+        "prototypes",
+        "decks",
+        "content",
+        "web",
+        "tools",
+        "social",
+        "cards",
+        "info",
+        "interactive",
+        "right"
+      ],
+      "file": "Design Skill"
+    },
+    {
+      "name": "ai-news-collector",
+      "description": "AI 新闻聚合与热度排序工具。当用户询问 AI 领域最新动态时触发，如：\"今天有什么 AI 新闻？\"\"总结一下这周的 AI 动态\"\"最近有什么火的 AI 产品？\"\"AI 圈最近在讨论什么？\"。覆盖：新产品发布、研究论文、行业动态、融资新闻、开源项目更新、社区病毒传播现象、AI 工具/Agent 热门项目。输出中文摘要列表，按热度排序，附带原文链接。",
+      "keywords": [
+        "news",
+        "collector",
+        "agent"
+      ],
+      "file": "ai-news-collector"
+    },
+    {
+      "name": "multi-search-engine",
+      "description": "Multi search engine integration with 8 domestic (CN) search engines. Supports advanced search operators, time filters, site search, and WeChat article search. No API keys required.",
+      "keywords": [
+        "multi",
+        "search",
+        "engine",
+        "integration",
+        "domestic",
+        "engines",
+        "supports",
+        "advanced",
+        "operators",
+        "time",
+        "filters",
+        "site",
+        "wechat",
+        "article",
+        "api",
+        "keys",
+        "required"
+      ],
+      "file": "multi-search-engine"
+    },
+    {
+      "name": "interview-prep",
+      "description": "帮用户准备面试。基于目标 JD、公司、岗位方向，生成\"高频面试题 + 参考回答 + 行为面 / 技术面 / Case 面分类题库\"，并产出可打印的『面试备战手册』。当用户说\"帮我准备面试\"\"明天有面试 / 后天面试\"\"面试题\"\"面经\"\"模拟面试\"\"我要面 X 公司 Y 岗位\"\"帮我准备 STAR 故事\"\"怎么回答这道面试题\"\"自我介绍 / 离职原因 / 优缺点 怎么答\"，必须触发本 skill。请勿用本 skill 改简历（去 jd-resume-tailor / resume-builder）或推荐方向（去 job-intent-tracker）。",
+      "keywords": [
+        "interview",
+        "prep",
+        "case",
+        "star",
+        "skill",
+        "resume",
+        "tailor",
+        "builder",
+        "job",
+        "intent",
+        "tracker"
+      ],
+      "file": "interview-prep"
+    },
+    {
+      "name": "web-search",
+      "description": "Implement web search capabilities using the z-ai-web-dev-sdk. Use this skill when the user needs to search for real-time information from the web, retrieve up-to-date content beyond the knowledge cutoff, or find the latest news and data. Returns structured search results with URLs, snippets, and metadata.",
+      "keywords": [
+        "web",
+        "search",
+        "implement",
+        "capabilities",
+        "using",
+        "dev",
+        "sdk",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "user",
+        "needs",
+        "real",
+        "time",
+        "information",
+        "from",
+        "retrieve",
+        "date",
+        "content"
+      ],
+      "file": "web-search"
+    },
+    {
+      "name": "gaokao-collect-student-info",
+      "description": ">-",
+      "keywords": [
+        "gaokao",
+        "collect",
+        "student",
+        "info"
+      ],
+      "file": "gaokao-collect-student-info"
+    },
+    {
+      "name": "web-shader-extractor",
+      "description": "|",
+      "keywords": [
+        "web",
+        "shader",
+        "extractor"
+      ],
+      "file": "web-shader-extractor"
+    },
+    {
+      "name": "quiz-html",
+      "description": "把题目数组生成一个**可独立运行的网页练习页**（HTML 文件）。当用户完成 quiz-mastery 的「从资料出题」或「从文件提取题目」流程后，应主动询问是否需要\"在网页里练习\"，确认后调用本 skill 把题目注入模板，生成 HTML 给用户。也支持用户直接说\"把这些题做成网页/HTML/练习页\"时触发。**不处理**：出题（→ quiz-mastery）、评分（→ quiz-mastery）、长期复习计划（→ study-buddy）。",
+      "keywords": [
+        "quiz",
+        "html",
+        "mastery",
+        "skill",
+        "study",
+        "buddy"
+      ],
+      "file": "quiz-html"
+    },
+    {
+      "name": "aminer-free-academic",
+      "description": ">",
+      "keywords": [
+        "aminer",
+        "free",
+        "academic"
+      ],
+      "file": "aminer-free-academic"
+    },
+    {
+      "name": "gaokao-generate-report",
+      "description": ">-",
+      "keywords": [
+        "gaokao",
+        "generate",
+        "report"
+      ],
+      "file": "gaokao-generate-report"
+    },
+    {
+      "name": "VLM",
+      "description": "Implement vision-based AI chat capabilities using the z-ai-web-dev-sdk. Use this skill when the user needs to analyze images, describe visual content, or create applications that combine image understanding with conversational AI. Supports image URLs and base64 encoded images for multimodal interactions.",
+      "keywords": [
+        "vlm",
+        "implement",
+        "vision",
+        "based",
+        "chat",
+        "capabilities",
+        "using",
+        "web",
+        "dev",
+        "sdk",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "user",
+        "needs",
+        "analyze",
+        "images",
+        "describe",
+        "visual"
+      ],
+      "file": "VLM"
+    },
+    {
+      "name": "pdf",
+      "description": "Professional PDF toolkit with four production lines:(1) Report - structured documents via ReportLab (reports, proposals, contracts, white papers); (2) Creative - visual design via JSON Blueprint → design_engine.py → Playwright snapshot (posters, infographics, invitations, dashboards). The LLM acts as Art Director outputting ONLY JSON spatial blueprints; convert.blueprint compiles to pixel-perfect PDF. (3) Academic - scholarly work via LaTeX/Tectonic (papers, theses, math-heavy documents); (4) Process - manipulate existing PDFs (extract, merge, split, fill forms, convert);Auto-routes based on document type. Includes ATS/creative/academic resume sub-paths.",
+      "keywords": [
+        "pdf",
+        "professional",
+        "toolkit",
+        "four",
+        "production",
+        "lines",
+        "report",
+        "structured",
+        "documents",
+        "via",
+        "reportlab",
+        "reports",
+        "proposals",
+        "contracts",
+        "white",
+        "papers",
+        "creative",
+        "visual",
+        "design",
+        "json"
+      ],
+      "file": "pdf"
+    },
+    {
+      "name": "gaokao-recommend-schools",
+      "description": ">-",
+      "keywords": [
+        "gaokao",
+        "recommend",
+        "schools"
+      ],
+      "file": "gaokao-recommend-schools"
+    },
+    {
+      "name": "video-understand",
+      "description": "Implement specialized video understanding capabilities using the z-ai-web-dev-sdk. Use this skill when the user needs to analyze video content, understand motion and temporal sequences, extract information from video frames, describe video scenes, or perform video-based AI analysis. Optimized for MP4, AVI, MOV, and other common video formats.",
+      "keywords": [
+        "video",
+        "understand",
+        "implement",
+        "specialized",
+        "understanding",
+        "capabilities",
+        "using",
+        "web",
+        "dev",
+        "sdk",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "user",
+        "needs",
+        "analyze",
+        "content",
+        "motion",
+        "temporal"
+      ],
+      "file": "video-understand"
+    },
+    {
+      "name": "mindfulness-meditation",
+      "description": "Build a meditation practice with guided sessions, streaks, and mindfulness reminders",
+      "keywords": [
+        "mindfulness",
+        "meditation",
+        "build",
+        "practice",
+        "guided",
+        "sessions",
+        "streaks",
+        "reminders"
+      ],
+      "file": "mindfulness-meditation"
+    },
+    {
+      "name": "image-understand",
+      "description": "Implement specialized image understanding capabilities using the z-ai-web-dev-sdk. Use this skill when the user needs to analyze static images, extract visual information, perform OCR, detect objects, classify images, or understand visual content. Optimized for PNG, JPEG, GIF, WebP, and BMP formats.",
+      "keywords": [
+        "image",
+        "understand",
+        "implement",
+        "specialized",
+        "understanding",
+        "capabilities",
+        "using",
+        "web",
+        "dev",
+        "sdk",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "user",
+        "needs",
+        "analyze",
+        "static",
+        "images",
+        "extract"
+      ],
+      "file": "image-understand"
+    },
+    {
+      "name": "image-edit",
+      "description": "Implement AI image editing and modification capabilities using the z-ai-web-dev-sdk. Use this skill when the user needs to edit existing images, create variations, modify visual content, redesign assets, or transform images based on text descriptions. Supports multiple image sizes and returns base64 encoded results. Also includes CLI tool for quick image editing.",
+      "keywords": [
+        "image",
+        "edit",
+        "implement",
+        "editing",
+        "modification",
+        "capabilities",
+        "using",
+        "web",
+        "dev",
+        "sdk",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "user",
+        "needs",
+        "existing",
+        "images",
+        "create",
+        "variations"
+      ],
+      "file": "image-edit"
+    },
+    {
+      "name": "ppt",
+      "description": "Presentation creation, editing, and analysis for .pptx files: (1) Creating new presentations, (2) Modifying or editing content, (3) Working with layouts, (4) Adding comments or speaker notes. Academic/paper-based presentations use the embedded Beamer module at end of this file (PDF output only).",
+      "keywords": [
+        "ppt",
+        "presentation",
+        "creation",
+        "editing",
+        "analysis",
+        "pptx",
+        "files",
+        "creating",
+        "new",
+        "presentations",
+        "modifying",
+        "content",
+        "working",
+        "layouts",
+        "adding",
+        "comments",
+        "speaker",
+        "notes",
+        "academic",
+        "paper"
+      ],
+      "file": "ppt"
+    },
+    {
+      "name": "aminer-academic-search",
+      "description": ">",
+      "keywords": [
+        "aminer",
+        "academic",
+        "search"
+      ],
+      "file": "aminer-academic-search"
+    },
+    {
+      "name": "get-fortune-analysis",
+      "description": "生成视觉华丽、内容详实、具有仪式感的流年运势报告（流金星象风格）。",
+      "keywords": [
+        "get",
+        "fortune",
+        "analysis"
+      ],
+      "file": "get-fortune-analysis"
+    },
+    {
+      "name": "qingyan_research_report",
+      "description": "Deep web research and HTML report generation. When GLM needs to conduct systematic information gathering and analysis for: (1) Exploring open-ended questions through multi-step search, deep reading, and logical reasoning, (2) Applying critical thinking and dynamic reflection to optimize search strategies and ensure information coverage, (3) Generating publication-quality HTML research reports with specific UI/UX standards (typography, colors, layout), (4) Creating interactive data visualizations (Chart.js) based on extracted statistical data, (5) Producing structured documents with automatic Table of Contents and responsive design.",
+      "keywords": [
+        "qingyan_research_report",
+        "deep",
+        "web",
+        "research",
+        "html",
+        "report",
+        "generation",
+        "when",
+        "glm",
+        "needs",
+        "conduct",
+        "systematic",
+        "information",
+        "gathering",
+        "analysis",
+        "exploring",
+        "open",
+        "ended",
+        "questions",
+        "through"
+      ],
+      "file": "qingyan_research_report"
+    },
+    {
+      "name": "finance",
+      "description": "Comprehensive Finance API integration skill for real-time and historical financial data analysis, market research, and investment decision-making. Priority use cases: stock price queries, market data analysis, company financial information, portfolio tracking, market news retrieval, stock screening, technical analysis, and any financial market-related requests. This skill should be the primary choice for all  Finance API interactions and financial data needs.",
+      "keywords": [
+        "finance",
+        "comprehensive",
+        "api",
+        "integration",
+        "skill",
+        "real",
+        "time",
+        "historical",
+        "financial",
+        "data",
+        "analysis",
+        "market",
+        "research",
+        "investment",
+        "decision",
+        "making",
+        "priority",
+        "use",
+        "cases",
+        "stock"
+      ],
+      "file": "finance"
+    },
+    {
+      "name": "seo-content-writer",
+      "description": "Use when the user asks to \"write SEO content\", \"create a blog post\", \"write an article\", \"content writing\", \"draft optimized content\", \"write me an article\", \"create a blog post about\", \"help me write SEO content\", or \"draft content for\". Creates high-quality, SEO-optimized content that ranks in search engines. Applies on-page SEO best practices, keyword optimization, and content structure for maximum visibility and engagement. For AI citation optimization, see geo-content-optimizer. For updating existing content, see content-refresher.",
+      "keywords": [
+        "seo",
+        "content",
+        "writer",
+        "use",
+        "when",
+        "user",
+        "asks",
+        "write",
+        "create",
+        "blog",
+        "post",
+        "article",
+        "writing",
+        "draft",
+        "optimized",
+        "about",
+        "help",
+        "creates",
+        "high",
+        "quality"
+      ],
+      "file": "seo-content-writer"
+    },
+    {
+      "name": "storyboard-manager",
+      "description": "Assist writers with story planning, character development, plot structuring, chapter writing, timeline tracking, and consistency checking. Use this skill when working with creative writing projects organized in folders containing characters, chapters, story planning documents, and summaries. Trigger this skill for tasks like \"Help me develop this character,\" \"Write the next chapter,\" \"Check consistency across my story,\" or \"Track the timeline of events.",
+      "keywords": [
+        "storyboard",
+        "manager",
+        "assist",
+        "writers",
+        "story",
+        "planning",
+        "character",
+        "development",
+        "plot",
+        "structuring",
+        "chapter",
+        "writing",
+        "timeline",
+        "tracking",
+        "consistency",
+        "checking",
+        "use",
+        "this",
+        "skill",
+        "when"
+      ],
+      "file": "storyboard-manager"
+    },
+    {
+      "name": "gaokao-fetch-volunteers",
+      "description": ">-",
+      "keywords": [
+        "gaokao",
+        "fetch",
+        "volunteers"
+      ],
+      "file": "gaokao-fetch-volunteers"
+    },
+    {
+      "name": "Version Management Skill",
+      "description": "独立通用 Skill：管理前端项目全生命周期。只要任务**可能**写出 .html/.jsx/.tsx/.vue 入口文件，就必须在写出第一个文件**之前**读取并遵循本 Skill（用于确定落盘路径与项目目录），而不是产出之后才补救；即使用户没有提到\"项目\"或\"版本\"也要使用。同时响应用户的版本相关操作（查看历史、恢复版本、切换项目等）。",
+      "keywords": [
+        "version",
+        "management",
+        "skill",
+        "html",
+        "jsx",
+        "tsx",
+        "vue"
+      ],
+      "file": "Version Management Skill"
+    },
+    {
+      "name": "Video Generation",
+      "description": "Implement AI-powered video generation capabilities using the z-ai-web-dev-sdk. Use this skill when the user needs to generate videos from text prompts or images, create video content programmatically, or build applications that produce video outputs. Supports asynchronous task management with status polling and result retrieval.",
+      "keywords": [
+        "video",
+        "generation",
+        "implement",
+        "powered",
+        "capabilities",
+        "using",
+        "web",
+        "dev",
+        "sdk",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "user",
+        "needs",
+        "generate",
+        "videos",
+        "from",
+        "text",
+        "prompts"
+      ],
+      "file": "Video Generation"
+    },
+    {
+      "name": "visual-design-foundations",
+      "description": "Apply typography, color theory, spacing systems, and iconography principles to create cohesive visual designs. Use when establishing design tokens, building style guides, or improving visual hierarchy and consistency.",
+      "keywords": [
+        "visual",
+        "design",
+        "foundations",
+        "apply",
+        "typography",
+        "color",
+        "theory",
+        "spacing",
+        "systems",
+        "iconography",
+        "principles",
+        "create",
+        "cohesive",
+        "designs",
+        "use",
+        "when",
+        "establishing",
+        "tokens",
+        "building",
+        "style"
+      ],
+      "file": "visual-design-foundations"
+    },
+    {
+      "name": "ASR",
+      "description": "Implement speech-to-text (ASR/automatic speech recognition) capabilities using the z-ai-web-dev-sdk. Use this skill when the user needs to transcribe audio files, convert speech to text, build voice input features, or process audio recordings. Supports base64 encoded audio files and returns accurate text transcriptions.",
+      "keywords": [
+        "asr",
+        "implement",
+        "speech",
+        "text",
+        "automatic",
+        "recognition",
+        "capabilities",
+        "using",
+        "web",
+        "dev",
+        "sdk",
+        "use",
+        "this",
+        "skill",
+        "when",
+        "user",
+        "needs",
+        "transcribe",
+        "audio",
+        "files"
+      ],
+      "file": "ASR"
+    },
+    {
+      "name": "anti-pua",
+      "description": "识别和分析PUA（Pickup Artist）及情感操纵行为的专业心理分析工具。具备人格分析、心理侧写、情感分析能力，能够识别情感操纵、煤气灯操纵、虐待等有毒关系模式，评估人格特质（如黑暗三人格、脆弱型自恋等），预测对方行为并给出具体的相处建议。当用户需要：分析对方言行动机、识别PUA/情感操纵行为、评估NPD（自恋型人格障碍）倾向、识别操纵行为、预测对方未来行为、寻求健康关系建议、分析黑暗三人格或光明三人格时使用此skill。",
+      "keywords": [
+        "anti",
+        "pua",
+        "pickup",
+        "artist",
+        "npd",
+        "skill"
+      ],
+      "file": "anti-pua"
+    },
+    {
+      "name": "skill-creator",
+      "description": "Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy.",
+      "keywords": [
+        "skill",
+        "creator",
+        "create",
+        "new",
+        "skills",
+        "modify",
+        "improve",
+        "existing",
+        "measure",
+        "performance",
+        "use",
+        "when",
+        "users",
+        "want",
+        "from",
+        "scratch",
+        "edit",
+        "optimize",
+        "run",
+        "evals"
+      ],
+      "file": "skill-creator"
+    },
+    {
+      "name": "writing-plans",
+      "description": "Use when you have a spec or requirements for a multi-step task, before touching code",
+      "keywords": [
+        "writing",
+        "plans",
+        "use",
+        "when",
+        "you",
+        "have",
+        "spec",
+        "requirements",
+        "multi",
+        "step",
+        "task",
+        "before",
+        "touching",
+        "code"
+      ],
+      "file": "writing-plans"
+    },
+    {
+      "name": "ui-ux-pro-max",
+      "description": "UI/UX design intelligence and implementation guidance for building polished interfaces. Use when the user asks for UI design, UX flows, information architecture, visual style direction, design systems/tokens, component specs, copy/microcopy, accessibility, or to generate/critique/refine frontend UI (HTML/CSS/JS, React, Next.js, Vue, Svelte, Tailwind). Includes workflows for (1) generating new UI layouts and styling, (2) improving existing UI/UX, (3) producing design-system tokens and component guidelines, and (4) turning UX recommendations into concrete code changes.",
+      "keywords": [
+        "pro",
+        "max",
+        "design",
+        "intelligence",
+        "implementation",
+        "guidance",
+        "building",
+        "polished",
+        "interfaces",
+        "use",
+        "when",
+        "user",
+        "asks",
+        "flows",
+        "information",
+        "architecture",
+        "visual",
+        "style",
+        "direction",
+        "systems"
+      ],
+      "file": "ui-ux-pro-max"
+    },
+    {
+      "name": "image-search",
+      "description": "|",
+      "keywords": [
+        "image",
+        "search"
+      ],
+      "file": "image-search"
+    },
+    {
+      "name": "content-strategy",
+      "description": "Build and execute a content marketing strategy for a solopreneur business. Use when planning what content to create, deciding on content formats and channels, building a content calendar, measuring content performance, or systematizing content production. Covers audience research for content, content pillars, distribution strategy, repurposing workflows, and metrics. Trigger on \"content strategy\", \"content marketing\", \"what content should I create\", \"content plan\", \"content calendar\", \"content ideas\", \"content distribution\", \"grow through content\".",
+      "keywords": [
+        "content",
+        "strategy",
+        "build",
+        "execute",
+        "marketing",
+        "solopreneur",
+        "business",
+        "use",
+        "when",
+        "planning",
+        "what",
+        "create",
+        "deciding",
+        "formats",
+        "channels",
+        "building",
+        "calendar",
+        "measuring",
+        "performance",
+        "systematizing"
+      ],
+      "file": "content-strategy"
+    },
+    {
+      "name": "coding-agent",
+      "description": "Coding workflow with planning, implementation, verification, and testing for clean software development.",
+      "keywords": [
+        "coding",
+        "agent",
+        "workflow",
+        "planning",
+        "implementation",
+        "verification",
+        "testing",
+        "clean",
+        "software",
+        "development"
+      ],
+      "file": "coding-agent"
+    },
+    {
+      "name": "quiz-mastery",
+      "description": "出题、测验、复习、掌握度追踪工具。**用户说\"复习\"、\"巩固\"、\"回顾\"任一关键词时优先触发本 skill**。当用户的请求与\"题目/复习\"相关时触发：把学习资料/PDF/材料转成题目练习（\"给这个 PDF 出几道题\"）、导入题目文件做练习（\"我有一份题目文件，帮我做\"）、复习已学内容（\"复习一下昨天的\"、\"巩固一下\"、\"回顾下昨天\"、\"用艾宾浩斯帮我安排\"）、遗忘曲线追踪、掌握度评分。**🔴 强制规则**：每次出题/导入题目成功后，**首轮展示题目前必须问一句**\"要不要生成网页练习页？\"，用户说要 → 调用 quiz-html skill。**不处理**：长期学习项目的进度管理、计划制定（→ study-buddy）。",
+      "keywords": [
+        "quiz",
+        "mastery",
+        "skill",
+        "pdf",
+        "html",
+        "study",
+        "buddy"
+      ],
+      "file": "quiz-mastery"
+    },
+    {
+      "name": "study-buddy",
+      "description": "智能督学助手，管理用户的长期学习项目工作流。当用户表达学习项目相关意图时触发：创建/制定学习计划（\"我想学X\"、\"帮我制定计划\"）、汇报学习进度（\"学完了\"、\"今天搞定了\"、\"完成今日任务\"）、查询计划状态（\"我学到哪了\"、\"看下进度\"）、查看学习报告（\"日报\"\"周报\"\"月报\"\"项目总结\"\"5月10号到15号的报告\"）、晨间/晚间打卡复盘、督促、动态调整计划、抱怨学不下去时（情绪支持）。**🔴 项目生成流程铁律**：项目生成成功后**必须一口气走完\"项目→知识点→计划表\"**，禁止只汇报\"项目已生成 / X 个知识点 / X 个模块\"就停下，必须**立即**输出\"DAY / 项目 / 知识点 / 时长 / 难度\"表格供用户确认 DAY 安排，否则视为流程失败。**🔴 报告查询铁律**：用户表达查看学习报告意图时（日报/周报/月报/项目总结/任意时间段），必须从 USER.md 取**对应时间段**的 `project_id` + `knowledge_id`，传给 `study_buddy_supervise` 工具的 `study_check` action 拿原始数据，按\"模块3 主动报告查询\"输出，**全程只读不写 USER.md**。**不处理**：单次出题（→ quiz-mastery）、Cheatsheet 生成（→ cheat-sheet）、把题目文件导入做练习（→ quiz-mastery）。",
+      "keywords": [
+        "study",
+        "buddy",
+        "day",
+        "user",
+        "project_id",
+        "knowledge_id",
+        "study_buddy_supervise",
+        "study_check",
+        "action",
+        "quiz",
+        "mastery",
+        "cheatsheet",
+        "cheat",
+        "sheet"
+      ],
+      "file": "study-buddy"
+    },
+    {
+      "name": "dream-interpreter",
+      "description": "AI 解梦大师。用户描述梦境，智能追问关键细节后，从三个视角（周公解梦/心理分析/赛博神棍）生成解读，输出结构化 JSON 供前端渲染\"梦境解析卡\"。",
+      "keywords": [
+        "dream",
+        "interpreter",
+        "json"
+      ],
+      "file": "dream-interpreter"
+    },
+    {
+      "name": "marketing-mode",
+      "description": "Marketing Mode combines 23 comprehensive marketing skills covering strategy, psychology, content, SEO, conversion optimization, and paid growth. Use when users need marketing strategy, copywriting, SEO help, conversion optimization, paid advertising, or any marketing tactic.",
+      "keywords": [
+        "marketing",
+        "mode",
+        "combines",
+        "comprehensive",
+        "skills",
+        "covering",
+        "strategy",
+        "psychology",
+        "content",
+        "seo",
+        "conversion",
+        "optimization",
+        "paid",
+        "growth",
+        "use",
+        "when",
+        "users",
+        "need",
+        "copywriting",
+        "help"
+      ],
+      "file": "marketing-mode"
+    },
+    {
+      "name": "interview-designer",
+      "description": "Analyze resumes and design interview strategies using evidence-based methodology. Transforms interview prep from \"read resume → ask questions\" into \"define standard → forensic evidence → future simulation\". Combines Geoff Smart's Topgrading, Lou Adler's performance-based hiring, and Daniel Kahneman's bias control. Use when preparing for interviews, creating structured interview guides, or designing questions to validate candidate competencies.",
+      "keywords": [
+        "interview",
+        "designer",
+        "analyze",
+        "resumes",
+        "design",
+        "strategies",
+        "using",
+        "evidence",
+        "based",
+        "methodology",
+        "transforms",
+        "prep",
+        "from",
+        "read",
+        "resume",
+        "ask",
+        "questions",
+        "into",
+        "define",
+        "standard"
+      ],
+      "file": "interview-designer"
+    },
+    {
+      "name": "fullstack-dev",
+      "description": "Fullstack web development with Next.js 16, TypeScript, Tailwind CSS 4, shadcn/ui, Prisma ORM. Use when: building web apps, creating UI components, setting up database schemas, implementing API routes, adding websocket/socket.io support, fullstack project scaffolding, frontend development, backend development, web dev, Next.js app.",
+      "keywords": [
+        "fullstack",
+        "dev",
+        "web",
+        "development",
+        "next",
+        "typescript",
+        "tailwind",
+        "css",
+        "shadcn",
+        "prisma",
+        "orm",
+        "use",
+        "when",
+        "building",
+        "apps",
+        "creating",
+        "components",
+        "setting",
+        "database",
+        "schemas"
+      ],
+      "file": "fullstack-dev"
+    },
+    {
+      "name": "job-intent-tracker",
+      "description": "帮助用户梳理求职意向、生成目标岗位画像，并维护一份结构化的\"岗位投递追踪表\"。当用户说\"我想换工作 / 不知道投什么岗 / 帮我看看我适合什么岗位 / 帮我管理投递进度 / 我投了好几家但记不住状态了 / 想做一个求职 OKR / 整理一下求职方向\"，或上传简历但没说要改简历时，应该主动触发本 skill。本 skill 也适用于实习生、应届生、转行候选人在求职启动阶段做\"自我盘点 + 目标画像 + 投递管理\"三件事。",
+      "keywords": [
+        "job",
+        "intent",
+        "tracker",
+        "okr",
+        "skill"
+      ],
+      "file": "job-intent-tracker"
+    },
+    {
+      "name": "gaokao-recommend-majors",
+      "description": ">-",
+      "keywords": [
+        "gaokao",
+        "recommend",
+        "majors"
+      ],
+      "file": "gaokao-recommend-majors"
+    }
+  ]
+}

@@ -122,7 +122,7 @@ function extractYamlField(yaml: string, field: string): string | null {
 
 /**
  * Find the best matching skills for a user prompt
- * Uses keyword matching + category scoring
+ * V.62: Improved matching — prioritizes custom high-priority skills
  */
 export async function findMatchingSkills(
   userPrompt: string,
@@ -133,40 +133,54 @@ export async function findMatchingSkills(
 
   const promptLower = userPrompt.toLowerCase();
 
-  // Score each skill based on keyword matches
+  // V.62: Direct keyword → skill mapping for our custom skills
+  const directMatches: Array<{ keywords: string[]; skillName: string }> = [
+    { keywords: ['pdf', 'ملف', 'مستند', 'pdf', 'document', 'لخص', 'تلخيص', 'summar'], skillName: 'PDF Design Master' },
+    { keywords: ['لخص', 'تلخيص', 'summar', 'تحليل', 'analysis', 'ملخص', 'محاضرة', 'lecture'], skillName: 'Academic Summary Skill' },
+    { keywords: ['kpi', 'timeline', 'chart', 'مخطط', 'رسم', 'جدول', 'مقارنة'], skillName: 'Visual Components Skill' },
+    { keywords: ['عربي', 'arabic', 'rtl', 'ترجمة', 'نص'], skillName: 'Arabic RTL Skill' },
+  ];
+
+  // Check direct matches first
+  const matchedNames = new Set<string>();
+  for (const dm of directMatches) {
+    if (dm.keywords.some(kw => promptLower.includes(kw))) {
+      matchedNames.add(dm.skillName);
+    }
+  }
+
+  // Score each skill
   const scored = skills.map(skill => {
     let score = 0;
-    const descLower = skill.description.toLowerCase();
-    const contentLower = skill.content.toLowerCase();
-    const nameLower = skill.name.toLowerCase();
+
+    // V.62: Direct match bonus (highest priority)
+    if (matchedNames.has(skill.name)) {
+      score += 100;
+    }
 
     // Score by category keywords
     const categoryKeywords: Record<string, string[]> = {
-      'pdf-design': ['pdf', 'ملف', 'مستند', 'تصميم', 'pdf', 'document'],
+      'pdf-design': ['pdf', 'ملف', 'مستند', 'تصميم', 'document'],
       'content-quality': ['لخص', 'تلخيص', 'summarize', 'تحليل', 'analysis', 'ملخص'],
-      'visual-design': ['تصميم', 'بصري', 'visual', 'kpi', 'timeline', 'chart'],
+      'visual-design': ['تصميم', 'بصري', 'visual', 'kpi', 'timeline', 'chart', 'مخطط'],
       'localization': ['عربي', 'arabic', 'rtl', 'ترجمة'],
     };
 
     const keywords = categoryKeywords[skill.category] || [];
     for (const kw of keywords) {
-      if (promptLower.includes(kw)) score += 10;
+      if (promptLower.includes(kw)) score += 15;
     }
 
-    // Score by description keywords
-    const descWords = descLower.split(/\s+/).filter(w => w.length > 4);
-    for (const word of descWords) {
-      if (promptLower.includes(word)) score += 2;
-    }
-
-    // Score by name match
-    if (nameLower.split(/[\s-]+/).some(w => w.length > 3 && promptLower.includes(w))) {
-      score += 5;
+    // Score by name keywords
+    const nameLower = skill.name.toLowerCase();
+    const nameWords = nameLower.split(/[\s-]+/).filter(w => w.length > 3);
+    for (const word of nameWords) {
+      if (promptLower.includes(word)) score += 5;
     }
 
     // Priority bonus
-    if (skill.priority === 'high') score += 3;
-    if (skill.priority === 'medium') score += 1;
+    if (skill.priority === 'high') score += 10;
+    else if (skill.priority === 'medium') score += 2;
 
     return { skill, score };
   });
