@@ -31,6 +31,7 @@ import { basename } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { randomUUID } from 'crypto';
+import { sanitizeRenderText, sanitizeTitle as sanitizeTitleV57, sanitizeFileName as sanitizeFileNameV57 } from '../render-sanitizer';
 
 // ─── Database Import ────────────────────────────────────────────────────────
 
@@ -1107,28 +1108,19 @@ async function executePipeline(
 // Prevents garbage like "Lec 2.pdf (8).pdf", "0 100000000", hex values
 // from appearing in PDF headers and section titles.
 
+// V.57: sanitizeTitle and sanitizeFileName now use the master sanitization pipeline
+// (imported at top of file from ../render-sanitizer)
+
 function sanitizeTitle(title: string): string {
   if (!title) return 'مستند';
-  let cleaned = title;
-  // Remove file extensions
-  cleaned = cleaned.replace(/\.(pdf|docx?|txt|html?|csv|xlsx?)$/gi, '');
-  // Remove "(N)" patterns like "(8)" or "(1)"
-  cleaned = cleaned.replace(/\s*\(\d+\)\s*/g, ' ');
-  // Remove duplicate extensions like "Lec 1.pdf.pdf"
-  cleaned = cleaned.replace(/(\.\w+)\1+/g, '$1');
-  // Remove hex/garbage patterns like "0 100000000"
-  cleaned = cleaned.replace(/\b\d{6,}\b/g, '');
-  // Remove URLs
-  cleaned = cleaned.replace(/https?:\/\/\S+/g, '');
-  // Remove base64 fragments
-  cleaned = cleaned.replace(/[A-Za-z0-9+/=]{40,}/g, '');
-  // Collapse multiple spaces
-  cleaned = cleaned.replace(/\s+/g, ' ').trim();
+  // V.57: Use the master sanitization pipeline
+  const cleaned = sanitizeTitleV57(title);
   // Limit length
-  if (cleaned.length > 100) cleaned = cleaned.substring(0, 100).trim();
+  if (cleaned.length > 100) return cleaned.substring(0, 100).trim();
   return cleaned || 'مستند';
 }
 
 function sanitizeFileName(name: string): string {
-  return sanitizeTitle(name);
+  // V.57: Use the master sanitization pipeline
+  return sanitizeFileNameV57(name) || 'document';
 }

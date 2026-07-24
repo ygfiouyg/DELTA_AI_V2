@@ -16,6 +16,7 @@ import type { DesignReasoningBlock, ChartSpec, ComponentMapEntry } from './desig
 import { generateChartSVG } from './chart-generator';
 import { detectTopicCategory, type TopicCategory, type ThemePalette } from './dynamic-themes';
 import { generateUniquePalette, validateContrast, type DesignPreferences } from './unique-palette-generator';
+import { sanitizeRenderText, sanitizeTitle as sanitizeTitleText, sanitizeFileName as sanitizeFileNameText } from './render-sanitizer';
 // design-templates.ts: Fixed templates REMOVED — AI-driven design only (design-reasoning.ts)
 // ─── v4.0 Ultra Colorful Helpers (مليان الوان) ──────────────────────────
 
@@ -1618,10 +1619,11 @@ function generateCSS(designReasoning?: DesignReasoningBlock, language: 'ar' | 'e
         print-color-adjust: exact !important;
         color-adjust: exact !important;
       }
-      .cover-page { break-after: page; }
+      .cover-page { break-after: page; page-break-after: always; }
       .toc-page { break-after: auto; }
       .section-header { break-after: avoid; break-inside: avoid; }
       .subsection-h2, .subsection-h3 { break-after: avoid; }
+      h1, h2, h3, h4 { break-after: avoid; break-inside: avoid; }
       .callout, .key-insight, .blockquote { break-inside: avoid; }
       .data-table, .comparison-table { break-inside: avoid; }
       .grid-card { break-inside: avoid; }
@@ -1630,6 +1632,16 @@ function generateCSS(designReasoning?: DesignReasoningBlock, language: 'ar' | 'e
       .definition-item { break-inside: avoid; }
       .code-block { break-inside: avoid; }
       .callout-box, .feature-box, .features-table { break-inside: avoid; }
+      /* V.57: Chart/diagram containers must not split across pages */
+      .chart-card, .diagram-container, .chart-wrapper, .chart-svg { break-inside: avoid; page-break-inside: avoid; }
+      /* V.57: Numbered/bullet items should stay together */
+      .numbered-item, .bullet { break-inside: avoid; page-break-inside: avoid; }
+      /* V.57: Paragraph orphan/widow control */
+      p { orphans: 3; widows: 3; }
+      /* V.57: Content page should start on a new page after cover */
+      .content-page:first-of-type { break-before: auto; }
+      /* V.57: Table containers */
+      .table-container { break-inside: avoid; page-break-inside: avoid; }
     }
 
     /* ─── BiDi Support ───────────────────────── */
@@ -1648,6 +1660,14 @@ function escapeHtml(str: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;');
+}
+
+/**
+ * V.57: Sanitize then escape — eliminates garbage before HTML rendering.
+ * Use this for ALL user/LLM-facing text that goes into the HTML output.
+ */
+function sanitizeAndEscape(str: string): string {
+  return escapeHtml(sanitizeRenderText(str || ''));
 }
 
 function formatDateArabic(): string {
@@ -1726,24 +1746,25 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
 
   switch (block.type) {
     case 'h2':
-      return `<div class="subsection-h2"><h2>${escapeHtml(block.content)}</h2></div>`;
+      return `<div class="subsection-h2"><h2>${sanitizeAndEscape(block.content)}</h2></div>`;
 
     case 'h3':
-      return `<div class="subsection-h3"><h3>${escapeHtml(block.content)}</h3></div>`;
+      return `<div class="subsection-h3"><h3>${sanitizeAndEscape(block.content)}</h3></div>`;
 
     case 'paragraph':
-      return `<div class="paragraph">${escapeHtml(block.content)}</div>`;
+      return `<div class="paragraph">${sanitizeAndEscape(block.content)}</div>`;
 
     case 'bullet':
       return `
         <div class="bullet">
           <span class="bullet-icon">◆</span>
-          <span class="bullet-content">${escapeHtml(block.content)}</span>
+          <span class="bullet-content">${sanitizeAndEscape(block.content)}</span>
         </div>`;
 
     case 'numbered': {
       // V.56: Parse markdown bold (**text**) in numbered items
-      const numContent = block.content || '';
+      // V.57: Sanitize content before rendering
+      const numContent = sanitizeRenderText(block.content || '');
       const numHtml = escapeHtml(numContent)
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
       return `
@@ -1756,7 +1777,7 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
     case 'blockquote':
       return `
         <div class="blockquote">
-          <div class="blockquote-text">${escapeHtml(block.content)}</div>
+          <div class="blockquote-text">${sanitizeAndEscape(block.content)}</div>
         </div>`;
 
     case 'note':
@@ -1775,7 +1796,7 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
           <span class="callout-icon">⚠️</span>
           <div class="callout-content">
             <div class="callout-label">${isRTL ? 'تحذير' : 'Warning'}</div>
-            <div class="callout-text">${escapeHtml(block.content)}</div>
+            <div class="callout-text">${sanitizeAndEscape(block.content)}</div>
           </div>
         </div>`;
 
@@ -1785,7 +1806,7 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
           <span class="callout-icon">💡</span>
           <div class="callout-content">
             <div class="callout-label">${isRTL ? 'نصيحة' : 'Tip'}</div>
-            <div class="callout-text">${escapeHtml(block.content)}</div>
+            <div class="callout-text">${sanitizeAndEscape(block.content)}</div>
           </div>
         </div>`;
 
@@ -1803,8 +1824,8 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
       };
       const label = block.label || labels[variant];
       // V.56: Parse callout content - it may contain markdown bold (**text**)
-      // and multi-line content. Render bold properly, preserve line breaks.
-      const rawContent = block.content || '';
+      // V.57: Sanitize content before rendering to eliminate garbage
+      const rawContent = sanitizeRenderText(block.content || '');
       // Convert **bold** to <strong>, preserve newlines as <br>
       const htmlContent = escapeHtml(rawContent)
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
@@ -1838,16 +1859,16 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
       return `
         <div class="feature-box">
           <div class="feature-box-number">${numStr}</div>
-          <h3>${numStr}. ${escapeHtml(featureTitle)}</h3>
-          <p>${escapeHtml(featureText.trim())}</p>
+          <h3>${numStr}. ${sanitizeAndEscape(featureTitle)}</h3>
+          <p>${sanitizeAndEscape(featureText.trim())}</p>
         </div>`;
     }
 
     case 'definition':
       return `
         <div class="definition-item">
-          <span class="definition-term">${escapeHtml(block.term || '')}</span>
-          <span class="definition-value">${escapeHtml(block.definition || '')}</span>
+          <span class="definition-term">${sanitizeAndEscape(block.term || '')}</span>
+          <span class="definition-value">${sanitizeAndEscape(block.definition || '')}</span>
         </div>`;
 
     case 'table':
@@ -1857,10 +1878,10 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
       return `
         <table class="data-table">
           <thead>
-            <tr>${headerRow.map((cell) => `<th>${escapeHtml(cell)}</th>`).join('')}</tr>
+            <tr>${headerRow.map((cell) => `<th>${sanitizeAndEscape(cell)}</th>`).join('')}</tr>
           </thead>
           <tbody>
-            ${bodyRows.map((row) => `<tr>${row.map((cell) => `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('')}
+            ${bodyRows.map((row) => `<tr>${row.map((cell) => `<td>${sanitizeAndEscape(cell)}</td>`).join('')}</tr>`).join('')}
           </tbody>
         </table>`;
 
@@ -1876,32 +1897,32 @@ function renderBlock(block: ParsedBlock, language: 'ar' | 'en' = 'ar', palette?:
         </div>`;
 
     case 'image':
-      // If we have embedded image data, render the actual image
+      // V.57: If we have embedded image data, render the actual image
       if (block.imageData) {
-        const desc = block.description || (isRTL ? 'رسم توضيحي' : 'Illustration');
+        const desc = sanitizeRenderText(block.description || '') || (isRTL ? 'رسم توضيحي' : 'Illustration');
         return `
           <div class="image-container">
             <img src="${block.imageData}" class="embedded-image" alt="${escapeHtml(desc)}" />
             <div class="image-caption">${escapeHtml(desc)}</div>
           </div>`;
       }
-      // Fallback: show styled placeholder when no image data is available
+      // V.57: CONDITIONAL DIAGRAM — do NOT render if description is empty/missing
+      // This eliminates empty "Diagram Description" containers
       {
+        const analysisText = sanitizeRenderText(block.description || '');
+        if (!analysisText || analysisText.trim().length < 5) {
+          return ''; // Skip empty diagrams entirely
+        }
         const analysisLabel = isRTL ? '📋 وصف وتحليل الرسمة:' : '📋 Diagram Analysis:';
-        const analysisText = block.description || '';
         return `
           <div class="diagram-container">
             <div class="diagram-title">${isRTL ? 'رسم توضيحي' : 'Illustration'}</div>
-            ${block.description ? `<div class="diagram-description">${escapeHtml(block.description)}</div>` : ''}
-            <div style="padding:24px; text-align:center; color:${palette?.textMuted || '#94a3b8'};">
-              <div style="font-size:36px; margin-bottom:8px; opacity:0.4;">🖼️</div>
-            </div>
+            <div class="diagram-description">${escapeHtml(analysisText)}</div>
             <div class="diagram-label">${isRTL ? 'وصف الرسمة' : 'Diagram Description'}</div>
-            ${analysisText ? `
             <div class="diagram-analysis">
               <span class="diagram-analysis-label">${analysisLabel}</span>
               ${escapeHtml(analysisText)}
-            </div>` : ''}
+            </div>
           </div>`;
       }
 
@@ -2113,6 +2134,13 @@ export function generateHTMLTemplate(options: HTMLTemplateOptions): string {
     cleanContent = content.replace(styleRegex, '').trim();
   }
 
+  // V.57: Master Sanitization Pipeline — eliminate ALL garbage from LLM output
+  // Strip [DELTA_PDF_REF], 0000 artifacts, .pdf.pdf leaks, \u26A1 escapes, CID, hex dumps
+  cleanContent = sanitizeRenderText(cleanContent);
+
+  // V.57: Also sanitize the title
+  const sanitizedTitle = sanitizeTitleText(title);
+
   // Parse content (use cleanContent without style tags)
   const sections = parseContent(cleanContent);
 
@@ -2285,16 +2313,16 @@ export function generateHTMLTemplate(options: HTMLTemplateOptions): string {
       <div class="cover-brand">
         ${showLogo ? logoHtml : ''}
         <div class="cover-brand-name">DELTA AI</div>
-        <div class="cover-channel-name">بعقل هادي</div>
+
       </div>
 
       ${tripleBar}
 
       <div class="cover-doc-type">${batchMeta ? (isRTL ? 'ملخص محاضرات' : 'Lecture Summary') : getDocTypeLabel(documentType, language)}</div>
 
-      <div class="cover-title">${escapeHtml(title)}</div>
+      <div class="cover-title">${escapeHtml(sanitizedTitle)}</div>
 
-      <div class="cover-description">${isRTL ? `مستند شامل يتناول موضوع ${escapeHtml(title)} بالتفصيل والتحليل المعمق، يشمل التعريفات والمبادئ والتطبيقات العملية والتحديات المعاصرة` : `A comprehensive document covering ${escapeHtml(title)} in detail with in-depth analysis, including definitions, principles, practical applications, and contemporary challenges`}</div>
+      <div class="cover-description">${isRTL ? `مستند شامل يتناول موضوع ${escapeHtml(sanitizedTitle)} بالتفصيل والتحليل المعمق، يشمل التعريفات والمبادئ والتطبيقات العملية والتحديات المعاصرة` : `A comprehensive document covering ${escapeHtml(sanitizedTitle)} in detail with in-depth analysis, including definitions, principles, practical applications, and contemporary challenges`}</div>
 
       ${coverImageHtml}
       ${tripleBar}
@@ -2382,12 +2410,14 @@ export function generateHTMLTemplate(options: HTMLTemplateOptions): string {
 
   if (allChartSpecs.length > 0) {
     chartsHtml = allChartSpecs.map((spec) => {
+      // V.57: Sanitize chart title and description
+      const chartTitle = sanitizeRenderText(spec.title || '') || (isRTL ? 'رسم بياني' : 'Chart');
+      const chartDesc = sanitizeRenderText(spec.description || '');
       const svg = generateChartSVG(spec, isRTL, palette);
-      return `<div class="diagram-container">
-        <div class="diagram-title">${escapeHtml(spec.title || (isRTL ? 'رسم بياني' : 'Chart'))}</div>
-        ${spec.description ? `<div class="diagram-description">${escapeHtml(spec.description)}</div>` : ''}
+      return `<div class="diagram-container chart-card">
+        <div class="diagram-title">${escapeHtml(chartTitle)}</div>
+        ${chartDesc ? `<div class="diagram-description">${escapeHtml(chartDesc)}</div>` : ''}
         ${svg}
-        <div class="diagram-label">${isRTL ? 'وصف الرسمة' : 'Diagram Description'}</div>
       </div>`;
     }).join('\n');
   }
@@ -2402,7 +2432,7 @@ export function generateHTMLTemplate(options: HTMLTemplateOptions): string {
     html += generateRainbowStrip(palette.decoColors);
     html += `
       <div class="page-header-line"></div>
-      <div class="page-header-text">DeltaAI | ${batchMeta?.channelName || 'بعقل هادي'}</div>
+      <div class="page-header-text">DeltaAI</div>
     `;
 
     // Check if this section heading matches a lecture title → insert divider
@@ -2424,24 +2454,30 @@ export function generateHTMLTemplate(options: HTMLTemplateOptions): string {
 
     if (section.heading) {
       sectionCounter++;
-      // v4.0: Color-coded section with its own color from sectionColors
-      const secColor = palette.sectionColors && palette.sectionColors.length > 0
-        ? palette.sectionColors[(sectionCounter - 1) % palette.sectionColors.length]
-        : null;
-      if (secColor) {
-        html += generateColorfulSectionHeader(section.heading, sectionCounter, secColor, isRTL);
-        // Add section sidebar
-        html += `<div style="position:absolute; top:7px; width:6px; height:85%; background:${secColor.header}; ${isRTL ? 'right:0' : 'left:0'};"></div>`;
-        html += `<div style="position:absolute; top:7px; width:3px; height:60%; background:${secColor.accent}; ${isRTL ? 'right:6px' : 'left:6px'};"></div>`;
-        // Add decorative dots
-        html += generateDecoDots(palette.decoColors, 5);
+      // V.57: Sanitize section heading to eliminate garbage
+      const cleanHeading = sanitizeRenderText(section.heading);
+      if (!cleanHeading) {
+        // Skip empty headings
       } else {
-        html += `
-          <div class="section-header">
-            <h1>${escapeHtml(section.heading)}</h1>
-            <span class="section-number">${sectionCounter}</span>
-          </div>
-        `;
+        // v4.0: Color-coded section with its own color from sectionColors
+        const secColor = palette.sectionColors && palette.sectionColors.length > 0
+          ? palette.sectionColors[(sectionCounter - 1) % palette.sectionColors.length]
+          : null;
+        if (secColor) {
+          html += generateColorfulSectionHeader(cleanHeading, sectionCounter, secColor, isRTL);
+          // Add section sidebar
+          html += `<div style="position:absolute; top:7px; width:6px; height:85%; background:${secColor.header}; ${isRTL ? 'right:0' : 'left:0'};"></div>`;
+          html += `<div style="position:absolute; top:7px; width:3px; height:60%; background:${secColor.accent}; ${isRTL ? 'right:6px' : 'left:6px'};"></div>`;
+          // Add decorative dots
+          html += generateDecoDots(palette.decoColors, 5);
+        } else {
+          html += `
+            <div class="section-header">
+              <h1>${escapeHtml(cleanHeading)}</h1>
+              <span class="section-number">${sectionCounter}</span>
+            </div>
+          `;
+        }
       }
     }
 
@@ -2512,7 +2548,7 @@ export function generateHTMLTemplate(options: HTMLTemplateOptions): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>${escapeHtml(title)}</title>
+  <title>${escapeHtml(sanitizedTitle)}</title>
   <style>${finalCSS}</style>
 </head>
 <body>
