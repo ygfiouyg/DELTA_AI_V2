@@ -378,8 +378,15 @@ async function routeSummarize(
 
   // ── Page 3 (bottom): Per-file summary card (paragraph only) ──
   // Matches reference: "📄 Lec 2" header + paragraph summary (NO bullet points inline)
+  // V.60: Skip per-file summary if it's identical to crossSummary (deduplication)
   for (const fileSummary of result.perFile) {
     const cleanName = sanitizeFileName(fileSummary.fileName);
+    // V.60: Dedupe - if per-file summary is 80%+ similar to crossSummary, skip it
+    const similarity = computeSimilarity(fileSummary.summary, result.crossSummary);
+    if (similarity > 0.8 && result.perFile.length === 1) {
+      // Single file + high similarity = don't repeat
+      continue;
+    }
     markdown += `## 📄 ${cleanName}\n\n`;
     markdown += `${fileSummary.summary}\n\n`;
   }
@@ -983,7 +990,11 @@ async function executePipeline(
     switch (intent.type) {
       case 'extract-topic': {
         content = await routeExtractTopic(filesWithContent, intent, language, onProgress);
-        docTitle = `استخراج: ${intent.topic || intent.rawTopic || input.message.substring(0, 40)}`;
+        // V.60: Clean title - don't use raw user message as fallback
+        const topicForTitle = sanitizeTitle(intent.topic || intent.rawTopic || '');
+        docTitle = topicForTitle
+          ? (language === 'en' ? `Extraction: ${topicForTitle}` : `استخراج: ${topicForTitle}`)
+          : (language === 'en' ? 'Topic Extraction' : 'استخراج موضوع');
         break;
       }
 
@@ -1100,6 +1111,23 @@ async function executePipeline(
     durationMs,
     intent: intent.type,
   };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// V.60: Text similarity function — for content deduplication
+// ═══════════════════════════════════════════════════════════════════════════
+// Returns 0-1 similarity score between two texts using word overlap
+function computeSimilarity(text1: string, text2: string): number {
+  if (!text1 || !text2) return 0;
+  const words1 = new Set(text1.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+  const words2 = new Set(text2.toLowerCase().split(/\s+/).filter(w => w.length > 3));
+  if (words1.size === 0 || words2.size === 0) return 0;
+  let intersection = 0;
+  for (const w of words1) {
+    if (words2.has(w)) intersection++;
+  }
+  const union = words1.size + words2.size - intersection;
+  return union > 0 ? intersection / union : 0;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
