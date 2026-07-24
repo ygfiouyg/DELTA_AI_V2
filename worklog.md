@@ -4068,3 +4068,67 @@ Stage Summary:
 - ✅ مفيش صفحات فاضية
 
 *Last updated: 2025-07-24 (Round 60c) · V.60 verified from UI - 4 clean pages*
+
+---
+Task ID: v61-skill-discovery
+Agent: main (Z.ai Code)
+Task: Skill Discovery System — ربط الـ skills بالـ LLM
+
+Work Log:
+### V.61: بناء Skill Discovery System
+1. **skill-discovery.ts**: بيقرأ SKILL.md من skills/ directory + subdirectories
+2. **skill-blender.ts**: بيربط الـ skills بالـ LLM pipeline
+3. **multi-file-extractor.ts**: callLLM دلوقتي بـ inject الـ skills في system prompt
+4. **API endpoints**:
+   - GET /api/skills: list كل الـ skills
+   - POST /api/skills: search عن skills matching
+   - POST /api/skills/install: install skill من GitHub URL
+
+### V.61b-e: إصلاحات deployment
+- .gitignore: سمح بـ skills/*.md
+- .dockerignore: شلت skills/ من الـ ignore list
+- git filter-branch: مسحت ملفات كبيرة من التاريخ
+- شيلت scripts/templates/images — خليت .md files فقط
+
+### Verification على HF:
+- ✅ Skills API: https://kopabdo-delta-ai-v2.hf.space/api/skills
+- ✅ 68 skills loaded (64 existing + 4 custom)
+- ✅ Skill matching شغال:
+  Query: "اجمعلي اهم النقاط اللي في ال pdf"
+  Matched: PDF Design Master + Academic Summary Skill (high priority)
+
+### Custom Skills اللي اتعملت:
+1. **PDF Design Master** (pdf-design-master.md)
+   - تعليمات تصميم PDF أكاديمي
+   - بنية المستند، قواعد العنوان، المكونات البصرية
+2. **Academic Summary** (academic-summary.md)
+   - منهجية التحليل العميق
+   - بنية الملخص (5 key points + 4 themes)
+3. **Visual Components** (visual-components.md)
+   - KPI Grid, Timeline, Concept Card, Comparison
+4. **Arabic RTL** (arabic-rtl.md)
+   - قواعد الكتابة العربية والـ RTL
+
+### Architecture:
+```
+skills/*.md + skills/*/SKILL.md
+         ↓
+    loadSkills() (60s cache)
+         ↓
+    findMatchingSkills(userPrompt) — keyword matching
+         ↓
+    buildSkillSystemPrompt() — inject top 3 skills
+         ↓
+    callLLM(enhancedPrompt, userMessage)
+         ↓
+    LLM responds with skill-guided output
+```
+
+Stage Summary:
+- ✅ 68 skills deployed على HF
+- ✅ Skill matching شغال (PDF Design + Academic Summary for summarize requests)
+- ✅ GitHub URL install endpoint جاهز (/api/skills/install)
+- ✅ Skills بتـ inject في كل LLM call عبر multi-file-extractor
+- ⏳ محتاج اختبار فعلي لتوليد PDF بالـ skills
+
+*Last updated: 2025-07-24 (Round 61) · V.61 Skill Discovery System deployed*
