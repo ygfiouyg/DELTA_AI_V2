@@ -657,55 +657,61 @@ export async function POST(request: NextRequest) {
     const effectiveHasDocIntent = hasEnhancedDocIntent && !skipSmartDocPipeline;
 
     // V.69: AUTONOMOUS AGENT — LLM-based capability detection (no regex!)
-    // The model itself analyzes the request and decides if a tool is needed.
-    // If the tool is missing → search GitHub → install → use
-    try {
-      const { autonomousAcquireAndExecute } = await import('@/lib/llm-capability-detector');
-      const agentResult = await autonomousAcquireAndExecute(message, (language as 'ar' | 'en') || 'ar');
-
-      // Log agent steps
-      for (const step of agentResult.steps) {
-        console.log(`[AgentV69] ${step}`);
-      }
-
-      // If a tool was just installed, notify the user via SSE
-      if (agentResult.installed && agentResult.analysis.needsSpecialTool) {
-        // Send status update to user
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({
-            smartDocProgress: {
-              stage: 'tool_acquired',
-              progress: 30,
-              message: `🔧 ${agentResult.installMessage}`,
-            }
-          })}\n\n`)
-        );
-      }
-    } catch (agentErr) {
-      console.warn('[Chat] V.69 Agent failed (non-fatal):', agentErr instanceof Error ? agentErr.message : String(agentErr));
-    }
-
-    // V.68: MCP CONNECTION — if user provided an MCP URL, connect to it
-    const mcpUrlMatch = message.match(/(?:mcp|MCP)[:：\s]+(https?:\/\/[^\s]+)/i);
-    if (mcpUrlMatch) {
-      try {
-        const { connectMCP } = await import('@/lib/autonomous-agent');
-        const mcpResult = await connectMCP(mcpUrlMatch[1]);
-        console.log(`[Chat] V.68 MCP: ${mcpResult.message}`);
-      } catch (mcpErr) {
-        console.warn('[Chat] V.68 MCP connect failed:', mcpErr);
-      }
-    }
-
-    // V.69: DIRECT TOOL EXECUTION — if the LLM detected a special tool need,
-    // execute it directly BEFORE the AI responds
-    // This way the user gets the actual file, not just text
+    // The model itself analyzes the request ONCE and decides:
+    // 1. Does this need a special tool?
+    // 2. If yes, is it available? → execute directly
+    // 3. If not available → search GitHub → install → execute
+    let toolExecuted = false;
     try {
       const { analyzeCapabilityWithLLM } = await import('@/lib/llm-capability-detector');
       const analysis = await analyzeCapabilityWithLLM(message, (language as 'ar' | 'en') || 'ar');
 
+      console.log(`[Chat] V.69 Analysis: needsTool=${analysis.needsSpecialTool}, tool=${analysis.toolName}, hasLocal=${analysis.hasToolLocally}`);
+
       if (analysis.needsSpecialTool && analysis.toolName) {
-        console.log(`[Chat] V.69 Tool needed: ${analysis.toolName} (available: ${analysis.hasToolLocally})`);
+        // Notify user that we're working on it
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({
+            smartDocProgress: {
+              stage: 'tool_detect',
+              progress: 10,
+              message: `🔧 اكتشفت إن طلبك يحتاج ${analysis.toolName}...`,
+            }
+          })}\n\n`)
+        );
+
+        if (!analysis.hasToolLocally) {
+          // Tool not available — search GitHub and install
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({
+              smartDocProgress: {
+                stage: 'tool_install',
+                progress: 20,
+                message: `🔍 جاري البحث عن ${analysis.toolName} في GitHub وتثبيته...`,
+              }
+            })}\n\n`)
+          );
+
+          const { autonomousAcquireAndExecute } = await import('@/lib/llm-capability-detector');
+          const acquireResult = await autonomousAcquireAndExecute(message, (language as 'ar' | 'en') || 'ar');
+
+          for (const step of acquireResult.steps) {
+            console.log(`[AgentV69] ${step}`);
+          }
+
+          if (acquireResult.installed) {
+            controller.enqueue(
+              encoder.encode(`data: ${JSON.stringify({
+                smartDocProgress: {
+                  stage: 'tool_acquired',
+                  progress: 30,
+                  message: `✅ ${acquireResult.installMessage}`,
+                }
+              })}\n\n`)
+            );
+            analysis.hasToolLocally = true;
+          }
+        }
 
         if (analysis.hasToolLocally) {
           // Tool is available — execute directly
@@ -713,13 +719,13 @@ export async function POST(request: NextRequest) {
             encoder.encode(`data: ${JSON.stringify({
               smartDocProgress: {
                 stage: 'tool_execute',
-                progress: 20,
-                message: `🔧 جاري استخدام ${analysis.toolName} لتنفيذ طلبك...`,
+                progress: 40,
+                message: `⚙️ جاري استخدام ${analysis.toolName} لتنفيذ طلبك...`,
               }
             })}\n\n`)
           );
 
-          // Execute based on tool type
+          // === QR CODE ===
           if (analysis.toolName === 'qrcode') {
             const { generateQRCode, parseVCardFromMessage } = await import('@/lib/local-tool-executor');
             const vcardData = parseVCardFromMessage(message);
@@ -742,11 +748,28 @@ export async function POST(request: NextRequest) {
               }
             }
           }
-          // Add more tool handlers here (gtts, etc.)
+
+          // === AUDiOBOOK (gTTS) ===
+          if (analysis.toolName === 'gtts') {
+            // For now, let the AI handle text generation, then convert
+            // This will be handled in the file gen section below
+          }
         }
       }
     } catch (toolErr) {
-      console.warn('[Chat] V.69 Direct tool execution failed:', toolErr instanceof Error ? toolErr.message : String(toolErr));
+      console.warn('[Chat] V.69 Agent failed (non-fatal):', toolErr instanceof Error ? toolErr.message : String(toolErr));
+    }
+
+    // V.68: MCP CONNECTION — if user provided an MCP URL, connect to it
+    const mcpUrlMatch = message.match(/(?:mcp|MCP)[:：\s]+(https?:\/\/[^\s]+)/i);
+    if (mcpUrlMatch) {
+      try {
+        const { connectMCP } = await import('@/lib/autonomous-agent');
+        const mcpResult = await connectMCP(mcpUrlMatch[1]);
+        console.log(`[Chat] V.68 MCP: ${mcpResult.message}`);
+      } catch (mcpErr) {
+        console.warn('[Chat] V.68 MCP connect failed:', mcpErr);
+      }
     }
 
     // ── Build system prompt using extracted module ──
