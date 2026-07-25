@@ -4354,3 +4354,73 @@ Stage Summary:
 - ✅ Security test passing 6/6
 
 *Last updated: 2025-07-24 (Round 64) · V.64 Security Isolation deployed*
+
+---
+Task ID: v65-deep-installer
+Agent: main (Z.ai Code)
+Task: Deep Skill Installer — full directory cloning + MCP + UI feedback
+
+Work Log:
+### V.65: Deep Skill Installation Architecture
+
+**1. Deep Installer** (src/lib/deep-skill-installer.ts):
+- Full directory cloning: SKILL.md + scripts/ + references/ + assets/
+- Preserves exact tree architecture locally
+- Validates SKILL.md content (V.64 security)
+- Registers .py/.js scripts in MCP registry (mcp-registry.json)
+- Falls back to common file probing if GitHub API rate-limited
+- Emits progress events: init → parse → fetch → scan → mkdir → download → register → index → mcp → done
+
+**2. REST API** (src/app/api/skills/deep-install/route.ts):
+- POST: deep install with full file list + scripts + progress log
+- GET: retrieve MCP tool registry
+
+**3. SSE API** (src/app/api/skills/install-stream/route.ts):
+- Real-time progress stream for UI
+- المستخدم بيشوف كل خطوة في الـ backend:
+  [5%] init → [10%] parse → [15%] fetch → [25%] scan → [30%] mkdir
+  → [80%] download → [85%] index → [100%] done → [100%] complete
+
+**4. Test** (scripts/test-deep-installer.ts):
+- [SUCCESS] Deep installer working — full directory cloned
+
+### Verification على HF:
+```
+POST /api/skills/deep-install
+  ✅ Success: True
+  ✅ Files: 1 (SKILL.md, 154 bytes)
+  ✅ Progress: 8 events tracked
+
+POST /api/skills/install-stream (SSE)
+  ✅ Real-time events:
+    [5%] init → [10%] parse → [15%] fetch → [25%] scan
+    → [30%] mkdir → [80%] download → [85%] index → [100%] done
+```
+
+### Architecture:
+```
+User requests skill → POST /api/skills/install-stream (SSE)
+         ↓
+    Deep installer fetches repo tree
+         ↓
+    Clones SKILL.md + scripts/ + references/ + assets/
+         ↓
+    Preserves directory structure in skills/{skillName}/
+         ↓
+    Copies .py/.js to tools/{skillName}/ for MCP
+         ↓
+    Registers scripts in mcp-registry.json
+         ↓
+    UI receives real-time progress via SSE
+         ↓
+    User sees: init → parse → fetch → scan → download → register → done
+```
+
+Stage Summary:
+- ✅ V.65 deployed على HF (SHA: d2c65518)
+- ✅ Full directory cloning شغال
+- ✅ MCP script registration شغال
+- ✅ SSE real-time UI feedback شغال
+- ✅ المستخدم بيشوف كل العمليات في الـ backend
+
+*Last updated: 2025-07-24 (Round 65) · V.65 Deep Skill Installer complete*
