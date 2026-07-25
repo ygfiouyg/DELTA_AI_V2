@@ -3876,50 +3876,71 @@ ${toolData}${extraStr}
 
                   if (isPPTXRequest) {
                     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                    // PPTX GENERATION via HF Document Service (Open GAMMA / Fabrica)
+                    // V.67: PPTX GENERATION via LOCAL python-pptx (no HF service!)
                     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                     try {
-                      console.log('[Chat] File gen: PPTX request detected — generating via HF Document Service...');
-                      const { generateDocument } = await import('@/lib/hf-document.service');
-                      const pptxModels = ['open-gamma', 'fabrica-slides'];
-                      const chosenModel = pptxModels[Math.floor(Math.random() * pptxModels.length)];
+                      console.log('[Chat] File gen: PPTX request detected — generating locally via python-pptx...');
+                      const { generatePPTX, parsePPTXFromAIResponse } = await import('@/lib/local-tool-executor');
                       
-                      const pptxResult = await Promise.race([
-                        generateDocument(chosenModel, {
-                          topic: docTitle,
-                          language: (language as 'ar' | 'en') || 'ar',
-                          instructions: contentToUse.slice(0, 2000),
-                          slideCount: 10,
-                        }),
-                        new Promise<null>((_, reject) =>
-                          setTimeout(() => reject(new Error('PPTX generation timeout (120s)')), 120_000)
-                        ),
-                      ]);
-
-                      if (pptxResult && pptxResult.fileUrl) {
-                        // Download the PPTX from the external service and save locally
-                        try {
-                          const pptxResponse = await fetch(pptxResult.fileUrl);
-                          if (pptxResponse.ok) {
-                            const pptxBuffer = Buffer.from(await pptxResponse.arrayBuffer());
-                            fileName = `${fileBaseName}.pptx`;
-                            filePathSave = pathModule.join(downloadDir, fileName);
-                            await fs.writeFile(filePathSave, pptxBuffer);
-                            fileSize = pptxBuffer.length;
-                            fileType = 'pptx';
-                            fileUrl = `/api/pdf/serve/${encodeURIComponent(fileName)}`;
-                            console.log(`[Chat] File gen: ✅ PPTX created (${fileSize} bytes) via ${chosenModel}: ${fileName}`);
-                          } else {
-                            console.warn(`[Chat] File gen: ⚠️ PPTX download failed (${pptxResponse.status}) — falling back to PDF`);
-                          }
-                        } catch (dlErr) {
-                          console.warn(`[Chat] File gen: ⚠️ PPTX download error: ${dlErr instanceof Error ? dlErr.message : String(dlErr)} — falling back to PDF`);
+                      // Parse slides from AI content
+                      const { title: pptxTitle, slides } = parsePPTXFromAIResponse(contentToUse);
+                      
+                      if (slides.length > 0) {
+                        const pptxResult = await generatePPTX(
+                          pptxTitle || docTitle,
+                          slides,
+                          (language as 'ar' | 'en') || 'ar'
+                        );
+                        
+                        if (pptxResult.success && pptxResult.fileName) {
+                          fileName = pptxResult.fileName;
+                          fileType = 'pptx';
+                          fileUrl = pptxResult.fileUrl || '';
+                          filePathSave = pptxResult.filePath || '';
+                          console.log(`[Chat] File gen: ✅ PPTX created locally: ${fileName} (${slides.length} slides)`);
+                        } else {
+                          console.warn(`[Chat] File gen: ⚠️ Local PPTX failed: ${pptxResult.message}`);
                         }
                       } else {
-                        console.warn('[Chat] File gen: ⚠️ PPTX generation returned no URL — falling back to PDF');
+                        console.warn('[Chat] File gen: ⚠️ No slides parsed from AI content');
                       }
                     } catch (pptxErr) {
-                      console.warn(`[Chat] File gen: ⚠️ PPTX generation failed: ${pptxErr instanceof Error ? pptxErr.message : String(pptxErr)} — falling back to PDF`);
+                      console.warn(`[Chat] File gen: ⚠️ Local PPTX failed: ${pptxErr instanceof Error ? pptxErr.message : String(pptxErr)}`);
+                    }
+                  }
+
+                  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                  // V.67: XLSX GENERATION via LOCAL openpyxl
+                  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                  const isXLSXRequest = /اكسل|اكسيل|excel|xlsx?|جدول\s*بيانات|spreadsheet|شيت/i.test(message);
+                  if (isXLSXRequest && !fileName) {
+                    try {
+                      console.log('[Chat] File gen: XLSX request detected — generating locally via openpyxl...');
+                      const { generateXLSX, parseTableFromAIResponse } = await import('@/lib/local-tool-executor');
+                      
+                      const tableData = parseTableFromAIResponse(contentToUse);
+                      
+                      if (tableData.length > 0) {
+                        const xlsxResult = await generateXLSX(
+                          docTitle || 'جدول بيانات',
+                          tableData,
+                          (language as 'ar' | 'en') || 'ar'
+                        );
+                        
+                        if (xlsxResult.success && xlsxResult.fileName) {
+                          fileName = xlsxResult.fileName;
+                          fileType = 'xlsx';
+                          fileUrl = xlsxResult.fileUrl || '';
+                          filePathSave = xlsxResult.filePath || '';
+                          console.log(`[Chat] File gen: ✅ XLSX created locally: ${fileName} (${tableData.length} rows)`);
+                        } else {
+                          console.warn(`[Chat] File gen: ⚠️ Local XLSX failed: ${xlsxResult.message}`);
+                        }
+                      } else {
+                        console.warn('[Chat] File gen: ⚠️ No table data parsed from AI content');
+                      }
+                    } catch (xlsxErr) {
+                      console.warn(`[Chat] File gen: ⚠️ Local XLSX failed: ${xlsxErr instanceof Error ? xlsxErr.message : String(xlsxErr)}`);
                     }
                   }
 
