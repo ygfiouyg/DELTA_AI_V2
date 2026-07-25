@@ -101,31 +101,54 @@ export async function analyzeCapabilityWithLLM(
 
     const toolName = parsed.toolName || '';
 
-    // V.71: Check if tool is actually a Python stdlib module
-    // stdlib modules (smtplib, zipfile, os, json, etc.) are BUILT-IN — no pip needed
-    let hasToolLocally = parsed.hasToolLocally || availableTools.includes(toolName);
+    // V.76: NEVER trust the LLM's hasToolLocally — ALWAYS verify for real!
+    // The LLM was saying "available: true" for sympy even though it's NOT installed.
+    let hasToolLocally = false;
 
+    // Check ALL tools from LLM response (allTools array)
+    const allTools = parsed.allTools || [];
+    if (allTools.length > 0) {
+      for (const t of allTools) {
+        t.available = false; // Reset — don't trust LLM
+        const modName = t.name.replace(/-/g, '_').toLowerCase();
+        try {
+          const { exec } = await import('child_process');
+          const { promisify } = await import('util');
+          const execAsync = promisify(exec);
+          const { stdout } = await execAsync(`python3 -c "import ${modName}; print('OK')"`, { timeout: 5_000 });
+          if (stdout.includes('OK')) {
+            t.available = true;
+            console.log(`[LLMCapability] V.76: ${t.name} verified as available`);
+          }
+        } catch {
+          // Not available — needs install
+          console.log(`[LLMCapability] V.76: ${t.name} NOT available — needs install`);
+        }
+      }
+      // Set main tool availability
+      hasToolLocally = allTools[0]?.available || false;
+    }
+
+    // Also check the main toolName directly
     if (!hasToolLocally && toolName) {
-      // Try importing it as a stdlib module
+      const modName = toolName.replace(/-/g, '_').toLowerCase();
       try {
         const { exec } = await import('child_process');
         const { promisify } = await import('util');
         const execAsync = promisify(exec);
-        const moduleName = toolName.replace(/-/g, '_').toLowerCase();
-        const { stdout } = await execAsync(`python3 -c "import ${moduleName}; print('OK')"`, { timeout: 5_000 });
+        const { stdout } = await execAsync(`python3 -c "import ${modName}; print('OK')"`, { timeout: 5_000 });
         if (stdout.includes('OK')) {
           hasToolLocally = true;
-          console.log(`[LLMCapability] V.71: ${toolName} is a stdlib module — available!`);
+          console.log(`[LLMCapability] V.76: ${toolName} verified as available (main tool)`);
         }
       } catch {
-        // Not a stdlib module — needs pip install
+        // Not available
       }
     }
 
-    // V.71: If toolType is "system" (like smtplib, zipfile), mark as available
-    if (!hasToolLocally && (parsed.toolType === 'system' || parsed.toolType === 'stdlib')) {
+    // Also check against our known available tools list
+    if (!hasToolLocally && availableTools.includes(toolName)) {
       hasToolLocally = true;
-      console.log(`[LLMCapability] V.71: ${toolName} is system/stdlib — marking as available`);
     }
 
     return {
@@ -136,7 +159,7 @@ export async function analyzeCapabilityWithLLM(
       githubSearchQuery: parsed.githubSearchQuery || '',
       reason: parsed.reason || '',
       hasToolLocally,
-      allTools: parsed.allTools || [],
+      allTools, // V.76: Pass the VERIFIED allTools (not the LLM's untrusted version)
     };
   } catch (error) {
     console.warn('[LLMCapability] Analysis failed:', error instanceof Error ? error.message : String(error));
