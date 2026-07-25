@@ -252,94 +252,99 @@ export async function POST(request: NextRequest) {
       console.log(`[Chat] V.70 LLM Analysis: needsTool=${analysis.needsSpecialTool}, tool=${analysis.toolName}, hasLocal=${analysis.hasToolLocally}`);
 
       if (analysis.needsSpecialTool && analysis.toolName && !analysis.hasToolLocally) {
-        // Tool is needed but NOT available — AUTO-INSTALL!
-        console.log(`[Chat] V.71: Tool "${analysis.toolName}" (type: ${analysis.toolType}) not available — auto-installing...`);
+        // V.72: Multi-tool installation — install ALL missing tools
+        console.log(`[Chat] V.72: Multi-tool analysis — allTools: ${JSON.stringify(analysis.allTools?.map(t => ({n:t.name, a:t.available})))}`);
 
         const { exec } = await import('child_process');
         const { promisify } = await import('util');
         const execAsync = promisify(exec);
-        const pkgName = analysis.toolName;
-        const moduleName = pkgName.replace(/-/g, '_').toLowerCase();
 
-        const steps = [
-          `🔍 اكتشفت إن طلبك يحتاج أداة: **${pkgName}**`,
-          `⚠️ الأداة مش متاحة محلياً`,
-        ];
-
-        let installSuccess = false;
-
-        // V.71: Try ALL install types until one works
-        const installStrategies: Array<{ name: string; cmd: string; verify: string }> = [
-          // 1. Python stdlib check (smtplib, zipfile, os, json, etc.)
-          {
-            name: 'stdlib',
-            cmd: `python3 -c "import ${moduleName}; print('OK')"`,
-            verify: `python3 -c "import ${moduleName}; print('OK')"`,
-          },
-          // 2. pip install with --break-system-packages
-          {
-            name: 'PyPI',
-            cmd: `pip3 install --break-system-packages ${pkgName}`,
-            verify: `python3 -c "import ${moduleName}; print('OK')"`,
-          },
-          // 3. npm install (for Node.js packages)
-          {
-            name: 'npm',
-            cmd: `npm install -g ${pkgName}`,
-            verify: `which ${pkgName}`,
-          },
-          // 4. apt-get install (for system packages)
-          {
-            name: 'apt',
-            cmd: `apt-get install -y ${pkgName} 2>/dev/null || true`,
-            verify: `which ${pkgName}`,
-          },
-          // 5. Try common package name variations
-          {
-            name: 'PyPI (alt name)',
-            cmd: `pip3 install --break-system-packages ${pkgName.replace(/-/g, '_')}`,
-            verify: `python3 -c "import ${moduleName}; print('OK')"`,
-          },
-        ];
-
-        for (const strategy of installStrategies) {
-          try {
-            steps.push(`📦 محاولة التثبيت عبر ${strategy.name}...`);
-            console.log(`[Chat] V.71: Trying ${strategy.name}: ${strategy.cmd.substring(0, 80)}`);
-
-            const { stdout, stderr } = await execAsync(strategy.cmd, { timeout: 120_000 });
-
-            // Verify
-            try {
-              const { stdout: verifyOut } = await execAsync(strategy.verify, { timeout: 10_000 });
-              if (verifyOut.includes('OK') || verifyOut.trim().length > 0) {
-                installSuccess = true;
-                steps.push(`✅ تم تثبيت ${pkgName} بنجاح عبر ${strategy.name}!`);
-                steps.push(`✅ تم التحقق — الأداة جاهزة للاستخدام!`);
-                console.log(`[Chat] V.71: ${pkgName} installed via ${strategy.name}`);
-                break;
-              }
-            } catch {
-              // Verify failed — try next strategy
-              if (stdout.includes('OK') || stdout.includes('Successfully installed')) {
-                installSuccess = true;
-                steps.push(`✅ تم تثبيت ${pkgName} بنجاح عبر ${strategy.name}!`);
-                console.log(`[Chat] V.71: ${pkgName} installed via ${strategy.name} (no verify)`);
-                break;
+        // V.72: Collect ALL tools that need installation
+        const toolsToInstall: string[] = [];
+        if (analysis.allTools && analysis.allTools.length > 0) {
+          for (const t of analysis.allTools) {
+            if (!t.available) {
+              // Verify if it's actually available (stdlib check)
+              const modName = t.name.replace(/-/g, '_').toLowerCase();
+              try {
+                const { stdout } = await execAsync(`python3 -c "import ${modName}; print('OK')"`, { timeout: 5_000 });
+                if (!stdout.includes('OK')) toolsToInstall.push(t.name);
+              } catch {
+                toolsToInstall.push(t.name);
               }
             }
-          } catch (err) {
-            // This strategy failed — try next
-            console.log(`[Chat] V.71: ${strategy.name} failed for ${pkgName}`);
+          }
+        } else {
+          // Single tool fallback
+          toolsToInstall.push(analysis.toolName);
+        }
+
+        const steps: string[] = [];
+        if (toolsToInstall.length > 0) {
+          steps.push(`🔍 اكتشفت إن طلبك يحتاج ${toolsToInstall.length} أدوات:`);
+          for (const t of toolsToInstall) {
+            const toolInfo = analysis.allTools?.find(at => at.name === t);
+            steps.push(`   • **${t}** — ${toolInfo?.purpose || 'مطلوبة'}`);
+          }
+          steps.push('');
+        }
+
+        let allSuccess = true;
+
+        // Install each tool
+        for (const pkgName of toolsToInstall) {
+          const moduleName = pkgName.replace(/-/g, '_').toLowerCase();
+          steps.push(`📦 جاري تثبيت ${pkgName}...`);
+          console.log(`[Chat] V.72: Installing ${pkgName}...`);
+
+          const installStrategies: Array<{ name: string; cmd: string; verify: string }> = [
+            { name: 'stdlib', cmd: `python3 -c "import ${moduleName}; print('OK')"`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
+            { name: 'PyPI', cmd: `pip3 install --break-system-packages ${pkgName}`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
+            { name: 'npm', cmd: `npm install -g ${pkgName}`, verify: `which ${pkgName}` },
+            { name: 'apt', cmd: `apt-get install -y ${pkgName} 2>/dev/null || true`, verify: `which ${pkgName}` },
+            { name: 'PyPI (alt)', cmd: `pip3 install --break-system-packages ${moduleName}`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
+          ];
+
+          let toolInstalled = false;
+          for (const strategy of installStrategies) {
+            try {
+              const { stdout } = await execAsync(strategy.cmd, { timeout: 120_000 });
+              try {
+                const { stdout: verifyOut } = await execAsync(strategy.verify, { timeout: 10_000 });
+                if (verifyOut.includes('OK') || verifyOut.trim().length > 0) {
+                  toolInstalled = true;
+                  steps.push(`✅ تم تثبيت ${pkgName} عبر ${strategy.name}!`);
+                  console.log(`[Chat] V.72: ${pkgName} installed via ${strategy.name}`);
+                  break;
+                }
+              } catch {
+                if (stdout.includes('OK') || stdout.includes('Successfully installed')) {
+                  toolInstalled = true;
+                  steps.push(`✅ تم تثبيت ${pkgName} عبر ${strategy.name}!`);
+                  break;
+                }
+              }
+            } catch {
+              // try next
+            }
+          }
+
+          if (!toolInstalled) {
+            steps.push(`❌ فشل تثبيت ${pkgName}`);
+            allSuccess = false;
           }
         }
 
-        if (!installSuccess) {
-          steps.push(`❌ كل محاولات التثبيت فشلت للأداة ${pkgName}`);
+        if (allSuccess && toolsToInstall.length > 0) {
+          steps.push('');
+          steps.push(`🎉 تم تثبيت كل الأدوات (${toolsToInstall.length}) بنجاح!`);
+        } else if (!allSuccess) {
+          steps.push('');
+          steps.push(`⚠️ بعض الأدوات فشل تثبيتها`);
         }
 
         // Return SSE with installation status
-        const sseResponse = `data: ${JSON.stringify({ content: steps.join('\n\n') + `\n\n${installSuccess ? `🎉 الأداة "${analysis.toolName}" اتثبتت بنجاح! بس محتاج أعرف تفاصيل أكتر عشان أنفذ طلبك. قولي بالظبط إيه اللي عاوزه وأنا هستخدم الأداة.` : `⚠️ مقدرش أثبت الأداة دلوقتي. بس مش هسيبك — خليني أحاول أساعدك بطريقة تانية.`}` })}\n\ndata: [DONE]\n\n`;
+        const sseResponse = `data: ${JSON.stringify({ content: steps.join('\n\n') + `\n\n${allSuccess ? `🎉 كل الأدوات اتثبتت بنجاح! قولي بالظبط إيه اللي عاوزه وأنا أنفذهولك.` : `⚠️ بعض الأدوات فشلت. خليني أحاول أساعدك بطريقة تانية.`}` })}\n\ndata: [DONE]\n\n`;
         return new Response(sseResponse, {
           headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
         });

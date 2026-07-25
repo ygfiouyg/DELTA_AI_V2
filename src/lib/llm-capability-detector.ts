@@ -21,6 +21,13 @@ export interface LLMCapabilityAnalysis {
   githubSearchQuery: string;
   reason: string;
   hasToolLocally: boolean;
+  // V.72: Multi-tool support
+  allTools?: Array<{
+    name: string;
+    type: string;
+    purpose: string;
+    available: boolean;
+  }>;
 }
 
 /**
@@ -36,9 +43,9 @@ export async function analyzeCapabilityWithLLM(
   const prompt = `أنت محلل قدرات ذكي. حلل طلب المستخدم التالي وحدد:
 
 1. هل الطلب يحتاج أداة خاصة غير المحادثة العادية؟
-2. لو أيه، إيه اسم الأداة المطلوبة (Python package name)؟
-3. إيه نوع التثبيت؟ (pip, npm, docker, local, system)
-4. إيه أمر التثبيت؟
+2. لو أيه، إيه **كل** الأدوات المطلوبة (ممكن يكون أكثر من أداة)؟
+3. إيه نوع التثبيت لكل أداة؟ (pip, npm, docker, local, system)
+4. إيه أمر التثبيت لكل أداة؟
 5. إيه استعلام البحث في GitHub؟
 
 الأدوات المتاحة حالياً: ${availableTools.join(', ')}
@@ -48,24 +55,28 @@ export async function analyzeCapabilityWithLLM(
 أجب بصيغة JSON فقط:
 {
   "needsSpecialTool": true/false,
-  "toolName": "اسم الأداة أو فارغ",
+  "toolName": "الأداة الرئيسية أو فارغ",
   "toolType": "pip|npm|docker|local|system",
-  "installCommand": "أمر التثبيت أو فارغ",
+  "installCommand": "أمر التثبيت الرئيسي أو فارغ",
   "githubSearchQuery": "استعلام البحث أو فارغ",
   "reason": "السبب",
-  "hasToolLocally": true/false
+  "hasToolLocally": true/false,
+  "allTools": [
+    {"name": "pytube", "type": "pip", "purpose": "تنزيل الفيديو", "available": false},
+    {"name": "pydub", "type": "pip", "purpose": "استخراج الصوت", "available": false},
+    {"name": "SpeechRecognition", "type": "pip", "purpose": "تحويل الصوت لنص", "available": false}
+  ]
 }
 
-قواعد:
-- لو الطلب محتاج QR code → toolName: "qrcode", toolType: "pip"
-- لو الطلب محتاج تحويل PDF لصوت → toolName: "gtts", toolType: "pip"
-- لو الطلب محتاج PowerPoint → toolName: "python-pptx", toolType: "pip"
-- لو الطلب محتاج Excel → toolName: "openpyxl", toolType: "pip"
-- لو الطلب محتاج معالجة صور → toolName: "pillow", toolType: "pip"
-- لو الطلب محتاج استخراج من PDF → toolName: "pymupdf", toolType: "pip"
-- لو الطلب محتاج رسوم بيانية → toolName: "matplotlib", toolType: "pip"
-- لو الطلب محادثة عادية → needsSpecialTool: false
-- لو الأداة في قائمة الأدوات المتاحة → hasToolLocally: true`;
+قواعد مهمة:
+- لو الطلب معقد ويحتاج خطوات متعددة → حط كل الأدوات في allTools
+- مثلاً "حمّل فيديو من يوتيوب وحول الصوت لنص" يحتاج: pytube + pydub + SpeechRecognition
+- مثلاً "اقرأ صورة وحولها لـ PDF" يحتاج: pytesseract + pillow + pymupdf
+- مثلاً "استخرج صور من PDF واعمل عرض تقديمي" يحتاج: pymupdf + pillow + python-pptx
+- لو الأداة في قائمة الأدوات المتاحة → available: true
+- لو الأداة Python stdlib (مثل os, json, smtplib) → available: true, type: "system"
+- لو الطلب محادثة عادية → needsSpecialTool: false, allTools: []
+- toolName = الأداة الأولى في allTools (الأهم)`;
 
   try {
     const { getZAIClient } = await import('./chat-utils');
@@ -75,7 +86,7 @@ export async function analyzeCapabilityWithLLM(
       model: 'glm-4-flash',
       messages: [{ role: 'user', content: prompt }],
       temperature: 0.0,
-      max_tokens: 300,
+      max_tokens: 600,
     });
 
     const content = result.choices?.[0]?.message?.content || '';
@@ -125,6 +136,7 @@ export async function analyzeCapabilityWithLLM(
       githubSearchQuery: parsed.githubSearchQuery || '',
       reason: parsed.reason || '',
       hasToolLocally,
+      allTools: parsed.allTools || [],
     };
   } catch (error) {
     console.warn('[LLMCapability] Analysis failed:', error instanceof Error ? error.message : String(error));
