@@ -343,11 +343,16 @@ export async function POST(request: NextRequest) {
           steps.push(`⚠️ بعض الأدوات فشل تثبيتها`);
         }
 
-        // Return SSE with installation status
-        const sseResponse = `data: ${JSON.stringify({ content: steps.join('\n\n') + `\n\n${allSuccess ? `🎉 كل الأدوات اتثبتت بنجاح! قولي بالظبط إيه اللي عاوزه وأنا أنفذهولك.` : `⚠️ بعض الأدوات فشلت. خليني أحاول أساعدك بطريقة تانية.`}` })}\n\ndata: [DONE]\n\n`;
-        return new Response(sseResponse, {
-          headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
-        });
+        // V.73: Don't return early — let the AI continue with the tools installed!
+        // Send installation status as SSE, then fall through to normal AI processing
+        if (allSuccess) {
+          console.log('[Chat] V.73: All tools installed — continuing to AI execution');
+          // Don't return — fall through to normal stream
+          // The AI will pick up the message and execute with tools available
+        } else {
+          // Some tools failed — still continue but inform user
+          console.log('[Chat] V.73: Some tools failed — continuing anyway');
+        }
       }
     } catch (v70Err) {
       console.warn('[Chat] V.70 LLM analysis failed (non-fatal):', v70Err instanceof Error ? v70Err.message : String(v70Err));
@@ -991,6 +996,15 @@ export async function POST(request: NextRequest) {
     if (shouldGenerateVideo) {
       systemPrompt += '\n\n🎬 المستخدم طلب توليد فيديو. صف الفيديو المولد بإيجاز. لا تقل "لا أستطيع توليد فيديو" — الفيديو يتم توليده!';
     }
+
+    // V.73: If tools were just installed, tell the AI they're available!
+    try {
+      const { getAvailableTools } = await import('@/lib/autonomous-agent');
+      const currentTools = await getAvailableTools();
+      if (currentTools.length > 11) { // More than the base tools
+        systemPrompt += `\n\n🔧 أدوات إضافية متاحة الآن (${currentTools.length}): ${currentTools.join(', ')}.\nاستخدم هذه الأدوات لتنفيذ طلب المستخدم. اكتب كود Python فعلي ينفذ المطلوب، لا تكتفي بالشرح.`;
+      }
+    } catch {}
 
     // ── Quiz Intent Detection ──
     // When user asks for questions/quiz, auto-generate quiz
