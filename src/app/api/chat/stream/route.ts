@@ -656,6 +656,41 @@ export async function POST(request: NextRequest) {
     const skipSmartDocPipeline = isFileGenIntent;
     const effectiveHasDocIntent = hasEnhancedDocIntent && !skipSmartDocPipeline;
 
+    // V.68: AUTONOMOUS AGENT LOOP — detect capability gaps and auto-install tools
+    // Before processing, check if the agent has the tools to fulfill the request.
+    // If not, search GitHub, install the tool, and make it available.
+    if (isFileGenIntent || /صور|image|استخرج|extract|تحويل|convert|ترجمة|translate|رسم|chart|كود|code/i.test(message)) {
+      try {
+        const { runAgentLoop } = await import('@/lib/autonomous-agent');
+        const agentResult = await runAgentLoop(message);
+
+        if (!agentResult.capabilityCheck.hasCapability && agentResult.installedTool?.success) {
+          // Tool was just installed — notify user via SSE
+          console.log(`[Chat] V.68 Agent Loop: ${agentResult.finalMessage}`);
+          // The tool is now available — continue with normal processing
+        }
+
+        // Log agent steps for debugging
+        for (const step of agentResult.steps) {
+          console.log(`[AgentLoop] ${step}`);
+        }
+      } catch (agentErr) {
+        console.warn('[Chat] V.68 Agent loop failed (non-fatal):', agentErr instanceof Error ? agentErr.message : String(agentErr));
+      }
+    }
+
+    // V.68: MCP CONNECTION — if user provided an MCP URL, connect to it
+    const mcpUrlMatch = message.match(/(?:mcp|MCP)[:：\s]+(https?:\/\/[^\s]+)/i);
+    if (mcpUrlMatch) {
+      try {
+        const { connectMCP } = await import('@/lib/autonomous-agent');
+        const mcpResult = await connectMCP(mcpUrlMatch[1]);
+        console.log(`[Chat] V.68 MCP: ${mcpResult.message}`);
+      } catch (mcpErr) {
+        console.warn('[Chat] V.68 MCP connect failed:', mcpErr);
+      }
+    }
+
     // ── Build system prompt using extracted module ──
     // All system prompt construction (language, capabilities, time context,
     // content strategy, design prefs, attachments, emotion, memory, Drive, web search)
