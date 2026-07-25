@@ -4384,6 +4384,28 @@ ${toolData}${extraStr}
                 }
               }
 
+              // V.75: AUTO-EXECUTE Python code from AI response
+              // If the AI wrote Python code in ```python blocks, execute it for real!
+              try {
+                const { extractPythonCode, executePythonCode } = await import('@/lib/local-tool-executor');
+                const pythonCode = extractPythonCode(accumulatedContent);
+                if (pythonCode && pythonCode.length > 20) {
+                  console.log(`[Chat] V.75: Found Python code (${pythonCode.length} chars) — executing!`);
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\n\n⚙️ **جاري تنفيذ الكود...**\n\n' })}\n\n`));
+
+                  const execResult = await executePythonCode(pythonCode, 30_000);
+
+                  if (execResult.success && execResult.output) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `✅ **النتيجة:**\n\`\`\`\n${execResult.output}\n\`\`\`\n` })}\n\n`));
+                    console.log(`[Chat] V.75: Executed! Output: ${execResult.output.substring(0, 100)}`);
+                  } else if (execResult.error) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `❌ **خطأ في التنفيذ:**\n\`\`\`\n${execResult.error.substring(0, 300)}\n\`\`\`\n` })}\n\n`));
+                  }
+                }
+              } catch (execErr) {
+                console.warn('[Chat] V.75: Code exec failed:', execErr instanceof Error ? execErr.message : String(execErr));
+              }
+
               controller.enqueue(encoder.encode('data: [DONE]\n\n'));
               controller.close();
             } catch {
