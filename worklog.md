@@ -4506,3 +4506,52 @@ Work Log:
 - ⏳ محتاج أشغل الـ PPTX generation محلياً بدل HF service
 
 *Last updated: 2025-07-24 (Round 66e) · V.66 testing + fixes in progress*
+
+---
+Task ID: v67-local-tool-executor
+Agent: main (Z.ai Code)
+Task: Local Tool Executor — PPTX/XLSX generation via python-pptx/openpyxl
+
+Work Log:
+### V.67: بناء Local Tool Executor
+
+**المشكلة**: الـ PPTX/XLSX generation كان بيعتمد على HF Document Service
+اللي مش متاح. النتيجة: "لم أتمكن من إنشاء الملف".
+
+**الحل**: بنينا local tool executor بيستخدم python-pptx و openpyxl محلياً.
+
+### New Files:
+1. src/lib/local-tool-executor.ts
+   - generatePPTX(): بيـ generate .pptx file فعللي via python-pptx
+   - generateXLSX(): بيـ generate .xlsx file فعللي via openpyxl
+   - parsePPTXFromAIResponse(): بيستخرج slides من نص الـ AI
+   - parseTableFromAIResponse(): بيستخرج جدول من نص الـ AI
+
+2. src/app/api/tools/generate/route.ts
+   - POST endpoint للـ file generation
+
+### Updated: chat/stream/route.ts
+- استبدلت HF Document Service PPTX handler بـ local python-pptx
+- ضفت XLSX handler بـ local openpyxl
+- مفيش اعتماد على external services!
+
+### V.67b: Dockerfile fix
+- ضفت python3-pip لـ apt-get
+- ضفت pip3 install python-pptx openpyxl
+
+### V.67c: gitignore fix
+- local-tool-executor.ts كان متجاهل بواسطة `local-*` pattern
+- أضفت exception في .gitignore
+- أصلحت TypeScript errors (path import + regex flags)
+
+### Test Results (محلياً):
+✅ PPTX generated: 31KB file with 3 slides
+✅ XLSX generated: 5KB file with 4 rows
+✅ Arabic text supported
+✅ RTL alignment
+
+### Verification على HF:
+- ✅ V.67c deployed (SHA: 30e3ce26) - RUNNING
+- ⏳ محتاج اختبار فعلي للـ PPTX generation من UI
+
+*Last updated: 2025-07-25 (Round 67) · V.67 Local Tool Executor deployed*
