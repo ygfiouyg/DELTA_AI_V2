@@ -1,11 +1,13 @@
 /**
- * Skill Installer — V.63
+ * Skill Installer — V.64
  * بيـ install skills من GitHub على طول لما الـ LLM يطلبها
+ * V.64: SECURITY — validates skill content before saving (blocks IoT instructions)
  */
 
 import { promises as fs } from 'fs';
 import path from 'path';
 import { randomUUID } from 'crypto';
+import { validateSkillContent } from './namespace-router';
 
 const SKILLS_DIR = path.join(process.cwd(), 'skills');
 
@@ -88,18 +90,29 @@ async function downloadFromUrl(url: string): Promise<InstallResult> {
       return { success: false, message: 'Content is not a valid skill file' };
     }
 
+    // V.64: SECURITY — validate skill content before saving
+    const validation = validateSkillContent(content);
+    if (!validation.valid) {
+      console.warn(`[SECURITY] Skill from ${url} blocked:`, validation.violations);
+      return {
+        success: false,
+        message: `[BLOCKED] Skill contains IoT/Home Assistant control instructions: ${validation.violations.join('; ')}. Only document/skill tools are allowed.`,
+      };
+    }
+
     const urlPath = new URL(rawUrl).pathname;
     const originalName = urlPath.split('/').pop() || `skill-${randomUUID()}.md`;
     const safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');
     const fileName = safeName.endsWith('.md') ? safeName : `${safeName}.md`;
     const filePath = path.join(SKILLS_DIR, fileName);
 
-    await fs.writeFile(filePath, content, 'utf-8');
-    console.log(`[SkillInstaller] ✅ Installed skill from URL: ${fileName}`);
+    // V.64: Save the sanitized content (IoT patterns removed)
+    await fs.writeFile(filePath, validation.sanitized, 'utf-8');
+    console.log(`[SkillInstaller] ✅ Installed skill from URL: ${fileName} (validated safe)`);
 
     return {
       success: true,
-      message: `Skill "${fileName}" installed successfully from GitHub URL`,
+      message: `Skill "${fileName}" installed successfully from GitHub URL (validated safe)`,
       skillName: fileName.replace('.md', ''),
       filePath,
     };

@@ -1,14 +1,17 @@
 /**
- * Tool Registry — V.63 Omni-Agent
+ * Tool Registry — V.64 Omni-Agent with Context Isolation
  * ═══════════════════════════════════════════════════════════════════════
  *
- * Universal tool registry with JSON schemas compatible with all model providers:
- * - OpenAI function calling format
- * - Anthropic tools format
- * - ZAI/GLM format
+ * Universal tool registry with JSON schemas compatible with all model providers.
+ * V.64: STRICT CONTEXT ISOLATION — IoT/Home Assistant tools are BLOCKED.
  *
  * The autonomous_install_skill tool lets ANY model install skills on demand.
+ * The search_skills tool lets ANY model search local skills.
+ *
+ * Security: Only safe document/skill tools are exposed to models.
  */
+
+import { filterToolsForChat, isToolBlocked, logBlockedTool } from './namespace-router';
 
 export interface ToolSchema {
   type: 'function';
@@ -71,34 +74,54 @@ export const SEARCH_SKILLS_SCHEMA: ToolSchema = {
 
 /**
  * Get all available tool schemas for a specific model provider
+ * V.64: Applies strict context isolation — blocks IoT/Home Assistant tools
  */
 export function getToolSchemas(provider: 'openai' | 'anthropic' | 'zai' | 'generic' = 'openai'): any[] {
+  // V.64: Only safe tools are registered — IoT tools are NEVER included
   const tools = [SEARCH_SKILLS_SCHEMA, AUTONOMOUS_INSTALL_SKILL_SCHEMA];
+
+  // V.64: Security gate — filter out any blocked tools
+  const safeTools = filterToolsForChat(tools);
+
+  // Log if any tools were blocked (shouldn't happen, but safety net)
+  if (safeTools.length < tools.length) {
+    console.warn(`[SECURITY] ${tools.length - safeTools.length} tools blocked during schema generation`);
+  }
 
   // OpenAI format (also works for ZAI/GLM)
   if (provider === 'openai' || provider === 'zai' || provider === 'generic') {
-    return tools;
+    return safeTools;
   }
 
   // Anthropic format
   if (provider === 'anthropic') {
-    return tools.map(t => ({
+    return safeTools.map(t => ({
       name: t.function.name,
       description: t.function.description,
       input_schema: t.function.parameters,
     }));
   }
 
-  return tools;
+  return safeTools;
 }
 
 /**
  * Execute a tool call and return the result
+ * V.64: SECURITY GATE — blocks IoT/Home Assistant tools
  */
 export async function executeToolCall(
   toolName: string,
   args: any
 ): Promise<{ success: boolean; result: string; data?: any }> {
+  // V.64: SECURITY GATE — block IoT/Home Assistant tools
+  if (isToolBlocked(toolName)) {
+    logBlockedTool(toolName, 'executeToolCall');
+    return {
+      success: false,
+      result: `[BLOCKED] Tool "${toolName}" is an IoT/Home Assistant tool and cannot be executed in chat context. Only document and skill tools are allowed.`,
+    };
+  }
+
   try {
     switch (toolName) {
       case 'search_skills': {
@@ -128,9 +151,11 @@ export async function executeToolCall(
       }
 
       default:
+        // V.64: Any other tool is rejected unless explicitly allowed
+        logBlockedTool(toolName, 'executeToolCall:unknown');
         return {
           success: false,
-          result: `Unknown tool: ${toolName}`,
+          result: `[REJECTED] Tool "${toolName}" is not in the allowed tool scope. Only autonomous_install_skill and search_skills are permitted in chat context.`,
         };
     }
   } catch (error) {
