@@ -236,6 +236,14 @@ export const FILE_GEN_KEYWORDS = [
   'ولد عرض', 'اعمل عرض', 'سلايدات', 'سلايد',
   'عاوز pptx', 'عايز pptx', 'عاوز باوربوينت', 'عايز باوربوينت',
   'طلعلي pptx', 'جيبلي pptx', 'حطلي pptx',
+  // V.68c: QR code / vCard keywords
+  'كود qr', 'qr code', 'qr', 'كيو ار', 'باركود', 'barcode',
+  'vcard', 'كارت اتصال', 'كارت شخصي', 'بطاقة اتصال',
+  'اعمل qr', 'اعملي qr', 'اعمللي qr', 'ولد qr',
+  'generate qr', 'create qr', 'make qr',
+  // V.68c: Audiobook / TTS keywords
+  'كتاب صوتي', 'audiobook', 'تحويل لصوت', 'نص لصوت', 'كتاب مسموع',
+  'pdf to mp3', 'ملف صوتي', 'mp3 من',
   // English keywords
   'generate pdf', 'create pdf', 'make pdf', 'export pdf',
   'convert to pdf', 'pdf please', 'as pdf', 'in pdf',
