@@ -4390,6 +4390,8 @@ ${toolData}${extraStr}
                 const { extractPythonCode, executePythonCode } = await import('@/lib/local-tool-executor');
                 // V.75b: Use contentChunks which has the raw unstripped content
                 const rawContent = contentChunks.join('');
+                console.log(`[Chat] V.75b: rawContent length=${rawContent.length}, contains backticks=${rawContent.includes('`')}, contains python=${rawContent.includes('python')}`);
+                console.log(`[Chat] V.75b: rawContent preview: ${rawContent.substring(0, 200)}`);
                 const pythonCode = extractPythonCode(rawContent);
                 if (pythonCode && pythonCode.length > 20) {
                   console.log(`[Chat] V.75: Found Python code (${pythonCode.length} chars) — executing!`);
