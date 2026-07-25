@@ -2952,12 +2952,36 @@ ${toolData}${extraStr}
 
                 // Stream complete — but DON'T close yet if image/video generation is in progress
                 // V.25: Wait for imageGenPromise/videoGenPromise before closing
+                // V.75: Execute Python code BEFORE closing the stream!
                 if (!streamClosed) {
                   // Check if we need to wait for image/video generation
                   if (imageGenPromise || videoGenPromise) {
                     console.log('[Chat] Stream done, waiting for media generation before close...');
                     // Don't close — let the post-stream code handle it
                   } else {
+                    // V.75: AUTO-EXECUTE Python code from AI response!
+                    try {
+                      const { extractPythonCode, executePythonCode } = await import('@/lib/local-tool-executor');
+                      const rawContent = contentChunks.join('');
+                      console.log(`[Chat] V.75: Checking for Python code... rawContent=${rawContent.length} chars, hasBackticks=${rawContent.includes('\x60\x60\x60')}`);
+                      const pythonCode = extractPythonCode(rawContent) || extractPythonCode(accumulatedContent);
+                      if (pythonCode && pythonCode.length > 10) {
+                        console.log(`[Chat] V.75: Found Python code (${pythonCode.length} chars)! Executing...`);
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\n\n\u2699\ufe0f **\u062c\u0627\u0631\u064a \u062a\u0646\u0641\u064a\u0630 \u0627\u0644\u0643\u0648\u062f...**\n\n' })}\n\n`));
+
+                        const execResult = await executePythonCode(pythonCode, 30_000);
+
+                        if (execResult.success && execResult.output) {
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\u2705 **\u0627\u0644\u0646\u062a\u064a\u062c\u0629:**\n```\n' + execResult.output + '\n```\n' })}\n\n`));
+                          console.log(`[Chat] V.75: Executed! Output: ${execResult.output.substring(0, 100)}`);
+                        } else if (execResult.error) {
+                          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\u274c **\u062e\u0637\u0623:**\n```\n' + execResult.error.substring(0, 300) + '\n```\n' })}\n\n`));
+                        }
+                      }
+                    } catch (execErr) {
+                      console.warn('[Chat] V.75: Code exec failed:', execErr instanceof Error ? execErr.message : String(execErr));
+                    }
+
                     streamClosed = true;
                     try {
                       controller.enqueue(encoder.encode('data: [DONE]\n\n'));
