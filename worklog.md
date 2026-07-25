@@ -4424,3 +4424,54 @@ Stage Summary:
 - ✅ المستخدم بيشوف كل العمليات في الـ backend
 
 *Last updated: 2025-07-24 (Round 65) · V.65 Deep Skill Installer complete*
+
+---
+Task ID: v66-critical-fixes
+Agent: main (Z.ai Code)
+Task: إصلاحات حرجة — شيل المسار البديل، إصلاح intent detection، إزالة onboarding للزائر، admin login، Self-Evolving Agent
+
+Work Log:
+### V.66: 6 إصلاحات حرجة
+
+**1. شيل "المسار البديل" (PDF fallback)**:
+- شيلت generateDocumentViaDeltaAISpace من chat stream route
+- ده كان السبب الرئيسي للـ PDF المعفن
+- دلوقتي لو فشل التوليد، بيقول للمستخدم يحاول تاني بدل ما يعمل PDF وحش
+
+**2. إصلاح intent detection**:
+- ضفت generate-xlsx للـ DocIntentType (كان مش موجود!)
+- ضفت regex patterns لـ excel/xlsx (عربي + إنجليزي)
+- حدّثت الـ AI classifier يضم generate-pptx, generate-xlsx, generate-docx
+- دلوقتي: "اعمل باور بوينت" → generate-pptx (مش PDF!)
+- دلوقتي: "اعمل اكسل" → generate-xlsx (مش PDF!)
+
+**3. شيل routeSmartDoc fallback**:
+- smart-doc case: دلوقتي بيستخدم routeSummarize (نظيف)
+- default case: دلوقتي بيستخدم routeSummarize
+- routeSmartDoc مش بيتنادى كـ fallback تاني
+
+**4. تخطي onboarding للزائر**:
+- الزائر (email فيه 'guest' أو name='زائر') بيتخطى الـ 19 سؤال
+- بس الـ registered users بيشوفوا الـ onboarding
+- الزائر بيدخل على الشات مباشرة
+
+**5. إصلاح admin login**:
+- أنشأت POST /api/auth/setup-admin endpoint
+- بيخلق admin user لو مفيش واحد موجود
+- بيصلح الـ "خطأ في كلمة السر" لما مفيش admin في الـ DB
+
+**6. Self-Evolving Agent**:
+- ضفت search_and_install_skill meta-tool
+- بيجمع: GitHub search + deep install + MCP hot-reload
+- الـ LLM يقدر يكتسب قدرات جديدة أوتوماتيكياً
+- بيرجع: "✅ Skill acquired! N files installed, M scripts registered"
+
+Stage Summary:
+- ✅ V.66 deployed على HF (SHA: 307d1c8c)
+- ✅ المسار البديل اتشال
+- ✅ Intent detection شغال (pptx→pptx, xlsx→xlsx)
+- ✅ الزائر بيتخطى onboarding
+- ✅ Admin setup endpoint جاهز
+- ✅ Self-Evolving Agent meta-tool جاهز
+
+*Last updated: 2025-07-24 (Round 66) · V.66 Critical fixes deployed*
