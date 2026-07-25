@@ -5201,3 +5201,41 @@ response = requests.get(url)
 | 2 | requests | ✅ | ✅ | ✅ طقس القاهرة |
 
 *Last updated: 2025-07-25 (Round 76) · V.76b REAL results in chat*
+
+---
+Task ID: v77-always-install
+Agent: main (Z.ai Code)
+Task: V.77 — ALWAYS install tools, force pip install
+
+### V.77: الموديل ليه أكسس كامل لتثبيت المكتبات
+
+**التغييرات**:
+1. شيلت شرط `!analysis.hasToolLocally` — الـ agent بيثبت دايماً
+2. force install: `pip3 install --force-reinstall --no-deps`
+3. بيتخطى بس stdlib modules (os, sys, json, etc.)
+4. PyPI FIRST strategy — بيثبت الأول
+
+### الاختبار: pyfiglet (NOT installed)
+```
+[10%] 🔧 اكتشفت إن طلبك يحتاج pyfiglet...
+[40%] ⚙️ جاري استخدام pyfiglet...
+
+```python
+import pyfiglet
+ascii_art = pyfiglet.figlet_format("HELLO", font="slant")
+print(ascii_art)
+```
+
+⚙️ جاري تنفيذ الكود...
+
+✅ النتيجة:
+   __  __________    __    ____ 
+   / / / / ____/ /   / /   / __ \
+  / /_/ / __/ /   / /   / / / /
+ / __  / /___/ /___/ /___/ /_/ / 
+/_/ /_/_____/_____/_____/\____/
+```
+
+**✅ ASCII art حقيقي من pyfiglet!**
+
+*Last updated: 2025-07-25 (Round 77) · V.77 Always install + execute*
