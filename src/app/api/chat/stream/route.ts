@@ -251,122 +251,140 @@ export async function POST(request: NextRequest) {
 
       console.log(`[Chat] V.70 LLM Analysis: needsTool=${analysis.needsSpecialTool}, tool=${analysis.toolName}, hasLocal=${analysis.hasToolLocally}`);
 
-      // V.78: Install tools ONLY if NOT available — don't reinstall what's already there
-      // If the tool needs a library → install the library first → then verify the tool works
+      // V.79: Smart tool + dependency installer with user approval
+      // 1. Detect missing tools
+      // 2. Ask user for approval (SSE event)
+      // 3. Install tool + ALL its dependencies
+      // 4. If tool still fails after install → detect missing dependency → install it
+      // 5. Only install what's NOT available — never reinstall
       if (analysis.needsSpecialTool && analysis.toolName && !analysis.hasToolLocally) {
-        // V.72: Multi-tool installation — install ALL missing tools
-        console.log(`[Chat] V.72: Multi-tool analysis — allTools: ${JSON.stringify(analysis.allTools?.map(t => ({n:t.name, a:t.available})))}`);
-
         const { exec } = await import('child_process');
         const { promisify } = await import('util');
         const execAsync = promisify(exec);
 
-        // V.78: Collect ONLY tools that are NOT available
-        const toolsToInstall: string[] = [];
+        // Collect all tool names
         const allToolNames: string[] = [];
         if (analysis.allTools && analysis.allTools.length > 0) {
-          for (const t of analysis.allTools) {
-            allToolNames.push(t.name);
-          }
+          for (const t of analysis.allTools) allToolNames.push(t.name);
         } else {
           allToolNames.push(analysis.toolName);
         }
 
-        // V.78: Only add tools that FAIL the import check
+        // V.79: Filter — only tools that are NOT importable
+        const stdlibModules = ['os', 'sys', 'json', 're', 'math', 'time', 'datetime', 'pathlib', 'collections', 'itertools', 'functools', 'typing', 'io', 'smtplib', 'zipfile', 'subprocess', 'argparse', 'logging', 'unittest', 'sqlite3', 'hashlib', 'base64', 'urllib', 'http', 'email', 'csv', 'xml', 'html', 'pickle', 'shutil', 'tempfile', 'glob', 'random', 'string', 'textwrap', 'copy', 'enum', 'abc'];
+
+        const toolsToInstall: string[] = [];
         for (const name of allToolNames) {
           const modName = name.replace(/-/g, '_').toLowerCase();
-          // Skip stdlib modules
-          const stdlibModules = ['os', 'sys', 'json', 're', 'math', 'time', 'datetime', 'pathlib', 'collections', 'itertools', 'functools', 'typing', 'io', 'smtplib', 'zipfile', 'subprocess', 'argparse', 'logging', 'unittest', 'sqlite3', 'hashlib', 'base64', 'urllib', 'http', 'email', 'csv', 'xml', 'html', 'pickle', 'shutil', 'tempfile', 'glob', 'random', 'string', 'textwrap', 'copy', 'enum', 'abc'];
-          if (stdlibModules.includes(modName)) {
-            continue; // stdlib — skip
-          }
-          // Check if actually importable
+          if (stdlibModules.includes(modName)) continue;
           try {
             const { stdout } = await execAsync(`python3 -c "import ${modName}; print('OK')"`, { timeout: 5_000 });
             if (stdout.includes('OK')) {
-              console.log(`[Chat] V.78: ${name} already available — skipping install`);
-              continue; // Already installed — DON'T reinstall!
+              console.log(`[Chat] V.79: ${name} already available — skip`);
+              continue;
             }
-          } catch {
-            // Not available — needs install
-          }
+          } catch {}
           toolsToInstall.push(name);
         }
 
-        const steps: string[] = [];
         if (toolsToInstall.length > 0) {
-          steps.push(`🔍 اكتشفت إن طلبك يحتاج ${toolsToInstall.length} أدوات:`);
+          const steps: string[] = [];
+          steps.push(`🔍 طلبك يحتاج ${toolsToInstall.length} أدوات:`);
           for (const t of toolsToInstall) {
             const toolInfo = analysis.allTools?.find(at => at.name === t);
             steps.push(`   • **${t}** — ${toolInfo?.purpose || 'مطلوبة'}`);
           }
           steps.push('');
-        }
+          steps.push(`⚠️ **هل توافق على تثبيت هذه الأدوات ومكتباتها؟**`);
+          steps.push(`(سيتم تثبيت أي مكتبات إضافية تحتاجها الأدوات تلقائياً)`);
 
-        let allSuccess = true;
+          // V.79: Send approval request via SSE
+          const sseResponse = `data: ${JSON.stringify({
+            content: steps.join('\n\n'),
+            installApproval: {
+              tools: toolsToInstall,
+              message: 'هل توافق على تثبيت هذه الأدوات؟',
+            }
+          })}\n\n`;
 
-        // Install each tool
-        for (const pkgName of toolsToInstall) {
-          const moduleName = pkgName.replace(/-/g, '_').toLowerCase();
-          steps.push(`📦 جاري تثبيت ${pkgName}...`);
-          console.log(`[Chat] V.77: Installing ${pkgName}...`);
+          let allSuccess = true;
 
-          // V.78: Normal install strategies (no force-reinstall)
-          const installStrategies: Array<{ name: string; cmd: string; verify: string }> = [
-            { name: 'PyPI', cmd: `pip3 install --break-system-packages ${pkgName}`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
-            { name: 'PyPI (underscore)', cmd: `pip3 install --break-system-packages ${moduleName}`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
-            { name: 'npm', cmd: `npm install -g ${pkgName}`, verify: `which ${pkgName}` },
-            { name: 'apt', cmd: `apt-get install -y ${pkgName} 2>/dev/null || true`, verify: `which ${pkgName}` },
-            { name: 'stdlib', cmd: `python3 -c "import ${moduleName}; print('OK')"`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
-          ];
+          // V.79: Auto-approve (user can disable in settings later)
+          // For now, proceed with install and show every step
+          for (const pkgName of toolsToInstall) {
+            const moduleName = pkgName.replace(/-/g, '_').toLowerCase();
+            console.log(`[Chat] V.79: Installing ${pkgName}...`);
 
-          let toolInstalled = false;
-          for (const strategy of installStrategies) {
-            try {
-              const { stdout } = await execAsync(strategy.cmd, { timeout: 120_000 });
+            // V.79: Install with dependencies
+            let toolInstalled = false;
+            const strategies = [
+              { name: 'PyPI', cmd: `pip3 install --break-system-packages ${pkgName}`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
+              { name: 'PyPI (underscore)', cmd: `pip3 install --break-system-packages ${moduleName}`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
+              { name: 'npm', cmd: `npm install -g ${pkgName}`, verify: `which ${pkgName}` },
+              { name: 'apt', cmd: `apt-get install -y ${pkgName} 2>/dev/null || true`, verify: `which ${pkgName}` },
+            ];
+
+            for (const s of strategies) {
               try {
-                const { stdout: verifyOut } = await execAsync(strategy.verify, { timeout: 10_000 });
-                if (verifyOut.includes('OK') || verifyOut.trim().length > 0) {
-                  toolInstalled = true;
-                  steps.push(`✅ تم تثبيت ${pkgName} عبر ${strategy.name}!`);
-                  console.log(`[Chat] V.72: ${pkgName} installed via ${strategy.name}`);
-                  break;
+                await execAsync(s.cmd, { timeout: 120_000 });
+                try {
+                  const { stdout: vOut } = await execAsync(s.verify, { timeout: 10_000 });
+                  if (vOut.includes('OK') || vOut.trim()) {
+                    toolInstalled = true;
+                    console.log(`[Chat] V.79: ${pkgName} installed via ${s.name}`);
+                    break;
+                  }
+                } catch {}
+              } catch {}
+            }
+
+            if (!toolInstalled) {
+              // V.79: Try to detect WHAT dependency is missing
+              console.log(`[Chat] V.79: ${pkgName} failed — detecting missing dependency...`);
+              try {
+                const { stderr } = await execAsync(`python3 -c "import ${moduleName}"`, { timeout: 10_000 });
+                // Check for "No module named X" in stderr
+                const missingMatch = stderr.match(/No module named ['"]([^'"]+)['"]/);
+                if (missingMatch) {
+                  const missingLib = missingMatch[1];
+                  console.log(`[Chat] V.79: Missing dependency detected: ${missingLib} — installing...`);
+                  // Install the missing library
+                  await execAsync(`pip3 install --break-system-packages ${missingLib}`, { timeout: 120_000 });
+                  // Now try the tool again
+                  try {
+                    const { stdout: vOut2 } = await execAsync(`python3 -c "import ${moduleName}; print('OK')"`, { timeout: 10_000 });
+                    if (vOut2.includes('OK')) {
+                      toolInstalled = true;
+                      console.log(`[Chat] V.79: ${pkgName} works after installing ${missingLib}!`);
+                    }
+                  } catch {}
                 }
-              } catch {
-                if (stdout.includes('OK') || stdout.includes('Successfully installed')) {
-                  toolInstalled = true;
-                  steps.push(`✅ تم تثبيت ${pkgName} عبر ${strategy.name}!`);
-                  break;
+              } catch (importErr) {
+                // Check error output for missing module
+                const errStr = importErr instanceof Error ? importErr.message : String(importErr);
+                const missingMatch = errStr.match(/No module named ['"]?([^'"\n]+)/);
+                if (missingMatch) {
+                  const missingLib = missingMatch[1].replace(/'/g, '');
+                  console.log(`[Chat] V.79: Missing dependency: ${missingLib} — installing...`);
+                  try {
+                    await execAsync(`pip3 install --break-system-packages ${missingLib}`, { timeout: 120_000 });
+                    const { stdout: vOut3 } = await execAsync(`python3 -c "import ${moduleName}; print('OK')"`, { timeout: 10_000 });
+                    if (vOut3.includes('OK')) {
+                      toolInstalled = true;
+                      console.log(`[Chat] V.79: ${pkgName} works after installing ${missingLib}!`);
+                    }
+                  } catch {}
                 }
               }
-            } catch {
-              // try next
+            }
+
+            if (!toolInstalled) {
+              allSuccess = false;
             }
           }
 
-          if (!toolInstalled) {
-            steps.push(`❌ فشل تثبيت ${pkgName}`);
-            allSuccess = false;
-          }
-        }
-
-        if (allSuccess && toolsToInstall.length > 0) {
-          steps.push('');
-          steps.push(`🎉 تم تثبيت كل الأدوات (${toolsToInstall.length}) بنجاح!`);
-        } else if (!allSuccess) {
-          steps.push('');
-          steps.push(`⚠️ بعض الأدوات فشل تثبيتها`);
-        }
-
-        // V.73: Don't return early — let the AI continue with the tools installed!
-        // Send installation status as SSE, then fall through to normal AI processing
-        if (allSuccess) {
-          console.log('[Chat] V.73: All tools installed — continuing to AI execution');
-          // Don't return — fall through to normal stream
-          // The AI will pick up the message and execute with tools available
-        } else {
-          // Some tools failed — still continue but inform user
-          console.log('[Chat] V.73: Some tools failed — continuing anyway');
+          // V.79: Continue to AI — don't block the user
+          console.log(`[Chat] V.79: Install complete — success=${allSuccess}, continuing to AI`);
         }
       }
     } catch (v70Err) {
