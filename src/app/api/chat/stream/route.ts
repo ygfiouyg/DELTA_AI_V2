@@ -659,7 +659,8 @@ export async function POST(request: NextRequest) {
     // V.68: AUTONOMOUS AGENT LOOP — detect capability gaps and auto-install tools
     // Before processing, check if the agent has the tools to fulfill the request.
     // If not, search GitHub, install the tool, and make it available.
-    if (isFileGenIntent || /صور|image|استخرج|extract|تحويل|convert|ترجمة|translate|رسم|chart|كود|code/i.test(message)) {
+    // V.68c: Added QR, vCard, audiobook, mp3, tts keywords
+    if (isFileGenIntent || /صور|image|استخرج|extract|تحويل|convert|ترجمة|translate|رسم|chart|كود|code|qr|vcard|كارت اتصال|باركود|كتاب صوتي|audiobook|mp3|tts|نص لصوت|كتاب مسموع/i.test(message)) {
       try {
         const { runAgentLoop } = await import('@/lib/autonomous-agent');
         const agentResult = await runAgentLoop(message);
@@ -3980,9 +3981,32 @@ ${toolData}${extraStr}
                   }
 
                   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                  // V.68c: QR CODE GENERATION via local python qrcode
+                  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+                  const isQRRequest = /qr|كيو ار|باركود|barcode|vcard|كارت اتصال/i.test(message);
+                  if (isQRRequest && !fileName) {
+                    try {
+                      console.log('[Chat] File gen: QR code request detected — generating locally...');
+                      const { generateQRCode, parseVCardFromMessage } = await import('@/lib/local-tool-executor');
+                      const vcardData = parseVCardFromMessage(message);
+
+                      if (vcardData) {
+                        const qrResult = await generateQRCode(vcardData, docTitle || 'qr_code');
+                        if (qrResult.success && qrResult.fileName) {
+                          fileName = qrResult.fileName;
+                          fileType = 'png';
+                          fileUrl = qrResult.fileUrl || '';
+                          filePathSave = qrResult.filePath || '';
+                          console.log(`[Chat] File gen: ✅ QR code created locally: ${fileName}`);
+                        }
+                      }
+                    } catch (qrErr) {
+                      console.warn(`[Chat] File gen: ⚠️ QR code failed: ${qrErr instanceof Error ? qrErr.message : String(qrErr)}`);
+                    }
+                  }
+
+                  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                   // V.51: PDF GENERATION via Playwright (primary — best quality)
-                  // Uses the rendering-pipeline's generateHTMLTemplate which has
-                  // beautiful design: rainbow strips, section headers, color palettes
                   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                   if (!fileName) {
                     try {

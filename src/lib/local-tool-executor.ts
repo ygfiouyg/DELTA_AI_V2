@@ -338,3 +338,109 @@ export function parseTableFromAIResponse(content: string): string[][] {
 
   return rows;
 }
+
+/**
+ * V.68c: Generate a QR code locally using python qrcode
+ */
+export async function generateQRCode(
+  data: string,
+  title: string = 'qr_code'
+): Promise<ToolExecutionResult> {
+  try {
+    await fs.mkdir(DOWNLOAD_DIR, { recursive: true });
+
+    const fileId = randomUUID();
+    const fileName = `${title.replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_').substring(0, 30) || 'qr_code'}_${fileId.substring(0, 8)}.png`;
+    const filePath = path.join(DOWNLOAD_DIR, fileName);
+
+    // Escape the data for Python
+    const escapedData = data.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\n/g, '\\n');
+
+    const script = `
+import qrcode
+qr = qrcode.QRCode(
+    version=1,
+    error_correction=qrcode.constants.ERROR_CORRECT_L,
+    box_size=10,
+    border=4,
+)
+qr.add_data('''${escapedData}''')
+qr.make(fit=True)
+img = qr.make_image(fill_color="black", back_color="white")
+img.save("${filePath}")
+print("SUCCESS:${filePath}")
+`;
+
+    const scriptPath = path.join(DOWNLOAD_DIR, `gen_qr_${fileId}.py`);
+    await fs.writeFile(scriptPath, script, 'utf-8');
+
+    const { stdout, stderr } = await execAsync(`python3 "${scriptPath}"`, { timeout: 15_000 });
+    await fs.unlink(scriptPath).catch(() => {});
+
+    if (stdout.includes('SUCCESS:')) {
+      const fileUrl = `/api/pdf/serve/${fileName}`;
+      console.log(`[ToolExecutor] ✅ QR code generated: ${fileName}`);
+      return {
+        success: true,
+        message: `تم إنشاء كود QR بنجاح`,
+        fileUrl,
+        fileName,
+        filePath,
+      };
+    } else {
+      console.error('[ToolExecutor] QR generation failed:', stderr);
+      return { success: false, message: `فشل في إنشاء QR: ${stderr.substring(0, 200)}` };
+    }
+  } catch (error) {
+    return { success: false, message: `خطأ في إنشاء QR: ${error instanceof Error ? error.message : String(error)}` };
+  }
+}
+
+/**
+ * V.68c: Parse vCard data from user message
+ * Extracts name, phone, email, url from Arabic/English messages
+ */
+export function parseVCardFromMessage(message: string): string | null {
+  let name = '';
+  let phone = '';
+  let email = '';
+  let url = '';
+
+  // Extract name (اسمي / name / اسم)
+  const nameMatch = message.match(/(?:اسمي|اسم|name)[:：\s]+(.+?)(?=\s*(?:ورقم|وبريد|وإيميل|ورابط|و|tel|phone|email|$))/i);
+  if (nameMatch) name = nameMatch[1].trim();
+
+  // Extract phone (رقم تليفوني / phone / tel)
+  const phoneMatch = message.match(/(?:رقم\s*تليفوني|رقم|تليفون|phone|tel|mobile)[:：\s]*([+\d\s()-]{8,})/i);
+  if (phoneMatch) phone = phoneMatch[1].trim();
+
+  // Extract email (إيميلي / بريد / email)
+  const emailMatch = message.match(/(?:إيميلي|ايميلي|بريدي|إيميل|email|mail)[:：\s]*([^\s]+@[^\s]+)/i);
+  if (emailMatch) email = emailMatch[1].trim();
+
+  // Extract URL (رابط قناتي / youtube / url)
+  const urlMatch = message.match(/(?:رابط\s*قناتي|رابط|قناتي|youtube|url|website)[:：\s]*(https?:\/\/[^\s]+)/i);
+  if (urlMatch) url = urlMatch[1].trim();
+
+  // If no name found, try to extract from context
+  if (!name) {
+    const fallbackName = message.match(/اسمي\s+(\S+)/);
+    if (fallbackName) name = fallbackName[1];
+  }
+
+  // Build vCard
+  if (!name && !phone && !email && !url) return null;
+
+  const vcard = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    name ? `FN:${name}` : '',
+    name ? `N:${name};;;;` : '',
+    phone ? `TEL;TYPE=CELL:${phone}` : '',
+    email ? `EMAIL:${email}` : '',
+    url ? `URL:${url}` : '',
+    'END:VCARD',
+  ].filter(line => line).join('\n');
+
+  return vcard;
+}
