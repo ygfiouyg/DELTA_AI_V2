@@ -697,6 +697,58 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // V.69: DIRECT TOOL EXECUTION — if the LLM detected a special tool need,
+    // execute it directly BEFORE the AI responds
+    // This way the user gets the actual file, not just text
+    try {
+      const { analyzeCapabilityWithLLM } = await import('@/lib/llm-capability-detector');
+      const analysis = await analyzeCapabilityWithLLM(message, (language as 'ar' | 'en') || 'ar');
+
+      if (analysis.needsSpecialTool && analysis.toolName) {
+        console.log(`[Chat] V.69 Tool needed: ${analysis.toolName} (available: ${analysis.hasToolLocally})`);
+
+        if (analysis.hasToolLocally) {
+          // Tool is available — execute directly
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({
+              smartDocProgress: {
+                stage: 'tool_execute',
+                progress: 20,
+                message: `🔧 جاري استخدام ${analysis.toolName} لتنفيذ طلبك...`,
+              }
+            })}\n\n`)
+          );
+
+          // Execute based on tool type
+          if (analysis.toolName === 'qrcode') {
+            const { generateQRCode, parseVCardFromMessage } = await import('@/lib/local-tool-executor');
+            const vcardData = parseVCardFromMessage(message);
+            if (vcardData) {
+              const qrResult = await generateQRCode(vcardData, 'qr_code');
+              if (qrResult.success && qrResult.fileUrl) {
+                controller.enqueue(
+                  encoder.encode(`data: ${JSON.stringify({
+                    content: `✅ تم إنشاء كود QR بنجاح!\n\n📄 **${qrResult.fileName}**\n\n👉 [اضغط هنا لتحميل الكود](${qrResult.fileUrl})\n\nالكود يحتوي على بيانات vCard — لما تعمل له Scan بالموبايل هتتحفظ كـ Contact فوراً.`,
+                    fileGenerated: {
+                      success: true,
+                      fileUrl: qrResult.fileUrl,
+                      fileName: qrResult.fileName,
+                      fileType: 'png',
+                    }
+                  })}\n\n`)
+                );
+                controller.close();
+                return;
+              }
+            }
+          }
+          // Add more tool handlers here (gtts, etc.)
+        }
+      }
+    } catch (toolErr) {
+      console.warn('[Chat] V.69 Direct tool execution failed:', toolErr instanceof Error ? toolErr.message : String(toolErr));
+    }
+
     // ── Build system prompt using extracted module ──
     // All system prompt construction (language, capabilities, time context,
     // content strategy, design prefs, attachments, emotion, memory, Drive, web search)
