@@ -4475,3 +4475,34 @@ Stage Summary:
 - ✅ Self-Evolving Agent meta-tool جاهز
 
 *Last updated: 2025-07-24 (Round 66) · V.66 Critical fixes deployed*
+
+---
+Task ID: v66-testing-results
+Agent: main (Z.ai Code)
+Task: اختبار فعلي للـ Self-Evolving Agent + PPTX generation
+
+Work Log:
+### الاختبار الفعلي على HF (V.66d):
+1. ✅ دخل الزائر مباشرة بدون onboarding (V.66 شغال!)
+2. ✅ Intent detection شغال - اتعرف على "باوربوينت" كـ generate-pptx
+3. ✅ مش بيعمل PDF بدل PPTX (المسار البديل اتمسح)
+4. ⚠️ الـ PPTX handler مش بيـ trigger - الـ AI بيكتب النص بتاع الشرائح بدل ما يعمل ملف
+5. ⚠️ الـ AI قال "لم أتمكن من إنشاء الملف"
+
+### المشاكل اللي اكتشفتها:
+1. الـ PPTX handler في line 3875 بيـ trigger بناءً على regex، مش الـ intent
+2. الـ PPTX generation بيستخدم HF Document Service اللي ممكن يكون مش متاح
+3. محتاجين نستخدم python-pptx library محلياً بدل ما نعتمد على HF service
+
+### الإصلاحات اللي اتعملت:
+- V.66b: شيلت hasEnhancedDocIntent من الـ routing لـ file gen intents
+- V.66c: بنيت LLM messages بشكل عادي لما skipSmartDocPipeline=true
+- V.66d: أصلحت variable name conflict (isFileGenerationIntent → isFileGenIntent)
+
+### النتيجة:
+- ✅ الزائر بيدخل مباشرة (بدون onboarding)
+- ✅ مش بيعمل PDF بدل PPTX
+- ⚠️ الـ PPTX file مش بيتعمل (محتاج python-pptx integration)
+- ⏳ محتاج أشغل الـ PPTX generation محلياً بدل HF service
+
+*Last updated: 2025-07-24 (Round 66e) · V.66 testing + fixes in progress*
