@@ -656,110 +656,6 @@ export async function POST(request: NextRequest) {
     const skipSmartDocPipeline = isFileGenIntent;
     const effectiveHasDocIntent = hasEnhancedDocIntent && !skipSmartDocPipeline;
 
-    // V.69: AUTONOMOUS AGENT — LLM-based capability detection (no regex!)
-    // The model itself analyzes the request ONCE and decides:
-    // 1. Does this need a special tool?
-    // 2. If yes, is it available? → execute directly
-    // 3. If not available → search GitHub → install → execute
-    let toolExecuted = false;
-    try {
-      const { analyzeCapabilityWithLLM } = await import('@/lib/llm-capability-detector');
-      const analysis = await analyzeCapabilityWithLLM(message, (language as 'ar' | 'en') || 'ar');
-
-      console.log(`[Chat] V.69 Analysis: needsTool=${analysis.needsSpecialTool}, tool=${analysis.toolName}, hasLocal=${analysis.hasToolLocally}`);
-
-      if (analysis.needsSpecialTool && analysis.toolName) {
-        // Notify user that we're working on it
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({
-            smartDocProgress: {
-              stage: 'tool_detect',
-              progress: 10,
-              message: `🔧 اكتشفت إن طلبك يحتاج ${analysis.toolName}...`,
-            }
-          })}\n\n`)
-        );
-
-        if (!analysis.hasToolLocally) {
-          // Tool not available — search GitHub and install
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({
-              smartDocProgress: {
-                stage: 'tool_install',
-                progress: 20,
-                message: `🔍 جاري البحث عن ${analysis.toolName} في GitHub وتثبيته...`,
-              }
-            })}\n\n`)
-          );
-
-          const { autonomousAcquireAndExecute } = await import('@/lib/llm-capability-detector');
-          const acquireResult = await autonomousAcquireAndExecute(message, (language as 'ar' | 'en') || 'ar');
-
-          for (const step of acquireResult.steps) {
-            console.log(`[AgentV69] ${step}`);
-          }
-
-          if (acquireResult.installed) {
-            controller.enqueue(
-              encoder.encode(`data: ${JSON.stringify({
-                smartDocProgress: {
-                  stage: 'tool_acquired',
-                  progress: 30,
-                  message: `✅ ${acquireResult.installMessage}`,
-                }
-              })}\n\n`)
-            );
-            analysis.hasToolLocally = true;
-          }
-        }
-
-        if (analysis.hasToolLocally) {
-          // Tool is available — execute directly
-          controller.enqueue(
-            encoder.encode(`data: ${JSON.stringify({
-              smartDocProgress: {
-                stage: 'tool_execute',
-                progress: 40,
-                message: `⚙️ جاري استخدام ${analysis.toolName} لتنفيذ طلبك...`,
-              }
-            })}\n\n`)
-          );
-
-          // === QR CODE ===
-          if (analysis.toolName === 'qrcode') {
-            const { generateQRCode, parseVCardFromMessage } = await import('@/lib/local-tool-executor');
-            const vcardData = parseVCardFromMessage(message);
-            if (vcardData) {
-              const qrResult = await generateQRCode(vcardData, 'qr_code');
-              if (qrResult.success && qrResult.fileUrl) {
-                controller.enqueue(
-                  encoder.encode(`data: ${JSON.stringify({
-                    content: `✅ تم إنشاء كود QR بنجاح!\n\n📄 **${qrResult.fileName}**\n\n👉 [اضغط هنا لتحميل الكود](${qrResult.fileUrl})\n\nالكود يحتوي على بيانات vCard — لما تعمل له Scan بالموبايل هتتحفظ كـ Contact فوراً.`,
-                    fileGenerated: {
-                      success: true,
-                      fileUrl: qrResult.fileUrl,
-                      fileName: qrResult.fileName,
-                      fileType: 'png',
-                    }
-                  })}\n\n`)
-                );
-                controller.close();
-                return;
-              }
-            }
-          }
-
-          // === AUDiOBOOK (gTTS) ===
-          if (analysis.toolName === 'gtts') {
-            // For now, let the AI handle text generation, then convert
-            // This will be handled in the file gen section below
-          }
-        }
-      }
-    } catch (toolErr) {
-      console.warn('[Chat] V.69 Agent failed (non-fatal):', toolErr instanceof Error ? toolErr.message : String(toolErr));
-    }
-
     // V.68: MCP CONNECTION — if user provided an MCP URL, connect to it
     const mcpUrlMatch = message.match(/(?:mcp|MCP)[:：\s]+(https?:\/\/[^\s]+)/i);
     if (mcpUrlMatch) {
@@ -1167,6 +1063,51 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // V.69: AUTONOMOUS AGENT — LLM-based capability detection (INSIDE stream!)
+          // The model analyzes the request and decides if a tool is needed.
+          // If tool available → execute directly → return early (no AI response needed)
+          try {
+            const { analyzeCapabilityWithLLM } = await import('@/lib/llm-capability-detector');
+            const analysis = await analyzeCapabilityWithLLM(message, (language as 'ar' | 'en') || 'ar');
+
+            console.log(`[Chat] V.69 Analysis: needsTool=${analysis.needsSpecialTool}, tool=${analysis.toolName}, hasLocal=${analysis.hasToolLocally}`);
+
+            if (analysis.needsSpecialTool && analysis.toolName) {
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage: 'tool_detect', progress: 10, message: `🔧 اكتشفت إن طلبك يحتاج ${analysis.toolName}...` } })}\n\n`));
+
+              if (!analysis.hasToolLocally) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage: 'tool_install', progress: 20, message: `🔍 جاري البحث عن ${analysis.toolName} في GitHub وتثبيته...` } })}\n\n`));
+                const { autonomousAcquireAndExecute } = await import('@/lib/llm-capability-detector');
+                const acquireResult = await autonomousAcquireAndExecute(message, (language as 'ar' | 'en') || 'ar');
+                for (const step of acquireResult.steps) { console.log(`[AgentV69] ${step}`); }
+                if (acquireResult.installed) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage: 'tool_acquired', progress: 30, message: `✅ ${acquireResult.installMessage}` } })}\n\n`));
+                  analysis.hasToolLocally = true;
+                }
+              }
+
+              if (analysis.hasToolLocally) {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage: 'tool_execute', progress: 40, message: `⚙️ جاري استخدام ${analysis.toolName} لتنفيذ طلبك...` } })}\n\n`));
+
+                // === QR CODE ===
+                if (analysis.toolName === 'qrcode') {
+                  const { generateQRCode, parseVCardFromMessage } = await import('@/lib/local-tool-executor');
+                  const vcardData = parseVCardFromMessage(message);
+                  if (vcardData) {
+                    const qrResult = await generateQRCode(vcardData, 'qr_code');
+                    if (qrResult.success && qrResult.fileUrl) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `✅ تم إنشاء كود QR بنجاح!\n\n📄 **${qrResult.fileName}**\n\n👉 [اضغط هنا لتحميل الكود](${qrResult.fileUrl})\n\nالكود يحتوي على بيانات vCard — لما تعمل له Scan بالموبايل هتتحفظ كـ Contact فوراً.`, fileGenerated: { success: true, fileUrl: qrResult.fileUrl, fileName: qrResult.fileName, fileType: 'png' } })}\n\n`));
+                      controller.close();
+                      return;
+                    }
+                  }
+                }
+              }
+            }
+          } catch (toolErr) {
+            console.warn('[Chat] V.69 Agent failed (non-fatal):', toolErr instanceof Error ? toolErr.message : String(toolErr));
+          }
+
           // ── Smart Document Pipeline Interception ──
           // When user uploads files + requests compilation/extraction,
           // use the smart pipeline instead of normal chat.
