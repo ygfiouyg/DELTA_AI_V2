@@ -50,17 +50,26 @@ export default function DeltaAIApp() {
     init();
   }, [checkAuth, setGoogleSession]);
 
-  // V.101: Check if user needs Identity Matrix onboarding
+  // V.66: Skip onboarding for guest users — don't force 19-question quiz
   useEffect(() => {
     if (!isAuthenticated || initializing) return;
 
+    // Check if this is a guest user — skip onboarding entirely
+    const user = useAuthStore.getState();
+    const isGuest = user?.user?.email?.includes('guest') || user?.user?.name === 'زائر';
+
+    if (isGuest) {
+      console.log('[Auth] Guest user — skipping onboarding');
+      setNeedsOnboarding(false);
+      return;
+    }
+
+    // Only show onboarding for registered (non-guest) users
     const checkOnboarding = async () => {
       try {
-        // Check if the user has a PersonalityProfile (Identity Matrix)
         const res = await authFetch('/api/anzaro/personality/profile');
         if (res.ok) {
           const data = await res.json();
-          // If no profile exists, show the onboarding wizard
           if (!data.profile) {
             console.log('[Auth] No Identity Matrix found — showing OnboardingQuiz');
             setNeedsOnboarding(true);
@@ -68,7 +77,6 @@ export default function DeltaAIApp() {
             setNeedsOnboarding(false);
           }
         } else {
-          // If the API fails, don't block the user
           setNeedsOnboarding(false);
         }
       } catch {

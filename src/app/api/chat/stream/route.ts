@@ -1254,54 +1254,10 @@ export async function POST(request: NextRequest) {
                 } catch (localDocErr) {
                   console.error('[Chat] Smart Doc Local: generateLocalDocument error:', localDocErr);
 
-                  // ── Fallback: Try delta-ai space ──
+                  // V.66: REMOVED the "مسار بديل" (fallback path) — it was generating ugly PDFs
+                  // Instead: report the error directly and let the user retry
                   controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage: 'fallback', progress: 50, message: '🔄 جاري التجربة عبر مساحة توليد الملفات البديلة...' } })}\n\n`)
-                  );
-
-                  try {
-                    const { generateDocumentViaDeltaAISpace } = await import('@/lib/hf-document.service');
-                    const fallbackResult = await generateDocumentViaDeltaAISpace({
-                      topic: docTopic,
-                      language: (language as 'ar' | 'en') || 'ar',
-                      instructions: message.length > 3000 ? message.slice(0, 50000) : message,
-                      mode: 'local',
-                      channelName: 'DeltaAI',
-                      progressCallback: (stage, progress, msg) => {
-                        controller.enqueue(
-                          encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage, progress, message: msg } })}\n\n`)
-                        );
-                      },
-                    });
-
-                    if (fallbackResult && fallbackResult.fileUrl) {
-                      // ── FIX: Derive proper serve URL from absolute file path ──
-                      const fbFileName = fallbackResult.fileUrl.split('/').pop() || '';
-                      const fbServeUrl = fbFileName ? `/api/pdf/serve/${fbFileName}` : fallbackResult.fileUrl;
-
-                      controller.enqueue(
-                        encoder.encode(`data: ${JSON.stringify({
-                          smartDocResult: {
-                            success: true,
-                            fileUrl: fbServeUrl,
-                            fileName: fallbackResult.fileName,
-                            durationMs: fallbackResult.durationMs,
-                            docType: fallbackResult.docType || 'pdf',
-                          }
-                        })}\n\n`)
-                      );
-                      controller.enqueue(
-                        encoder.encode(`data: ${JSON.stringify({ content: `✅ تم إنشاء المستند بنجاح (عبر مساحة دلتا البديلة)!\n\n📄 **${fallbackResult.fileName}**\n⏱️ الوقت: ${Math.round((fallbackResult.durationMs || 0) / 1000)} ثانية\n\n👉 [اضغط هنا لفتح المستند](${fbServeUrl})` })}\n\n`)
-                      );
-                      controller.close();
-                      return;
-                    }
-                  } catch (fallbackErr) {
-                    console.error('[Chat] Delta-AI space fallback also failed:', fallbackErr);
-                  }
-
-                  controller.enqueue(
-                    encoder.encode(`data: ${JSON.stringify({ smartDocStatus: 'error', message: 'حدث خطأ في التوليد الذكي، جاري الرد بشكل عادي...' })}\n\n`)
+                    encoder.encode(`data: ${JSON.stringify({ smartDocStatus: 'failed', message: 'فشل في إنشاء المستند. حاول مرة تانية.' })}\n\n`)
                   );
                   // Fall through to normal chat
                 }

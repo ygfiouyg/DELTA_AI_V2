@@ -21,6 +21,7 @@ export type DocIntentType =
   | 'smart-doc'        // General smart document (fallback)
   | 'generate-pptx'    // Generate PowerPoint presentation
   | 'generate-docx'    // Generate Word document
+  | 'generate-xlsx'    // Generate Excel spreadsheet (V.66)
   | 'generate-file'    // Generate a file (format auto-detected)
   | 'chat-only';       // Not a document request, just normal chat
 
@@ -344,6 +345,28 @@ const INTENT_PATTERNS: IntentPattern[] = [
       /generate\s+(a\s+)?(word|docx?)\s*(document|file)?\s*(about|on|for)?/i,
       /give\s+me\s+(a\s+)?(word|docx?)\s*(document|file)/i,
       /i\s+want\s+(a\s+)?(word|docx?)\s*(document|file)/i,
+    ],
+  },
+
+  // ── generate-xlsx (Excel spreadsheet) — V.66 ──────────────────────────
+  {
+    type: 'generate-xlsx',
+    weight: 4,
+    patterns: [
+      // Arabic: "اعمل اكسل", "جدول بيانات", "spreadsheet"
+      /اعمل\s*(لي?\s*)?(اكسل|اكسيل|excel|xlsx?|جدول\s*بيانات|شيت)\s*/i,
+      /اعمللي?\s*(اكسل|اكسيل|excel|xlsx?|جدول\s*بيانات|شيت)\s*/i,
+      /ابغ[يى]\s*(اكسل|اكسيل|excel|xlsx?|جدول\s*بيانات)/i,
+      /عايز\s*(اكسل|اكسيل|excel|xlsx?|جدول\s*بيانات)/i,
+      /خليني\s*(اكسل|اكسيل|excel|xlsx?|جدول\s*بيانات)/i,
+      /صمم?\s*(لي?\s*)?(اكسل|اكسيل|excel|xlsx?|جدول\s*بيانات)/i,
+      /ملف\s*(اكسل|اكسيل|excel|xlsx?)\s/i,
+      // English
+      /make\s+(an?\s+)?(excel|xlsx?|spreadsheet)\s*(file|sheet)?\s*(about|on|for)?/i,
+      /create\s+(an?\s+)?(excel|xlsx?|spreadsheet)\s*(file|sheet)?\s*(about|on|for)?/i,
+      /generate\s+(an?\s+)?(excel|xlsx?|spreadsheet)\s*(file|sheet)?\s*(about|on|for)?/i,
+      /give\s+me\s+(an?\s+)?(excel|xlsx?|spreadsheet)/i,
+      /i\s+want\s+(an?\s+)?(excel|xlsx?|spreadsheet)/i,
     ],
   },
 
@@ -1263,10 +1286,18 @@ export async function classifyDocIntentWithAI(
 - compare: مقارنة بين ملفات
 - flashcards: كروت مراجعة
 - quiz: أسئلة اختبار
-- smart-doc: طلب مستند عام
+- generate-pptx: إنشاء عرض تقديمي PowerPoint (مثل: "اعمل باور بوينت"، "عرض تقديمي"، "بريزنتيشن"، "شرائح")
+- generate-xlsx: إنشاء ملف Excel (مثل: "اعمل اكسل"، "جدول بيانات"، "spreadsheet")
+- generate-docx: إنشاء ملف Word (مثل: "اعمل وورد"، "مستند Word"، "docx")
+- smart-doc: طلب مستند عام بدون نوع محدد
 - chat-only: محادثة عادية بدون طلب مستند
 
-ملاحظة مهمة: "اجمعلي اهم النقاط" = summarize (تلخيص)، مش compile (تجميع كامل).
+ملاحظات مهمة:
+- "اجمعلي اهم النقاط" = summarize (تلخيص)، مش compile (تجميع كامل)
+- لو المستخدم طلب باور بوينت/عرض تقديمي = generate-pptx
+- لو المستخدم طلب اكسل/جدول بيانات = generate-xlsx
+- لو المستخدم طلب وورد/مستند Word = generate-docx
+- لو المستخدم طلب pdf بس = summarize أو compile حسب السياق
 
 الرسالة: "${message.slice(0, 500)}"
 ${hasAttachments ? 'يوجد ملفات مرفقة' : 'لا توجد مرفقات'}
@@ -1292,6 +1323,15 @@ ${hasAttachments ? 'يوجد ملفات مرفقة' : 'لا توجد مرفقا�
       'compare': 'compare',
       'flashcards': 'flashcards',
       'quiz': 'quiz',
+      'generate-pptx': 'generate-pptx',
+      'generate_pptx': 'generate-pptx',
+      'pptx': 'generate-pptx',
+      'generate-xlsx': 'generate-xlsx',
+      'generate_xlsx': 'generate-xlsx',
+      'xlsx': 'generate-xlsx',
+      'generate-docx': 'generate-docx',
+      'generate_docx': 'generate-docx',
+      'docx': 'generate-docx',
       'smart-doc': 'smart-doc',
       'smart_doc': 'smart-doc',
       'chat-only': 'chat-only',

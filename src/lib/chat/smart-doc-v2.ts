@@ -98,6 +98,7 @@ const INTENT_TITLE_MAP: Record<DocIntentType, string> = {
   'smart-doc': 'مستند ذكي',
   'generate-pptx': 'عرض تقديمي',
   'generate-docx': 'مستند Word',
+  'generate-xlsx': 'جدول بيانات',
   'generate-file': 'ملف',
   'chat-only': '',
 };
@@ -1029,22 +1030,58 @@ async function executePipeline(
       }
 
       case 'smart-doc': {
-        // Fallback: use existing processSmartDocument
-        const legacyResult = await routeSmartDoc(input, onProgress);
+        // V.66: Removed routeSmartDoc fallback — it was generating ugly PDFs
+        // Instead: use the summarize route which produces clean output
+        content = await routeSummarize(filesWithContent, intent, language, onProgress);
+        docTitle = language === 'en' ? 'Smart Document' : 'مستند ذكي';
+        break;
+      }
+
+      case 'generate-pptx': {
+        // V.66: PPTX generation — delegate to chat stream which has the pptx handler
         return {
-          ...legacyResult,
-          intent: 'smart-doc',
+          success: false,
+          durationMs: Date.now() - _startTime,
+          intent: 'generate-pptx',
+          docType: 'pptx',
+          error: language === 'en'
+            ? 'PPTX generation should be handled by the chat stream route'
+            : 'توليد PPTX يتم عبر مسار المحادثة',
+        };
+      }
+
+      case 'generate-xlsx': {
+        // V.66: XLSX generation — delegate to chat stream
+        return {
+          success: false,
+          durationMs: Date.now() - _startTime,
+          intent: 'generate-xlsx',
+          docType: 'xlsx',
+          error: language === 'en'
+            ? 'XLSX generation should be handled by the chat stream route'
+            : 'توليد XLSX يتم عبر مسار المحادثة',
+        };
+      }
+
+      case 'generate-docx': {
+        // V.66: DOCX generation — delegate to chat stream
+        return {
+          success: false,
+          durationMs: Date.now() - _startTime,
+          intent: 'generate-docx',
+          docType: 'docx',
+          error: language === 'en'
+            ? 'DOCX generation should be handled by the chat stream route'
+            : 'توليد DOCX يتم عبر مسار المحادثة',
         };
       }
 
       default: {
-        // Unknown intent type — fallback to smart-doc
-        console.warn(`[SmartDocV2] Unknown intent type "${intent.type}", falling back to smart-doc`);
-        const legacyResult = await routeSmartDoc(input, onProgress);
-        return {
-          ...legacyResult,
-          intent: intent.type,
-        };
+        // V.66: Unknown intent — use summarize instead of routeSmartDoc
+        console.warn(`[SmartDocV2] Unknown intent type "${intent.type}", using summarize route`);
+        content = await routeSummarize(filesWithContent, intent, language, onProgress);
+        docTitle = language === 'en' ? 'Smart Document' : 'مستند ذكي';
+        break;
       }
     }
   } catch (error) {

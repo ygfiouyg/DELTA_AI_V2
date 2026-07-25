@@ -73,12 +73,39 @@ export const SEARCH_SKILLS_SCHEMA: ToolSchema = {
 };
 
 /**
+ * V.66: search_and_install_skill — Self-Evolving Agent meta-tool
+ * Combines search + install + hot-reload in one call
+ */
+export const SEARCH_AND_INSTALL_SKILL_SCHEMA: ToolSchema = {
+  type: 'function',
+  function: {
+    name: 'search_and_install_skill',
+    description: 'Self-Evolving Agent: Search GitHub for a skill you don\'t have, install it with full directory cloning (scripts/, references/, assets/), hot-reload the MCP registry, and make it available for immediate use. Use this when a user requests a task requiring capabilities you don\'t currently possess (e.g., PowerPoint creation, Excel generation, chart drawing).',
+    parameters: {
+      type: 'object',
+      properties: {
+        required_capability: {
+          type: 'string',
+          description: 'Description of the capability needed. Examples: "powerpoint presentation builder", "excel spreadsheet generator", "chart creator", "image analysis tool"'
+        },
+        github_url: {
+          type: 'string',
+          description: 'Optional: direct GitHub URL to a skill repository. If provided, skips search and downloads directly.'
+        }
+      },
+      required: ['required_capability']
+    }
+  }
+};
+
+/**
  * Get all available tool schemas for a specific model provider
  * V.64: Applies strict context isolation — blocks IoT/Home Assistant tools
  */
 export function getToolSchemas(provider: 'openai' | 'anthropic' | 'zai' | 'generic' = 'openai'): any[] {
   // V.64: Only safe tools are registered — IoT tools are NEVER included
-  const tools = [SEARCH_SKILLS_SCHEMA, AUTONOMOUS_INSTALL_SKILL_SCHEMA];
+  // V.66: Added search_and_install_skill for Self-Evolving Agent
+  const tools = [SEARCH_SKILLS_SCHEMA, AUTONOMOUS_INSTALL_SKILL_SCHEMA, SEARCH_AND_INSTALL_SKILL_SCHEMA];
 
   // V.64: Security gate — filter out any blocked tools
   const safeTools = filterToolsForChat(tools);
@@ -146,6 +173,22 @@ export async function executeToolCall(
         return {
           success: result.success,
           result: result.message,
+          data: result,
+        };
+      }
+
+      case 'search_and_install_skill': {
+        // V.66: Self-Evolving Agent — search + deep install + hot-reload
+        const { installSkillDeep } = await import('./deep-skill-installer');
+        const result = await installSkillDeep(
+          args.required_capability || '',
+          args.github_url
+        );
+        return {
+          success: result.success,
+          result: result.success
+            ? `✅ Skill "${result.skillName}" acquired! ${result.files.length} files installed, ${result.scripts.length} scripts registered. You can now use this capability.`
+            : `❌ Failed to acquire skill: ${result.message}`,
           data: result,
         };
       }
