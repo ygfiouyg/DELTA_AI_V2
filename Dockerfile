@@ -64,7 +64,8 @@ RUN if [ -f bun.lock ]; then \
 RUN npx playwright install chromium 2>/dev/null || echo "Playwright Chromium install failed — PDF generation will use HTML fallback"
 
 # V.67: Install Python libraries for local file generation (PPTX/XLSX)
-RUN pip3 install --no-cache-dir python-pptx openpyxl 2>/dev/null || pip install --no-cache-dir python-pptx openpyxl 2>/dev/null || echo "Python pptx/openpyxl install failed"
+# V.68b: Add --break-system-packages for HF's externally-managed Python
+RUN pip3 install --no-cache-dir --break-system-packages python-pptx openpyxl Pillow PyMuPDF matplotlib 2>/dev/null || echo "Python packages install partial"
 
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate

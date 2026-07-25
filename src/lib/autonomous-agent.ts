@@ -314,7 +314,9 @@ export async function installTool(
     switch (tool.installType) {
       case 'pip': {
         steps.push(`تثبيت ${tool.name} عبر pip...`);
-        const { stdout, stderr } = await execAsync(tool.installCommand, { timeout: 120_000 });
+        // V.68b: Add --break-system-packages for HF's externally-managed Python
+        const pipCmd = tool.installCommand.replace('pip3 install', 'pip3 install --break-system-packages').replace('pip install', 'pip3 install --break-system-packages');
+        const { stdout, stderr } = await execAsync(pipCmd, { timeout: 120_000 });
         output = stdout + stderr;
         break;
       }
