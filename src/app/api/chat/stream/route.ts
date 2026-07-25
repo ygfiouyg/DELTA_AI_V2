@@ -900,7 +900,9 @@ export async function POST(request: NextRequest) {
     // Build messages array for LLM with multimodal support
     // V.37 FIX: Skip buildLLMMessages when hasEnhancedDocIntent is true.
     // V.66: Use effectiveHasDocIntent (excludes file gen intents like pptx/xlsx)
-    const messages = effectiveHasDocIntent
+    // V.66b: When skipSmartDocPipeline is true, we MUST build messages normally
+    //        because the file generation handler needs LLM messages to work
+    const messages = effectiveHasDocIntent && !skipSmartDocPipeline
       ? []  // Smart Doc pipeline handles extraction itself
       : await buildLLMMessages(
           systemPrompt,
