@@ -253,51 +253,89 @@ export async function POST(request: NextRequest) {
 
       if (analysis.needsSpecialTool && analysis.toolName && !analysis.hasToolLocally) {
         // Tool is needed but NOT available — AUTO-INSTALL!
-        console.log(`[Chat] V.70: Tool "${analysis.toolName}" not available — auto-installing...`);
+        console.log(`[Chat] V.71: Tool "${analysis.toolName}" (type: ${analysis.toolType}) not available — auto-installing...`);
 
-        // Build install command — ALWAYS use --break-system-packages for HF
-        const pkgName = analysis.toolName;
-        let installCmd = analysis.installCommand || `pip3 install ${pkgName}`;
-        if (!installCmd.includes('--break-system-packages')) {
-          installCmd = `pip3 install --break-system-packages ${pkgName}`;
-        }
-
-        // Build SSE response showing the installation process
-        const steps = [
-          `🔍 اكتشفت إن طلبك يحتاج أداة: **${analysis.toolName}**`,
-          `⚠️ الأداة مش متاحة محلياً`,
-          `📦 جاري تثبيت ${analysis.toolName} من GitHub/PyPI...`,
-        ];
-
-        // Install the tool
         const { exec } = await import('child_process');
         const { promisify } = await import('util');
         const execAsync = promisify(exec);
+        const pkgName = analysis.toolName;
+        const moduleName = pkgName.replace(/-/g, '_').toLowerCase();
+
+        const steps = [
+          `🔍 اكتشفت إن طلبك يحتاج أداة: **${pkgName}**`,
+          `⚠️ الأداة مش متاحة محلياً`,
+        ];
 
         let installSuccess = false;
-        let installMsg = '';
 
-        try {
-          const { stdout, stderr } = await execAsync(installCmd, { timeout: 120_000 });
-          installMsg = stdout.substring(0, 200) || stderr.substring(0, 200);
-          installSuccess = true;
-          steps.push(`✅ تم تثبيت ${analysis.toolName} بنجاح!`);
-          console.log(`[Chat] V.70: ${analysis.toolName} installed successfully`);
-        } catch (installErr) {
-          installMsg = installErr instanceof Error ? installErr.message : String(installErr);
-          steps.push(`❌ فشل التثبيت: ${installMsg.substring(0, 100)}`);
-          console.warn(`[Chat] V.70: Install failed: ${installMsg.substring(0, 200)}`);
+        // V.71: Try ALL install types until one works
+        const installStrategies: Array<{ name: string; cmd: string; verify: string }> = [
+          // 1. Python stdlib check (smtplib, zipfile, os, json, etc.)
+          {
+            name: 'stdlib',
+            cmd: `python3 -c "import ${moduleName}; print('OK')"`,
+            verify: `python3 -c "import ${moduleName}; print('OK')"`,
+          },
+          // 2. pip install with --break-system-packages
+          {
+            name: 'PyPI',
+            cmd: `pip3 install --break-system-packages ${pkgName}`,
+            verify: `python3 -c "import ${moduleName}; print('OK')"`,
+          },
+          // 3. npm install (for Node.js packages)
+          {
+            name: 'npm',
+            cmd: `npm install -g ${pkgName}`,
+            verify: `which ${pkgName}`,
+          },
+          // 4. apt-get install (for system packages)
+          {
+            name: 'apt',
+            cmd: `apt-get install -y ${pkgName} 2>/dev/null || true`,
+            verify: `which ${pkgName}`,
+          },
+          // 5. Try common package name variations
+          {
+            name: 'PyPI (alt name)',
+            cmd: `pip3 install --break-system-packages ${pkgName.replace(/-/g, '_')}`,
+            verify: `python3 -c "import ${moduleName}; print('OK')"`,
+          },
+        ];
+
+        for (const strategy of installStrategies) {
+          try {
+            steps.push(`📦 محاولة التثبيت عبر ${strategy.name}...`);
+            console.log(`[Chat] V.71: Trying ${strategy.name}: ${strategy.cmd.substring(0, 80)}`);
+
+            const { stdout, stderr } = await execAsync(strategy.cmd, { timeout: 120_000 });
+
+            // Verify
+            try {
+              const { stdout: verifyOut } = await execAsync(strategy.verify, { timeout: 10_000 });
+              if (verifyOut.includes('OK') || verifyOut.trim().length > 0) {
+                installSuccess = true;
+                steps.push(`✅ تم تثبيت ${pkgName} بنجاح عبر ${strategy.name}!`);
+                steps.push(`✅ تم التحقق — الأداة جاهزة للاستخدام!`);
+                console.log(`[Chat] V.71: ${pkgName} installed via ${strategy.name}`);
+                break;
+              }
+            } catch {
+              // Verify failed — try next strategy
+              if (stdout.includes('OK') || stdout.includes('Successfully installed')) {
+                installSuccess = true;
+                steps.push(`✅ تم تثبيت ${pkgName} بنجاح عبر ${strategy.name}!`);
+                console.log(`[Chat] V.71: ${pkgName} installed via ${strategy.name} (no verify)`);
+                break;
+              }
+            }
+          } catch (err) {
+            // This strategy failed — try next
+            console.log(`[Chat] V.71: ${strategy.name} failed for ${pkgName}`);
+          }
         }
 
-        // Verify installation
-        if (installSuccess) {
-          const verifyCmd = `python3 -c "import ${analysis.toolName.replace(/-/g, '_')}; print('OK')"`;
-          try {
-            const { stdout } = await execAsync(verifyCmd, { timeout: 10_000 });
-            if (stdout.includes('OK')) {
-              steps.push(`✅ تم التحقق من التثبيت — الأداة جاهزة للاستخدام!`);
-            }
-          } catch {}
+        if (!installSuccess) {
+          steps.push(`❌ كل محاولات التثبيت فشلت للأداة ${pkgName}`);
         }
 
         // Return SSE with installation status

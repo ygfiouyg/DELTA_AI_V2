@@ -88,14 +88,43 @@ export async function analyzeCapabilityWithLLM(
 
     const parsed = JSON.parse(jsonMatch[0]);
 
+    const toolName = parsed.toolName || '';
+
+    // V.71: Check if tool is actually a Python stdlib module
+    // stdlib modules (smtplib, zipfile, os, json, etc.) are BUILT-IN — no pip needed
+    let hasToolLocally = parsed.hasToolLocally || availableTools.includes(toolName);
+
+    if (!hasToolLocally && toolName) {
+      // Try importing it as a stdlib module
+      try {
+        const { exec } = await import('child_process');
+        const { promisify } = await import('util');
+        const execAsync = promisify(exec);
+        const moduleName = toolName.replace(/-/g, '_').toLowerCase();
+        const { stdout } = await execAsync(`python3 -c "import ${moduleName}; print('OK')"`, { timeout: 5_000 });
+        if (stdout.includes('OK')) {
+          hasToolLocally = true;
+          console.log(`[LLMCapability] V.71: ${toolName} is a stdlib module — available!`);
+        }
+      } catch {
+        // Not a stdlib module — needs pip install
+      }
+    }
+
+    // V.71: If toolType is "system" (like smtplib, zipfile), mark as available
+    if (!hasToolLocally && (parsed.toolType === 'system' || parsed.toolType === 'stdlib')) {
+      hasToolLocally = true;
+      console.log(`[LLMCapability] V.71: ${toolName} is system/stdlib — marking as available`);
+    }
+
     return {
       needsSpecialTool: parsed.needsSpecialTool || false,
-      toolName: parsed.toolName || '',
+      toolName,
       toolType: parsed.toolType || 'pip',
       installCommand: parsed.installCommand || '',
       githubSearchQuery: parsed.githubSearchQuery || '',
       reason: parsed.reason || '',
-      hasToolLocally: parsed.hasToolLocally || availableTools.includes(parsed.toolName),
+      hasToolLocally,
     };
   } catch (error) {
     console.warn('[LLMCapability] Analysis failed:', error instanceof Error ? error.message : String(error));
