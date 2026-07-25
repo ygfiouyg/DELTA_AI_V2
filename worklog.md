@@ -5144,3 +5144,60 @@ print(f.renderText('Hello'))
 - ✅ لو فيه خطأ → بيرجع للمستخدم
 
 *Last updated: 2025-07-25 (Round 75) · V.75e Auto-execute WORKING!*
+
+---
+Task ID: v76-real-results
+Agent: main (Z.ai Code)
+Task: V.76 — نتائج حقيقية في الشات
+
+### V.76: NEVER trust LLM's hasToolLocally
+- دايماً نتحقق بـ python3 -c "import X" قبل ما نقول متاح
+- الـ LLM كان بيقول sympy متاحة بالغلط
+
+### V.76b: Capture expression values
+- AI بيكتب "solutions" من غير print()
+- V.76b بتعمل eval() للسطر الأخير وتطبع النتيجة
+
+### الاختبارات الحقيقية:
+
+**Test 1: sympy — حل x^2 - 5x + 6 = 0**
+```
+[10%] 🔧 اكتشفت إن طلبك يحتاج sympy...
+[40%] ⚙️ جاري استخدام sympy...
+
+```python
+import sympy as sp
+x = sp.symbols('x')
+equation = x**2 - 5*x + 6
+roots = sp.solve(equation, x)
+roots
+```
+
+⚙️ جاري تنفيذ الكود...
+✅ النتيجة:
+[2, 3]
+```
+**✅ نجح! الجذور [2, 3] حقيقية من sympy**
+
+**Test 2: requests — جلب طقس القاهرة**
+```
+```python
+import requests
+url = f"https://wttr.in/Cairo?format=3"
+response = requests.get(url)
+...
+```
+
+⚙️ جاري تنفيذ الكود...
+✅ النتيجة:
+درجة حرارة Cairo الآن هي: Cairo: ☀️  +88°F°C
+```
+**✅ نجح! طقس حقيقي من القاهرة**
+
+### النتيجة النهائية:
+| # | الأداة | AI كتب كود؟ | اتنفذ؟ | نتيجة حقيقية؟ |
+|---|--------|-------------|--------|---------------|
+| 1 | sympy | ✅ | ✅ | ✅ [2, 3] |
+| 2 | requests | ✅ | ✅ | ✅ طقس القاهرة |
+
+*Last updated: 2025-07-25 (Round 76) · V.76b REAL results in chat*
