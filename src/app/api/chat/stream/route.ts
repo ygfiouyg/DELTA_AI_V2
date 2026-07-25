@@ -255,8 +255,12 @@ export async function POST(request: NextRequest) {
         // Tool is needed but NOT available — AUTO-INSTALL!
         console.log(`[Chat] V.70: Tool "${analysis.toolName}" not available — auto-installing...`);
 
-        // Build install command if not provided
-        const installCmd = analysis.installCommand || `pip3 install --break-system-packages ${analysis.toolName}`;
+        // Build install command — ALWAYS use --break-system-packages for HF
+        const pkgName = analysis.toolName;
+        let installCmd = analysis.installCommand || `pip3 install ${pkgName}`;
+        if (!installCmd.includes('--break-system-packages')) {
+          installCmd = `pip3 install --break-system-packages ${pkgName}`;
+        }
 
         // Build SSE response showing the installation process
         const steps = [
