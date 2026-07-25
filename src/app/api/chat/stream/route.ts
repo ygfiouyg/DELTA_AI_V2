@@ -4386,41 +4386,33 @@ ${toolData}${extraStr}
 
               // V.75: AUTO-EXECUTE Python code from AI response
               // If the AI wrote Python code in ```python blocks, execute it for real!
-              try {
-                const { extractPythonCode, executePythonCode } = await import('@/lib/local-tool-executor');
-                // V.75b: Use contentChunks which has the raw unstripped content
-                const rawContent = contentChunks.join('');
-                console.log(`[Chat] V.75b: rawContent length=${rawContent.length}, contains backticks=${rawContent.includes('`')}, contains python=${rawContent.includes('python')}`);
-                console.log(`[Chat] V.75b: rawContent preview: ${rawContent.substring(0, 200)}`);
-                const pythonCode = extractPythonCode(rawContent);
-                if (pythonCode && pythonCode.length > 20) {
-                  console.log(`[Chat] V.75: Found Python code (${pythonCode.length} chars) — executing!`);
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\n\n⚙️ **جاري تنفيذ الكود...**\n\n' })}\n\n`));
+              if (!streamClosed) {
+                try {
+                  const { extractPythonCode, executePythonCode } = await import('@/lib/local-tool-executor');
+                  const rawContent = contentChunks.join('');
+                  console.log(`[Chat] V.75c: streamClosed=${streamClosed}, rawContent.length=${rawContent.length}, hasBackticks=${rawContent.includes('\x60\x60\x60')}`);
+                  const pythonCode = extractPythonCode(rawContent) || extractPythonCode(accumulatedContent);
+                  if (pythonCode && pythonCode.length > 10) {
+                    console.log(`[Chat] V.75c: Found Python code (${pythonCode.length} chars)! Executing...`);
+                    if (!streamClosed) controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\n\n⚙️ **جاري تنفيذ الكود...**\n\n' })}\n\n`));
 
-                  const execResult = await executePythonCode(pythonCode, 30_000);
+                    const execResult = await executePythonCode(pythonCode, 30_000);
 
-                  if (execResult.success && execResult.output) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `✅ **النتيجة:**\n\`\`\`\n${execResult.output}\n\`\`\`\n` })}\n\n`));
-                    console.log(`[Chat] V.75: Executed! Output: ${execResult.output.substring(0, 100)}`);
-                  } else if (execResult.error) {
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `❌ **خطأ في التنفيذ:**\n\`\`\`\n${execResult.error.substring(0, 300)}\n\`\`\`\n` })}\n\n`));
-                  }
-                } else {
-                  // V.75b: Also try with accumulatedContent (might have been cleaned)
-                  const pythonCode2 = extractPythonCode(accumulatedContent);
-                  if (pythonCode2 && pythonCode2.length > 20) {
-                    console.log(`[Chat] V.75: Found Python code in accumulatedContent (${pythonCode2.length} chars) — executing!`);
-                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\n\n⚙️ **جاري تنفيذ الكود...**\n\n' })}\n\n`));
-                    const execResult = await executePythonCode(pythonCode2, 30_000);
-                    if (execResult.success && execResult.output) {
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `✅ **النتيجة:**\n\`\`\`\n${execResult.output}\n\`\`\`\n` })}\n\n`));
-                    } else if (execResult.error) {
-                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `❌ **خطأ في التنفيذ:**\n\`\`\`\n${execResult.error.substring(0, 300)}\n\`\`\`\n` })}\n\n`));
+                    if (!streamClosed) {
+                      if (execResult.success && execResult.output) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `✅ **النتيجة:**\n\`\`\`\n${execResult.output}\n\`\`\`\n` })}\n\n`));
+                      } else if (execResult.error) {
+                        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `❌ **خطأ:**\n\`\`\`\n${execResult.error.substring(0, 300)}\n\`\`\`\n` })}\n\n`));
+                      }
                     }
+                  } else {
+                    console.log(`[Chat] V.75c: No Python code found in response`);
                   }
+                } catch (execErr) {
+                  console.warn('[Chat] V.75c: Code exec failed:', execErr instanceof Error ? execErr.message : String(execErr));
                 }
-              } catch (execErr) {
-                console.warn('[Chat] V.75: Code exec failed:', execErr instanceof Error ? execErr.message : String(execErr));
+              } else {
+                console.log('[Chat] V.75c: Stream already closed — skipping code execution');
               }
 
               controller.enqueue(encoder.encode('data: [DONE]\n\n'));
