@@ -1030,13 +1030,17 @@ export async function POST(request: NextRequest) {
       systemPrompt += '\n\n🎬 المستخدم طلب توليد فيديو. صف الفيديو المولد بإيجاز. لا تقل "لا أستطيع توليد فيديو" — الفيديو يتم توليده!';
     }
 
-    // V.73: If tools were just installed, tell the AI they're available!
+    // V.80: Force AI to write EXECUTABLE Python code
+    // The AI was responding with plans ("1️⃣ سأفعل كذا") instead of actual code
     try {
       const { getAvailableTools } = await import('@/lib/autonomous-agent');
       const currentTools = await getAvailableTools();
-      if (currentTools.length > 11) { // More than the base tools
-        systemPrompt += `\n\n🔧 أدوات إضافية متاحة الآن (${currentTools.length}): ${currentTools.join(', ')}.\nاستخدم هذه الأدوات لتنفيذ طلب المستخدم. اكتب كود Python فعلي ينفذ المطلوب، لا تكتفي بالشرح.`;
-      }
+      systemPrompt += `\n\n🔧 SYSTEM CAPABILITY: أنت تقدر تنفذ كود Python فعلي على السيرفر!`;
+      systemPrompt += `\nالأدوات المتاحة: ${currentTools.join(', ')}`;
+      systemPrompt += `\n\n⚠️ مهم جداً: لا تكتب خطة أو شرح. اكتب كود Python كامل في \`python block ينفذ المطلوب فوراً.`;
+      systemPrompt += `\nمثال: بدل ما تقول "سأحمل الفيديو" → اكتب:`;
+      systemPrompt += `\n\`\`\`python\nimport pytube\nyt = pytube.YouTube("URL")\nstream = yt.streams.get_highest_resolution()\nstream.download()\nprint("Downloaded:", stream.title)\n\`\`\``;
+      systemPrompt += `\nالنظام هينفذ الكود تلقائياً ويرجع لك النتيجة. اكتب الكود فقط!`;
     } catch {}
 
     // ── Quiz Intent Detection ──
