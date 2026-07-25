@@ -1029,6 +1029,23 @@ export async function POST(request: NextRequest) {
     // V.69g: PRE-STREAM tool execution — run LLM analysis BEFORE creating the stream
     // If a tool is needed and available, return result directly (no AI response needed)
     try {
+      // V.69h: Direct QR check FIRST (fast path — no LLM needed)
+      if (/qr|كيو ار|vcard|كارت اتصال/i.test(message)) {
+        console.log('[Chat] V.69h: QR request detected directly');
+        const { generateQRCode, parseVCardFromMessage } = await import('@/lib/local-tool-executor');
+        const vcardData = parseVCardFromMessage(message);
+        if (vcardData) {
+          const qrResult = await generateQRCode(vcardData, 'qr_code');
+          if (qrResult.success && qrResult.fileUrl) {
+            const sseResponse = `data: ${JSON.stringify({ content: `✅ تم إنشاء كود QR بنجاح!\n\n📄 **${qrResult.fileName}**\n\n👉 [اضغط هنا لتحميل الكود](${qrResult.fileUrl})\n\nالكود يحتوي على بيانات vCard — لما تعمل له Scan بالموبايل هتتحفظ كـ Contact فوراً.`, fileGenerated: { success: true, fileUrl: qrResult.fileUrl, fileName: qrResult.fileName, fileType: 'png' } })}\n\ndata: [DONE]\n\n`;
+            return new Response(sseResponse, {
+              headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+            });
+          }
+        }
+      }
+
+      // Then try LLM analysis for other tools
       const { analyzeCapabilityWithLLM } = await import('@/lib/llm-capability-detector');
       const analysis = await analyzeCapabilityWithLLM(message, (language as 'ar' | 'en') || 'ar');
 
@@ -1042,14 +1059,9 @@ export async function POST(request: NextRequest) {
           if (vcardData) {
             const qrResult = await generateQRCode(vcardData, 'qr_code');
             if (qrResult.success && qrResult.fileUrl) {
-              // Return direct SSE response — no stream needed!
               const sseResponse = `data: ${JSON.stringify({ smartDocProgress: { stage: 'tool_execute', progress: 50, message: `⚙️ جاري استخدام ${analysis.toolName}...` } })}\n\ndata: ${JSON.stringify({ content: `✅ تم إنشاء كود QR بنجاح!\n\n📄 **${qrResult.fileName}**\n\n👉 [اضغط هنا لتحميل الكود](${qrResult.fileUrl})\n\nالكود يحتوي على بيانات vCard — لما تعمل له Scan بالموبايل هتتحفظ كـ Contact فوراً.`, fileGenerated: { success: true, fileUrl: qrResult.fileUrl, fileName: qrResult.fileName, fileType: 'png' } })}\n\ndata: [DONE]\n\n`;
               return new Response(sseResponse, {
-                headers: {
-                  'Content-Type': 'text/event-stream',
-                  'Cache-Control': 'no-cache',
-                  'Connection': 'keep-alive',
-                },
+                headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
               });
             }
           }
