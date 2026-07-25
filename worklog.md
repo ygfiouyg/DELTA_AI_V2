@@ -5087,3 +5087,60 @@ Summary: Artificial intelligence (AI) is the capability of...
 - POST /api/tools/exec: ينفذ Python code فعلياً
 
 *Last updated: 2025-07-25 (Round 74) · V.74 REAL execution working*
+
+---
+Task ID: v75-auto-execute-working
+Agent: main (Z.ai Code)
+Task: AUTO-EXECUTE Python code in chat — WORKING!
+
+### V.75e: Code execution works in chat!
+
+**الاختبار 1**: "اكتب كود بايثون يطبع 1 الى 5"
+```
+```python
+for i in range(1, 6):
+    print(i)
+```
+
+⚙️ جاري تنفيذ الكود...
+
+✅ النتيجة:
+1
+2
+3
+4
+5
+```
+
+**الاختبار 2**: "استخدم pyfiglet لعمل نص فني Hello"
+```
+[5%] 🔍 فحص القدرات...
+[8%] 🧠 الموديل بيحلل طلبك...
+[10%] 🔧 اكتشفت إن طلبك يحتاج pyfiglet...
+[40%] ⚙️ جاري استخدام pyfiglet...
+
+```python
+from pyfiglet import Figlet
+f = Figlet(font='hello')
+print(f.renderText('Hello'))
+```
+
+⚙️ جاري تنفيذ الكود...
+❌ خطأ: font='hello' not found (pyfiglet مش متاح فعلياً)
+```
+
+### المشاكل اللي اتحلت:
+1. V.75: code كان بعد streamClosed
+2. V.75b: accumulatedContent كان متغير (stripped)
+3. V.75c: streamClosed كان true قبل الكود
+4. V.75d: محاولة إصلاح
+5. V.75e: نقل الكود BEFORE streamClosed — نجح!
+
+### النتيجة:
+- ✅ AI يكتب كود Python
+- ✅ V.75e يكتشف الكود في الـ response
+- ✅ V.75e ينفذ الكود على السيرفر
+- ✅ النتيجة الحقيقية بترجع للمستخدم في الشات
+- ✅ لو فيه خطأ → بيرجع للمستخدم
+
+*Last updated: 2025-07-25 (Round 75) · V.75e Auto-execute WORKING!*
