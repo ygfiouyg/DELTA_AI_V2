@@ -241,6 +241,71 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // V.70: LLM-BASED AUTONOMOUS TOOL ACQUISITION
+    // The LLM analyzes the request and decides if a tool is needed.
+    // If the tool is NOT available → search GitHub → install → notify user.
+    // This is the TRUE autonomous agent — no regex, the model decides.
+    try {
+      const { analyzeCapabilityWithLLM } = await import('@/lib/llm-capability-detector');
+      const analysis = await analyzeCapabilityWithLLM(message, (language as 'ar' | 'en') || 'ar');
+
+      console.log(`[Chat] V.70 LLM Analysis: needsTool=${analysis.needsSpecialTool}, tool=${analysis.toolName}, hasLocal=${analysis.hasToolLocally}`);
+
+      if (analysis.needsSpecialTool && analysis.toolName && !analysis.hasToolLocally) {
+        // Tool is needed but NOT available — AUTO-INSTALL!
+        console.log(`[Chat] V.70: Tool "${analysis.toolName}" not available — auto-installing...`);
+
+        // Build install command if not provided
+        const installCmd = analysis.installCommand || `pip3 install --break-system-packages ${analysis.toolName}`;
+
+        // Build SSE response showing the installation process
+        const steps = [
+          `🔍 اكتشفت إن طلبك يحتاج أداة: **${analysis.toolName}**`,
+          `⚠️ الأداة مش متاحة محلياً`,
+          `📦 جاري تثبيت ${analysis.toolName} من GitHub/PyPI...`,
+        ];
+
+        // Install the tool
+        const { exec } = await import('child_process');
+        const { promisify } = await import('util');
+        const execAsync = promisify(exec);
+
+        let installSuccess = false;
+        let installMsg = '';
+
+        try {
+          const { stdout, stderr } = await execAsync(installCmd, { timeout: 120_000 });
+          installMsg = stdout.substring(0, 200) || stderr.substring(0, 200);
+          installSuccess = true;
+          steps.push(`✅ تم تثبيت ${analysis.toolName} بنجاح!`);
+          console.log(`[Chat] V.70: ${analysis.toolName} installed successfully`);
+        } catch (installErr) {
+          installMsg = installErr instanceof Error ? installErr.message : String(installErr);
+          steps.push(`❌ فشل التثبيت: ${installMsg.substring(0, 100)}`);
+          console.warn(`[Chat] V.70: Install failed: ${installMsg.substring(0, 200)}`);
+        }
+
+        // Verify installation
+        if (installSuccess) {
+          const verifyCmd = `python3 -c "import ${analysis.toolName.replace(/-/g, '_')}; print('OK')"`;
+          try {
+            const { stdout } = await execAsync(verifyCmd, { timeout: 10_000 });
+            if (stdout.includes('OK')) {
+              steps.push(`✅ تم التحقق من التثبيت — الأداة جاهزة للاستخدام!`);
+            }
+          } catch {}
+        }
+
+        // Return SSE with installation status
+        const sseResponse = `data: ${JSON.stringify({ content: steps.join('\n\n') + `\n\n${installSuccess ? `🎉 الأداة "${analysis.toolName}" اتثبتت بنجاح! بس محتاج أعرف تفاصيل أكتر عشان أنفذ طلبك. قولي بالظبط إيه اللي عاوزه وأنا هستخدم الأداة.` : `⚠️ مقدرش أثبت الأداة دلوقتي. بس مش هسيبك — خليني أحاول أساعدك بطريقة تانية.`}` })}\n\ndata: [DONE]\n\n`;
+        return new Response(sseResponse, {
+          headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+        });
+      }
+    } catch (v70Err) {
+      console.warn('[Chat] V.70 LLM analysis failed (non-fatal):', v70Err instanceof Error ? v70Err.message : String(v70Err));
+    }
+
     // ── MCP Tools Integration ──
     // اكتشف نية المستخدم وشغّل أداة MCP لو محتاجة
     // قبل ما نبعت لـ GLM
