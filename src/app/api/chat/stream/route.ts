@@ -643,6 +643,19 @@ export async function POST(request: NextRequest) {
     }
     const hasEnhancedDocIntent = docIntent !== null && docIntent.type !== 'chat-only' && docIntent.type !== 'quiz';
 
+    // V.66: PPTX/XLSX/DOCX intents should NOT go through the Smart Doc PDF pipeline!
+    // They have their own handlers later in the stream.
+    const isFileGenerationIntent =
+      docIntent?.type === 'generate-pptx' ||
+      docIntent?.type === 'generate-xlsx' ||
+      docIntent?.type === 'generate-docx' ||
+      docIntent?.type === 'generate-file';
+
+    // V.66: If it's a file generation intent, don't treat as enhanced doc intent
+    // (prevents the Smart Doc V2 pipeline from generating a PDF instead)
+    const skipSmartDocPipeline = isFileGenerationIntent;
+    const effectiveHasDocIntent = hasEnhancedDocIntent && !skipSmartDocPipeline;
+
     // ── Build system prompt using extracted module ──
     // All system prompt construction (language, capabilities, time context,
     // content strategy, design prefs, attachments, emotion, memory, Drive, web search)
@@ -813,8 +826,13 @@ export async function POST(request: NextRequest) {
     // Will be updated during streaming if open mode detects HTML output
     let fileGenIntentOpen = fileGenIntent;
 
-    if (hasEnhancedDocIntent) {
+    if (effectiveHasDocIntent) {
       console.log(`[Chat] Enhanced Doc Intent detected — intent=${docIntent!.type}, topic=${docIntent!.topic || 'none'}, files=${parsed.attachments.length}, request="${message.slice(0, 80)}"`);
+    }
+
+    // V.66: Log if file generation intent (PPTX/XLSX/DOCX) — will skip Smart Doc pipeline
+    if (skipSmartDocPipeline) {
+      console.log(`[Chat] File generation intent: ${docIntent!.type} — will use file gen handler, NOT Smart Doc PDF pipeline`);
     }
 
     if (mediaGenIntent) {
@@ -881,12 +899,8 @@ export async function POST(request: NextRequest) {
 
     // Build messages array for LLM with multimodal support
     // V.37 FIX: Skip buildLLMMessages when hasEnhancedDocIntent is true.
-    // buildLLMMessages calls extractPdfWithVlmAndText() which takes 40-90s
-    // for a 53-page PDF. During this time, NO HTTP response has started →
-    // the HF proxy kills the connection after ~10s idle → timeout.
-    // The Smart Doc V2 pipeline does its OWN text extraction, so we don't
-    // need buildLLMMessages for that path.
-    const messages = hasEnhancedDocIntent
+    // V.66: Use effectiveHasDocIntent (excludes file gen intents like pptx/xlsx)
+    const messages = effectiveHasDocIntent
       ? []  // Smart Doc pipeline handles extraction itself
       : await buildLLMMessages(
           systemPrompt,
@@ -1042,7 +1056,7 @@ export async function POST(request: NextRequest) {
           // use the smart pipeline instead of normal chat.
           // This replicates the AI assistant's thinking process:
           // Parse → Understand → Extract → Compile → Design → Render PDF
-          if (hasEnhancedDocIntent) {
+          if (effectiveHasDocIntent) {
             // ── FIX H5: Ensure DB writes complete before Smart Doc pipeline ──
             // The pipeline needs dbConversationId to exist for asset creation.
             if (!deferredDbReady) {
