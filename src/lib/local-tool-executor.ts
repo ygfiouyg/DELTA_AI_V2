@@ -464,7 +464,36 @@ export async function executePythonCode(
     await fs.mkdir(DOWNLOAD_DIR, { recursive: true });
 
     // Add stdout flush at the end
-    const fullCode = `${code}\n\nimport sys\nsys.stdout.flush()`;
+    // V.76b: Wrap code to capture the last expression value
+    // If the AI writes 'solutions' without print(), we need to capture it
+    const fullCode = `
+import sys
+import io
+_old_stdout = sys.stdout
+_capture = io.StringIO()
+sys.stdout = _capture
+try:
+${code.split('\n').map(l => '    ' + l).join('\n')}
+except Exception as e:
+    print(f"Error: {e}")
+finally:
+    sys.stdout = _old_stdout
+_captured = _capture.getvalue()
+if _captured:
+    print(_captured, end='')
+# V.76b: Try to evaluate the last line as an expression
+import traceback
+_last_lines = """${code.replace(/"/g, '\\"').replace(/\n/g, '\\n')}""".strip().split('\\n')
+_last = _last_lines[-1].strip() if _last_lines else ''
+if _last and not _captured and not _last.startswith(('print', 'import', 'from', '#', 'def', 'class', 'if', 'for', 'while', 'try', 'except')):
+    try:
+        _result = eval(_last)
+        if _result is not None:
+            print(_result)
+    except:
+        pass
+sys.stdout.flush()
+`;
     await fs.writeFile(scriptPath, fullCode, 'utf-8');
 
     // Execute with timeout
