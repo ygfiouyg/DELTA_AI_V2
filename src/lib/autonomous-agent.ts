@@ -82,6 +82,18 @@ export async function checkCapability(
     reason: string;
   }> = [
     {
+      keywords: ['كود qr', 'qr code', 'qr', 'كيو ار', 'باركود', 'barcode', 'vcard', 'كارت اتصال'],
+      requiredTools: ['qrcode'],
+      searchQuery: 'python qrcode vcard generator library',
+      reason: 'إنشاء أكواد QR و vCard',
+    },
+    {
+      keywords: ['كتاب صوتي', 'audiobook', 'تحويل النص لصوت', 'text to speech', 'tts', 'mp3 من pdf', 'pdf to mp3', 'كتاب مسموع'],
+      requiredTools: ['gtts', 'pymupdf'],
+      searchQuery: 'python gtts text to speech pdf to mp3 audiobook',
+      reason: 'تحويل PDF إلى كتاب صوتي MP3',
+    },
+    {
       keywords: ['باور بوينت', 'بوربوينت', 'powerpoint', 'pptx', 'عرض تقديم', 'شرائح', 'presentation', 'slides'],
       requiredTools: ['python-pptx'],
       searchQuery: 'python-pptx powerpoint presentation generator',
@@ -104,12 +116,6 @@ export async function checkCapability(
       requiredTools: ['pymupdf', 'pillow'],
       searchQuery: 'python pdf image extraction pymupdf fitz',
       reason: 'استخراج الصور من PDF',
-    },
-    {
-      keywords: ['كود', 'code', 'عدل الكود', 'edit code', 'modify code', 'غير الكود'],
-      requiredTools: ['code-editor'],
-      searchQuery: 'code editor agent tool github',
-      reason: 'تحرير الأكواد',
     },
     {
       keywords: ['تحويل', 'convert', 'mp3', 'mp4', 'صوت', 'audio', 'فيديو', 'video'],
@@ -233,6 +239,24 @@ function getInstallCommand(repo: any, installType: string): string {
  */
 function getKnownTools(query: string): GitHubSearchResult[] {
   const known: Record<string, GitHubSearchResult[]> = {
+    'qrcode': [{
+      repo: 'lincolnloop/python-qrcode',
+      name: 'qrcode',
+      description: 'Python QR Code image generator — creates QR codes with vCard support',
+      url: 'https://github.com/lincolnloop/python-qrcode',
+      installType: 'pip',
+      installCommand: 'pip3 install qrcode[pil]',
+      score: 3500,
+    }],
+    'gtts': [{
+      repo: 'pndurette/gTTS',
+      name: 'gTTS',
+      description: 'Google Text-to-Speech — convert text to MP3 audio',
+      url: 'https://github.com/pndurette/gTTS',
+      installType: 'pip',
+      installCommand: 'pip3 install gTTS',
+      score: 2000,
+    }],
     'python-pptx': [{
       repo: 'scanny/python-pptx',
       name: 'python-pptx',
@@ -263,7 +287,7 @@ function getKnownTools(query: string): GitHubSearchResult[] {
     'pymupdf': [{
       repo: 'pymupdf/PyMuPDF',
       name: 'PyMuPDF',
-      description: 'Python bindings for MuPDF — PDF image extraction',
+      description: 'Python bindings for MuPDF — PDF text/image extraction',
       url: 'https://github.com/pymupdf/PyMuPDF',
       installType: 'pip',
       installCommand: 'pip3 install PyMuPDF',
@@ -402,7 +426,7 @@ export async function getAvailableTools(): Promise<string[]> {
   const tools: string[] = [];
 
   // Check Python packages
-  const pythonPackages = ['pptx', 'openpyxl', 'PIL', 'fitz', 'matplotlib', 'requests', 'bs4'];
+  const pythonPackages = ['pptx', 'openpyxl', 'PIL', 'fitz', 'matplotlib', 'requests', 'bs4', 'qrcode', 'gtts'];
   for (const pkg of pythonPackages) {
     try {
       await execAsync(`python3 -c "import ${pkg}"`, { timeout: 5_000 });

@@ -65,7 +65,8 @@ RUN npx playwright install chromium 2>/dev/null || echo "Playwright Chromium ins
 
 # V.67: Install Python libraries for local file generation (PPTX/XLSX)
 # V.68b: Add --break-system-packages for HF's externally-managed Python
-RUN pip3 install --no-cache-dir --break-system-packages python-pptx openpyxl Pillow PyMuPDF matplotlib 2>/dev/null || echo "Python packages install partial"
+# V.68c: Add qrcode and gTTS for QR code + audiobook generation
+RUN pip3 install --no-cache-dir --break-system-packages python-pptx openpyxl Pillow PyMuPDF matplotlib qrcode gTTS 2>/dev/null || echo "Python packages install partial"
 
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
