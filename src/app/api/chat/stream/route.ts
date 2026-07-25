@@ -220,6 +220,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // V.69h: PRE-Everything QR check — before MCP, before AI, before anything!
+    if (/qr|كيو ار|vcard|كارت اتصال|باركود/i.test(message)) {
+      console.log('[Chat] V.69h: QR request detected at route entry');
+      try {
+        const { generateQRCode, parseVCardFromMessage } = await import('@/lib/local-tool-executor');
+        const vcardData = parseVCardFromMessage(message);
+        if (vcardData) {
+          const qrResult = await generateQRCode(vcardData, 'qr_code');
+          if (qrResult.success && qrResult.fileUrl) {
+            console.log(`[Chat] V.69h: QR generated: ${qrResult.fileName}`);
+            const sseResponse = `data: ${JSON.stringify({ content: `✅ تم إنشاء كود QR بنجاح!\n\n📄 **${qrResult.fileName}**\n\n👉 [اضغط هنا لتحميل الكود](${qrResult.fileUrl})\n\nالكود يحتوي على بيانات vCard — لما تعمل له Scan بالموبايل هتتحفظ كـ Contact فوراً.`, fileGenerated: { success: true, fileUrl: qrResult.fileUrl, fileName: qrResult.fileName, fileType: 'png' } })}\n\ndata: [DONE]\n\n`;
+            return new Response(sseResponse, {
+              headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+            });
+          }
+        }
+      } catch (qrErr) {
+        console.warn('[Chat] V.69h QR failed:', qrErr instanceof Error ? qrErr.message : String(qrErr));
+      }
+    }
+
     // ── MCP Tools Integration ──
     // اكتشف نية المستخدم وشغّل أداة MCP لو محتاجة
     // قبل ما نبعت لـ GLM
