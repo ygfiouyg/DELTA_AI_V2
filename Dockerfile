@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     openssl \
     ca-certificates \
     python3 \
+    python3-pip \
     make \
     g++ \
     ffmpeg \
@@ -61,6 +62,9 @@ RUN if [ -f bun.lock ]; then \
 # render HTML → PDF. Without this, PDF generation falls back to HTML.
 # Using --with-deps would re-install system deps we already installed above.
 RUN npx playwright install chromium 2>/dev/null || echo "Playwright Chromium install failed — PDF generation will use HTML fallback"
+
+# V.67: Install Python libraries for local file generation (PPTX/XLSX)
+RUN pip3 install --no-cache-dir python-pptx openpyxl 2>/dev/null || pip install --no-cache-dir python-pptx openpyxl 2>/dev/null || echo "Python pptx/openpyxl install failed"
 
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
