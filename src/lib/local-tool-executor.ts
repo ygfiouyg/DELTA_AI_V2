@@ -444,3 +444,66 @@ export function parseVCardFromMessage(message: string): string | null {
 
   return vcard;
 }
+
+/**
+ * V.74: Execute Python code on the server and return the result
+ * This is the REAL execution — not just writing code as text
+ */
+export async function executePythonCode(
+  code: string,
+  timeoutMs: number = 30_000
+): Promise<{ success: boolean; output: string; error: string }> {
+  try {
+    const { exec } = await import('child_process');
+    const { promisify } = await import('util');
+    const execAsync = promisify(exec);
+
+    // Write code to a temp file
+    const fileId = randomUUID();
+    const scriptPath = path.join(DOWNLOAD_DIR, `exec_${fileId}.py`);
+    await fs.mkdir(DOWNLOAD_DIR, { recursive: true });
+
+    // Add stdout flush at the end
+    const fullCode = `${code}\n\nimport sys\nsys.stdout.flush()`;
+    await fs.writeFile(scriptPath, fullCode, 'utf-8');
+
+    // Execute with timeout
+    const { stdout, stderr } = await execAsync(`python3 "${scriptPath}"`, {
+      timeout: timeoutMs,
+      cwd: DOWNLOAD_DIR,
+      env: { ...process.env, PYTHONUNBUFFERED: '1' },
+    });
+
+    // Cleanup
+    await fs.unlink(scriptPath).catch(() => {});
+
+    const output = stdout.trim();
+    const error = stderr.trim();
+
+    if (error && !output) {
+      return { success: false, output: '', error: error.substring(0, 500) };
+    }
+
+    return { success: true, output: output.substring(0, 2000), error: error.substring(0, 500) };
+  } catch (err) {
+    const errMsg = err instanceof Error ? err.message : String(err);
+    return { success: false, output: '', error: errMsg.substring(0, 500) };
+  }
+}
+
+/**
+ * V.74: Extract Python code from AI response
+ */
+export function extractPythonCode(text: string): string | null {
+  // Look for ```python ... ``` blocks
+  const match = text.match(/```python\s*\n([\s\S]*?)```/);
+  if (match) return match[1].trim();
+
+  // Look for ``` ... ``` blocks (without language specifier)
+  const match2 = text.match(/```\s*\n([\s\S]*?)```/);
+  if (match2 && (match2[1].includes('import ') || match2[1].includes('print('))) {
+    return match2[1].trim();
+  }
+
+  return null;
+}
