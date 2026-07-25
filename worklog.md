@@ -4289,3 +4289,68 @@ Stage Summary:
 - ✅ All test assertions passing
 
 *Last updated: 2025-07-24 (Round 63) · V.63 Omni-Agent Skills Integration complete*
+
+---
+Task ID: v64-security-isolation
+Agent: main (Z.ai Code)
+Task: CRITICAL SECURITY FIX — Context Isolation & Tool Filtering
+
+Work Log:
+### V.64: Strict Context Isolation Security
+
+**المشكلة**: الـ models كانت بتـ bypass الـ skills وتـ execute IoT/Home
+Assistant functions (climate.*, light.*, switch.*) — خطر أمني وتشغيلي.
+
+**الحل**: Namespace Router بـ strict filtering.
+
+### New File: src/lib/namespace-router.ts
+- BLOCKED_NAMESPACES: 35+ IoT prefixes (climate.*, light.*, switch.*, media_player.*, lock.*, cover.*, fan.*, homeassistant.*, automation.*, scene.*, script.*, input_*, device_tracker.*, etc.)
+- ALLOWED_CHAT_TOOLS: autonomous_install_skill, search_skills, pdf_*, docx_*, xlsx_*, pptx_*, text_*, web_search, etc.
+- isToolBlocked(): يفحص ضد blocked prefixes
+- isToolAllowed(): يفحص ضد allowed list
+- filterToolsForChat(): يشيل blocked tools
+- validateSkillContent(): يفحص محتوى الـ skill قبل الحفظ
+  - Blocks: climate.*, light.*, switch.*, media_player.*, homeassistant.*
+  - Blocks: turn_off(), turn_on(), toggle(), call_service()
+  - Returns sanitized content
+- logBlockedTool(): security audit log
+
+### Updated: tool-registry.ts
+- getToolSchemas(): بيطبق filterToolsForChat() قبل ما يرجع schemas
+- executeToolCall(): SECURITY GATE عند الدخول — blocks IoT
+- Unknown tools مرفوضة (only 2 tools allowed)
+
+### Updated: skill-installer.ts
+- downloadFromUrl(): validates skill content قبل الحفظ
+- IoT instructions → BLOCKED، مش بتتسيف
+- Saves sanitized content
+
+### Verification على HF:
+```
+Tools exposed to models: 2
+  ✅ search_skills (safe)
+  ✅ autonomous_install_skill (safe)
+
+IoT tool execution attempt:
+  tool: climate.living_room_ac
+  Success: False
+  Result: [BLOCKED] Tool is IoT/Home Assistant — cannot execute
+  Status: ✅ BLOCKED (secure)
+```
+
+### Test Results (6/6 pass):
+  ✅ All 11 IoT tools are blocked
+  ✅ Safe tool filtering completed
+  ✅ Tool schemas exclude IoT for all providers
+  ✅ IoT tool execution blocked at runtime
+  ✅ Skill content validation blocks IoT instructions (4 violations caught)
+  ✅ Safe skills pass validation
+
+Stage Summary:
+- ✅ V.64 deployed على HF (SHA: f8d14b3f)
+- ✅ IoT/Home Assistant tools BLOCKED completely
+- ✅ Only safe tools exposed to models
+- ✅ Skill content validated before saving
+- ✅ Security test passing 6/6
+
+*Last updated: 2025-07-24 (Round 64) · V.64 Security Isolation deployed*
