@@ -4388,7 +4388,9 @@ ${toolData}${extraStr}
               // If the AI wrote Python code in ```python blocks, execute it for real!
               try {
                 const { extractPythonCode, executePythonCode } = await import('@/lib/local-tool-executor');
-                const pythonCode = extractPythonCode(accumulatedContent);
+                // V.75b: Use contentChunks which has the raw unstripped content
+                const rawContent = contentChunks.join('');
+                const pythonCode = extractPythonCode(rawContent);
                 if (pythonCode && pythonCode.length > 20) {
                   console.log(`[Chat] V.75: Found Python code (${pythonCode.length} chars) — executing!`);
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\n\n⚙️ **جاري تنفيذ الكود...**\n\n' })}\n\n`));
@@ -4400,6 +4402,19 @@ ${toolData}${extraStr}
                     console.log(`[Chat] V.75: Executed! Output: ${execResult.output.substring(0, 100)}`);
                   } else if (execResult.error) {
                     controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `❌ **خطأ في التنفيذ:**\n\`\`\`\n${execResult.error.substring(0, 300)}\n\`\`\`\n` })}\n\n`));
+                  }
+                } else {
+                  // V.75b: Also try with accumulatedContent (might have been cleaned)
+                  const pythonCode2 = extractPythonCode(accumulatedContent);
+                  if (pythonCode2 && pythonCode2.length > 20) {
+                    console.log(`[Chat] V.75: Found Python code in accumulatedContent (${pythonCode2.length} chars) — executing!`);
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\n\n⚙️ **جاري تنفيذ الكود...**\n\n' })}\n\n`));
+                    const execResult = await executePythonCode(pythonCode2, 30_000);
+                    if (execResult.success && execResult.output) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `✅ **النتيجة:**\n\`\`\`\n${execResult.output}\n\`\`\`\n` })}\n\n`));
+                    } else if (execResult.error) {
+                      controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `❌ **خطأ في التنفيذ:**\n\`\`\`\n${execResult.error.substring(0, 300)}\n\`\`\`\n` })}\n\n`));
+                    }
                   }
                 }
               } catch (execErr) {
