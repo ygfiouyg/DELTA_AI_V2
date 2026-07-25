@@ -1063,11 +1063,16 @@ export async function POST(request: NextRequest) {
     const stream = new ReadableStream({
       async start(controller) {
         try {
+          // V.69e: Debug — verify stream is running
+          console.log('[Chat] V.69e: Stream started, checking capabilities...');
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage: 'v69_start', progress: 5, message: '🔍 V.69: فحص القدرات...' } })}\n\n`));
+
           // V.69: AUTONOMOUS AGENT — LLM-based capability detection (INSIDE stream!)
           // The model analyzes the request and decides if a tool is needed.
           // If tool available → execute directly → return early (no AI response needed)
           try {
             const { analyzeCapabilityWithLLM } = await import('@/lib/llm-capability-detector');
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage: 'v69_analyzing', progress: 8, message: '🧠 الموديل بيحلل طلبك...' } })}\n\n`));
             const analysis = await analyzeCapabilityWithLLM(message, (language as 'ar' | 'en') || 'ar');
 
             console.log(`[Chat] V.69 Analysis: needsTool=${analysis.needsSpecialTool}, tool=${analysis.toolName}, hasLocal=${analysis.hasToolLocally}`);
