@@ -645,7 +645,7 @@ export async function POST(request: NextRequest) {
 
     // V.66: PPTX/XLSX/DOCX intents should NOT go through the Smart Doc PDF pipeline!
     // They have their own handlers later in the stream.
-    const isFileGenerationIntent =
+    const isFileGenIntent =
       docIntent?.type === 'generate-pptx' ||
       docIntent?.type === 'generate-xlsx' ||
       docIntent?.type === 'generate-docx' ||
@@ -653,7 +653,7 @@ export async function POST(request: NextRequest) {
 
     // V.66: If it's a file generation intent, don't treat as enhanced doc intent
     // (prevents the Smart Doc V2 pipeline from generating a PDF instead)
-    const skipSmartDocPipeline = isFileGenerationIntent;
+    const skipSmartDocPipeline = isFileGenIntent;
     const effectiveHasDocIntent = hasEnhancedDocIntent && !skipSmartDocPipeline;
 
     // ── Build system prompt using extracted module ──
@@ -899,10 +899,8 @@ export async function POST(request: NextRequest) {
 
     // Build messages array for LLM with multimodal support
     // V.37 FIX: Skip buildLLMMessages when hasEnhancedDocIntent is true.
-    // V.66: Use effectiveHasDocIntent (excludes file gen intents like pptx/xlsx)
-    // V.66b: When skipSmartDocPipeline is true, we MUST build messages normally
-    //        because the file generation handler needs LLM messages to work
-    const messages = effectiveHasDocIntent && !skipSmartDocPipeline
+    // V.66c: When skipSmartDocPipeline is true (pptx/xlsx), build messages normally
+    const messages = (effectiveHasDocIntent && !skipSmartDocPipeline)
       ? []  // Smart Doc pipeline handles extraction itself
       : await buildLLMMessages(
           systemPrompt,
