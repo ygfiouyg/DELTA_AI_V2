@@ -656,28 +656,33 @@ export async function POST(request: NextRequest) {
     const skipSmartDocPipeline = isFileGenIntent;
     const effectiveHasDocIntent = hasEnhancedDocIntent && !skipSmartDocPipeline;
 
-    // V.68: AUTONOMOUS AGENT LOOP — detect capability gaps and auto-install tools
-    // Before processing, check if the agent has the tools to fulfill the request.
-    // If not, search GitHub, install the tool, and make it available.
-    // V.68c: Added QR, vCard, audiobook, mp3, tts keywords
-    if (isFileGenIntent || /صور|image|استخرج|extract|تحويل|convert|ترجمة|translate|رسم|chart|كود|code|qr|vcard|كارت اتصال|باركود|كتاب صوتي|audiobook|mp3|tts|نص لصوت|كتاب مسموع/i.test(message)) {
-      try {
-        const { runAgentLoop } = await import('@/lib/autonomous-agent');
-        const agentResult = await runAgentLoop(message);
+    // V.69: AUTONOMOUS AGENT — LLM-based capability detection (no regex!)
+    // The model itself analyzes the request and decides if a tool is needed.
+    // If the tool is missing → search GitHub → install → use
+    try {
+      const { autonomousAcquireAndExecute } = await import('@/lib/llm-capability-detector');
+      const agentResult = await autonomousAcquireAndExecute(message, (language as 'ar' | 'en') || 'ar');
 
-        if (!agentResult.capabilityCheck.hasCapability && agentResult.installedTool?.success) {
-          // Tool was just installed — notify user via SSE
-          console.log(`[Chat] V.68 Agent Loop: ${agentResult.finalMessage}`);
-          // The tool is now available — continue with normal processing
-        }
-
-        // Log agent steps for debugging
-        for (const step of agentResult.steps) {
-          console.log(`[AgentLoop] ${step}`);
-        }
-      } catch (agentErr) {
-        console.warn('[Chat] V.68 Agent loop failed (non-fatal):', agentErr instanceof Error ? agentErr.message : String(agentErr));
+      // Log agent steps
+      for (const step of agentResult.steps) {
+        console.log(`[AgentV69] ${step}`);
       }
+
+      // If a tool was just installed, notify the user via SSE
+      if (agentResult.installed && agentResult.analysis.needsSpecialTool) {
+        // Send status update to user
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({
+            smartDocProgress: {
+              stage: 'tool_acquired',
+              progress: 30,
+              message: `🔧 ${agentResult.installMessage}`,
+            }
+          })}\n\n`)
+        );
+      }
+    } catch (agentErr) {
+      console.warn('[Chat] V.69 Agent failed (non-fatal):', agentErr instanceof Error ? agentErr.message : String(agentErr));
     }
 
     // V.68: MCP CONNECTION — if user provided an MCP URL, connect to it
