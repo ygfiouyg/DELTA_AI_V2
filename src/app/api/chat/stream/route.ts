@@ -251,7 +251,10 @@ export async function POST(request: NextRequest) {
 
       console.log(`[Chat] V.70 LLM Analysis: needsTool=${analysis.needsSpecialTool}, tool=${analysis.toolName}, hasLocal=${analysis.hasToolLocally}`);
 
-      if (analysis.needsSpecialTool && analysis.toolName && !analysis.hasToolLocally) {
+      // V.77: ALWAYS install tools — don't trust "hasToolLocally"
+      // Even if the tool seems available, force install to ensure it works.
+      // The user wants the model to have FULL access to install libraries.
+      if (analysis.needsSpecialTool && analysis.toolName) {
         // V.72: Multi-tool installation — install ALL missing tools
         console.log(`[Chat] V.72: Multi-tool analysis — allTools: ${JSON.stringify(analysis.allTools?.map(t => ({n:t.name, a:t.available})))}`);
 
@@ -259,24 +262,26 @@ export async function POST(request: NextRequest) {
         const { promisify } = await import('util');
         const execAsync = promisify(exec);
 
-        // V.72: Collect ALL tools that need installation
+        // V.77: Collect ALL tools — install EVERYTHING regardless of availability
         const toolsToInstall: string[] = [];
+        const allToolNames: string[] = [];
         if (analysis.allTools && analysis.allTools.length > 0) {
           for (const t of analysis.allTools) {
-            if (!t.available) {
-              // Verify if it's actually available (stdlib check)
-              const modName = t.name.replace(/-/g, '_').toLowerCase();
-              try {
-                const { stdout } = await execAsync(`python3 -c "import ${modName}; print('OK')"`, { timeout: 5_000 });
-                if (!stdout.includes('OK')) toolsToInstall.push(t.name);
-              } catch {
-                toolsToInstall.push(t.name);
-              }
-            }
+            allToolNames.push(t.name);
           }
         } else {
-          // Single tool fallback
-          toolsToInstall.push(analysis.toolName);
+          allToolNames.push(analysis.toolName);
+        }
+
+        // V.77: Add ALL tools to install list — force install even if "available"
+        for (const name of allToolNames) {
+          // Skip stdlib modules (os, sys, json, etc.)
+          const modName = name.replace(/-/g, '_').toLowerCase();
+          const stdlibModules = ['os', 'sys', 'json', 're', 'math', 'time', 'datetime', 'pathlib', 'collections', 'itertools', 'functools', 'typing', 'io', 'smtplib', 'zipfile', 'subprocess', 'argparse', 'logging', 'unittest', 'sqlite3', 'hashlib', 'base64', 'urllib', 'http', 'email', 'csv', 'xml', 'html', 'pickle', 'shutil', 'tempfile', 'glob', 'random', 'string', 'textwrap', 'copy', 'enum', 'abc'];
+          if (stdlibModules.includes(modName)) {
+            continue; // Skip stdlib — already available
+          }
+          toolsToInstall.push(name);
         }
 
         const steps: string[] = [];
@@ -295,14 +300,20 @@ export async function POST(request: NextRequest) {
         for (const pkgName of toolsToInstall) {
           const moduleName = pkgName.replace(/-/g, '_').toLowerCase();
           steps.push(`📦 جاري تثبيت ${pkgName}...`);
-          console.log(`[Chat] V.72: Installing ${pkgName}...`);
+          console.log(`[Chat] V.77: Installing ${pkgName}...`);
 
+          // V.77: Force install via pip first, then verify
           const installStrategies: Array<{ name: string; cmd: string; verify: string }> = [
-            { name: 'stdlib', cmd: `python3 -c "import ${moduleName}; print('OK')"`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
-            { name: 'PyPI', cmd: `pip3 install --break-system-packages ${pkgName}`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
+            // V.77: Force pip install FIRST (even if already installed)
+            { name: 'PyPI', cmd: `pip3 install --break-system-packages --force-reinstall --no-deps ${pkgName} 2>&1 || pip3 install --break-system-packages ${pkgName}`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
+            // Try with underscore name
+            { name: 'PyPI (underscore)', cmd: `pip3 install --break-system-packages ${moduleName}`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
+            // npm
             { name: 'npm', cmd: `npm install -g ${pkgName}`, verify: `which ${pkgName}` },
+            // apt
             { name: 'apt', cmd: `apt-get install -y ${pkgName} 2>/dev/null || true`, verify: `which ${pkgName}` },
-            { name: 'PyPI (alt)', cmd: `pip3 install --break-system-packages ${moduleName}`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
+            // stdlib check (last resort)
+            { name: 'stdlib', cmd: `python3 -c "import ${moduleName}; print('OK')"`, verify: `python3 -c "import ${moduleName}; print('OK')"` },
           ];
 
           let toolInstalled = false;
