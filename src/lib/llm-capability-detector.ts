@@ -73,9 +73,14 @@ export async function analyzeCapabilityWithLLM(
 - مثلاً "حمّل فيديو من يوتيوب وحول الصوت لنص" يحتاج: pytube + pydub + SpeechRecognition
 - مثلاً "اقرأ صورة وحولها لـ PDF" يحتاج: pytesseract + pillow + pymupdf
 - مثلاً "استخرج صور من PDF واعمل عرض تقديمي" يحتاج: pymupdf + pillow + python-pptx
+- مثلاً "تحليل فني لـ Bitcoin مع RSI و MACD" يحتاج: yfinance + pandas + ta + matplotlib
+- مثلاً "رسم بياني للأسعار" يحتاج: matplotlib + yfinance (رسم بياني ≠ صورة!)
+- مثلاً "اعمل كود QR" يحتاج: qrcode
+- مثلاً "حول PDF لصوت" يحتاج: pymupdf + gtts
 - لو الأداة في قائمة الأدوات المتاحة → available: true
 - لو الأداة Python stdlib (مثل os, json, smtplib) → available: true, type: "system"
 - لو الطلب محادثة عادية → needsSpecialTool: false, allTools: []
+- لو الطلب تحليل بيانات أو رسم بياني → ده كود Python مش توليد صورة!
 - toolName = الأداة الأولى في allTools (الأهم)`;
 
   try {

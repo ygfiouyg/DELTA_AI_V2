@@ -220,28 +220,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // V.69h: PRE-Everything QR check — before MCP, before AI, before anything!
-    if (/qr|كيو ار|vcard|كارت اتصال|باركود/i.test(message)) {
-      console.log('[Chat] V.69h: QR request detected at route entry');
-      try {
-        const { generateQRCode, parseVCardFromMessage } = await import('@/lib/local-tool-executor');
-        const vcardData = parseVCardFromMessage(message);
-        if (vcardData) {
-          const qrResult = await generateQRCode(vcardData, 'qr_code');
-          if (qrResult.success && qrResult.fileUrl) {
-            console.log(`[Chat] V.69h: QR generated: ${qrResult.fileName}`);
-            const sseResponse = `data: ${JSON.stringify({ content: `✅ تم إنشاء كود QR بنجاح!\n\n📄 **${qrResult.fileName}**\n\n👉 [اضغط هنا لتحميل الكود](${qrResult.fileUrl})\n\nالكود يحتوي على بيانات vCard — لما تعمل له Scan بالموبايل هتتحفظ كـ Contact فوراً.`, fileGenerated: { success: true, fileUrl: qrResult.fileUrl, fileName: qrResult.fileName, fileType: 'png' } })}\n\ndata: [DONE]\n\n`;
-            return new Response(sseResponse, {
-              headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
-            });
-          }
-        }
-      } catch (qrErr) {
-        console.warn('[Chat] V.69h QR failed:', qrErr instanceof Error ? qrErr.message : String(qrErr));
-      }
-    }
+    // V.82: NO MORE REGEX TRIGGERS — the LLM decides everything
+    // Removed: QR regex, PPTX regex, XLSX regex, image gen regex
+    // The LLM-based capability detector (V.79) handles ALL tool detection now
 
-    // V.70: LLM-BASED AUTONOMOUS TOOL ACQUISITION
+    // V.82: Disable media gen regex trigger — let the LLM decide
+    // The LLM capability detector will handle image/video generation requests
+    const mediaGenIntent = null; // V.82: disabled — was detectInlineMediaGenIntent()
+    const shouldGenerateImage = false; // V.82: LLM decides
+    const shouldGenerateVideo = false; // V.82: LLM decides
     // The LLM analyzes the request and decides if a tool is needed.
     // If the tool is NOT available → search GitHub → install → notify user.
     // This is the TRUE autonomous agent — no regex, the model decides.
@@ -4184,10 +4171,14 @@ ${toolData}${extraStr}
                   let driveLink: string | null = null;
                   const fileBaseName = `delta-${message.slice(0, 30).replace(/[^a-zA-Z\u0600-\u06FF0-9]/g, '-')}-${Date.now()}`;
 
-                  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                  // PPTX DETECTION: Check if user wants PowerPoint
-                  // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                  const isPPTXRequest = /باور.?بوينت|بور.?بوينت|عرض.?تقديم|بورب|pptx|power.?point|slides|سلايد|سلايدات|presentation/i.test(message);
+                  // V.82: PPTX/XLSX/QR — replaced regex with LLM-based detection
+                  // The LLM capability detector already handles tool detection
+                  // The AI will write Python code using python-pptx/openpyxl/qrcode
+                  // and V.75e will auto-execute it. No more regex triggers!
+
+                  // V.82: Still support PPTX via file gen if the AI wrote slide content
+                  // But detect via LLM analysis, not regex
+                  const isPPTXRequest = false; // V.82: disabled regex — LLM handles this
 
                   if (isPPTXRequest) {
                     // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -4227,7 +4218,8 @@ ${toolData}${extraStr}
                   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                   // V.67: XLSX GENERATION via LOCAL openpyxl
                   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                  const isXLSXRequest = /اكسل|اكسيل|excel|xlsx?|جدول\s*بيانات|spreadsheet|شيت/i.test(message);
+                  // V.82: disabled XLSX regex — LLM handles this
+                  const isXLSXRequest = false;
                   if (isXLSXRequest && !fileName) {
                     try {
                       console.log('[Chat] File gen: XLSX request detected — generating locally via openpyxl...');
@@ -4262,7 +4254,8 @@ ${toolData}${extraStr}
                   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
                   // V.68c: QR CODE GENERATION via local python qrcode
                   // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-                  const isQRRequest = /qr|كيو ار|باركود|barcode|vcard|كارت اتصال/i.test(message);
+                  // V.82: disabled QR regex — LLM handles this
+                  const isQRRequest = false;
                   if (isQRRequest && !fileName) {
                     try {
                       console.log('[Chat] File gen: QR code request detected — generating locally...');
