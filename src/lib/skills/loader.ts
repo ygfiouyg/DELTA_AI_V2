@@ -1,7 +1,9 @@
 /**
  * Skills Loader
  * =============
- * بيقرا الـ Skills (ملفات SKILL.md) من .agents/skills/ ويرجعها.
+ * بيقرا الـ Skills (ملفات SKILL.md) من skills/ ويرجعها.
+ *
+ * V.95: اتصحح المسار من .agents/skills/ لـ skills/ (المكان الفعلي).
  *
  * الـ Skills هي ملفات Markdown فيها frontmatter (name + description)
  * ومحتوى تعليمي للـ AI agent.
@@ -15,7 +17,8 @@
 import { promises as fs } from "fs";
 import path from "path";
 
-const SKILLS_DIR = path.resolve(process.cwd(), ".agents", "skills");
+// V.95: استخدم skills/ في الـ root (المكان الفعلي للـ 66 skills)
+const SKILLS_DIR = path.resolve(process.cwd(), "skills");
 
 export interface SkillMeta {
   name: string;

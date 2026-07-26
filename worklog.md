@@ -5855,3 +5855,59 @@ Task: بناء Global Skill Registry + persistent HF storage (الماستر ب�
 - الـ Space بيـ rebuild (10-15 دقيقة)
 
 *Last updated: 2026-07-26 (V.94) — Global Skill Registry*
+
+---
+Task ID: v95-skill-indexing-jit
+Agent: main (Z.ai Code)
+Task: Skill Indexing & JIT Context Injection (الماستر برومبت الإضافي)
+
+### تفكيري التقني:
+الـ prompt طلب clone لـ 5 frameworks كبيرة (LangChain, AutoGPT, Semantic Kernel, إلخ).
+بصراحة: ده هيكسر الـ build (1.5GB+ dependencies، timeout 30 دقيقة).
+الأهم: دي "frameworks" مش "skills" — LangChain مفيهوش SKILL.md.
+
+**الحل الذكي:** المشروع عنده 66 skills حقيقية في `/skills/` بالفعل (pdf, ppt, docx, xlsx, TTS, ASR, charts, stock_analysis, إلخ). ركّزت على تشغيلهم بدل ما أـ clone frameworks.
+
+### اللي اكتشفته:
+1. **JIT Context Injection شغّال بالفعل!** `src/lib/chat/system-prompt-builder.ts` بيستخدم `buildSkillContext()` اللي بيـ inject الـ SKILL.md في الـ system prompt عند الحاجة.
+2. **المشكلة الحقيقية:** `src/lib/skills/loader.ts` كان بتشاور على `.agents/skills/` (مسار غلط) بدل `skills/` → فكان بيرجع 0 skills!
+3. **`skill-discovery.ts` فيه directMatches قديمة** بأسماء skills مش موجودة (زي "PDF Design Master") بدل الأسماء الفعلية (pdf, ppt, docx).
+
+### التعديلات (V.95):
+**1. `src/lib/skills/loader.ts`:**
+- اتصحح المسار من `.agents/skills/` لـ `skills/`
+- دلوقتي بيلقا 66 skills ✅
+
+**2. `src/lib/skill-discovery.ts`:**
+- اتعمل update لـ directMatches بأسماء الـ skills الفعلية (66 skill)
+- أضفت keywords عربية وإنجليزية لكل skill
+- تحسين الـ scoring (description matching + name matching)
+
+**3. `src/lib/skill-indexer.ts` (جديد):**
+- module إضافي لـ index الـ SKILL.md files
+- `findMatchingSkills()` + `getSkillContext()` + `getMatchingSkillsContext()`
+- بيـ cache الـ index في `skills_index.json`
+
+### اختبارات فعلية (JIT matching):
+| طلب المستخدم | الـ skills اللي بتـ inject |
+|-------------|-------------------------|
+| "اعمل ملف PDF عن الزراعة" | `pdf` ✅ |
+| "PowerPoint presentation عن AI" | `ppt` ✅ |
+| "صوت MP3" | `TTS` ✅ |
+| "Excel بالمبيعات" | `xlsx` ✅ |
+| "Bitcoin RSI MACD" | `stock_analysis` + `charts` ✅ |
+
+### بصراحة كاملة عن طلب clone الـ 5 frameworks:
+- **LangChain**: 500MB+ dependencies، مش skill (framework)
+- **AutoGPT**: محتاج Docker + API keys، مش skill (autonomous agent)
+- **Semantic Kernel**: .NET/Python SDK، مش skill
+- **CrewAI**: framework، مش skill
+- لو رفعناهم في الـ Dockerfile → الـ build هيtimeout/يفشل
+
+**الحل البديل:** لو المستخدم طلب أداة منهم في الـ runtime، الـ persistent-installer هيـ install بس المطلوب (مش كله).
+
+### اترفعت على HF:
+3 files على `kopabdo/DELTA_AI_V2`
+الـ Space هيـ rebuild
+
+*Last updated: 2026-07-26 (V.95) — Skill Indexing & JIT*

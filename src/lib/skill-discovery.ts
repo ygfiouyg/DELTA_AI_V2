@@ -133,18 +133,51 @@ export async function findMatchingSkills(
 
   const promptLower = userPrompt.toLowerCase();
 
-  // V.62: Direct keyword → skill mapping for our custom skills
+  // V.95: Direct keyword → skill mapping (محدّث بالـ 66 skills الفعلية)
   const directMatches: Array<{ keywords: string[]; skillName: string }> = [
-    { keywords: ['pdf', 'ملف', 'مستند', 'pdf', 'document', 'لخص', 'تلخيص', 'summar'], skillName: 'PDF Design Master' },
-    { keywords: ['لخص', 'تلخيص', 'summar', 'تحليل', 'analysis', 'ملخص', 'محاضرة', 'lecture'], skillName: 'Academic Summary Skill' },
-    { keywords: ['kpi', 'timeline', 'chart', 'مخطط', 'رسم', 'جدول', 'مقارنة'], skillName: 'Visual Components Skill' },
-    { keywords: ['عربي', 'arabic', 'rtl', 'ترجمة', 'نص'], skillName: 'Arabic RTL Skill' },
+    // Document skills
+    { keywords: ['pdf', 'بي دي اف', 'مستند', 'document', 'ملف pdf'], skillName: 'pdf' },
+    { keywords: ['powerpoint', 'باوربوينت', 'ppt', 'pptx', 'عرض تقديمي', 'presentation', 'slides'], skillName: 'ppt' },
+    { keywords: ['word', 'وورد', 'docx', 'document'], skillName: 'docx' },
+    { keywords: ['excel', 'اكسل', 'xlsx', 'spreadsheet', 'جدول'], skillName: 'xlsx' },
+    { keywords: ['cheat', 'ملخص', 'مرجع'], skillName: 'cheat-sheet' },
+    // Media skills
+    { keywords: ['asr', 'تحويل صوت', 'speech to text', 'transcri'], skillName: 'ASR' },
+    { keywords: ['tts', 'تحويل نص', 'text to speech', 'صوت'], skillName: 'TTS' },
+    { keywords: ['video', 'فيديو', 'mp4'], skillName: 'video-generation' },
+    { keywords: ['image', 'صورة', 'ارسم'], skillName: 'image-generation' },
+    { keywords: ['podcast', 'بودكاست'], skillName: 'podcast-generate' },
+    // Data skills
+    { keywords: ['chart', 'رسم بياني', 'مخطط', 'graph', 'plot'], skillName: 'charts' },
+    { keywords: ['stock', 'أسهم', 'تحليل فني', 'bitcoin', 'btc', 'rsi', 'macd', 'توصية', 'توصيات'], skillName: 'stock_analysis' },
+    { keywords: ['finance', 'مالي', 'اقتصاد'], skillName: 'finance' },
+    { keywords: ['market', 'تسويق', 'research'], skillName: 'market-research-reports' },
+    // Search skills
+    { keywords: ['web search', 'بحث', 'search engine', 'google'], skillName: 'multi-search-engine' },
+    { keywords: ['web reader', 'قراءة', 'extract'], skillName: 'web-reader' },
+    // Coding skills
+    { keywords: ['code', 'كود', 'program', 'script'], skillName: 'coding-agent' },
+    { keywords: ['fullstack', 'ويب', 'web app'], skillName: 'fullstack-dev' },
+    // Content skills
+    { keywords: ['blog', 'مدونة', 'مقال'], skillName: 'blog-writer' },
+    { keywords: ['content strategy', 'استراتيجية'], skillName: 'content-strategy' },
+    { keywords: ['seo', 'تحسين محركات'], skillName: 'seo-content-writer' },
+    // Specialized
+    { keywords: ['resume', 'سيرة ذاتية', 'cv'], skillName: 'resume-builder' },
+    { keywords: ['interview', 'مقابلة'], skillName: 'interview-prep' },
+    { keywords: ['study', 'دراسة', 'تعلم'], skillName: 'study-buddy' },
+    { keywords: ['quiz', 'اختبار', 'أسئلة'], skillName: 'quiz-mastery' },
+    { keywords: ['mindfulness', 'تأمل', 'استرخاء'], skillName: 'mindfulness-meditation' },
+    { keywords: ['dream', 'حلم', 'تفسير'], skillName: 'dream-interpreter' },
+    // Legacy
+    { keywords: ['kpi', 'timeline', 'visual'], skillName: 'Visual Components Skill' },
+    { keywords: ['عربي', 'arabic', 'rtl', 'ترجمة'], skillName: 'Arabic RTL Skill' },
   ];
 
-  // Check direct matches first
+  // Check direct matches first (case-insensitive)
   const matchedNames = new Set<string>();
   for (const dm of directMatches) {
-    if (dm.keywords.some(kw => promptLower.includes(kw))) {
+    if (dm.keywords.some(kw => promptLower.includes(kw.toLowerCase()))) {
       matchedNames.add(dm.skillName);
     }
   }
@@ -153,29 +186,30 @@ export async function findMatchingSkills(
   const scored = skills.map(skill => {
     let score = 0;
 
-    // V.62: Direct match bonus (highest priority)
+    // V.95: Direct match bonus (highest priority)
     if (matchedNames.has(skill.name)) {
       score += 100;
     }
 
-    // Score by category keywords
-    const categoryKeywords: Record<string, string[]> = {
-      'pdf-design': ['pdf', 'ملف', 'مستند', 'تصميم', 'document'],
-      'content-quality': ['لخص', 'تلخيص', 'summarize', 'تحليل', 'analysis', 'ملخص'],
-      'visual-design': ['تصميم', 'بصري', 'visual', 'kpi', 'timeline', 'chart', 'مخطط'],
-      'localization': ['عربي', 'arabic', 'rtl', 'ترجمة'],
-    };
-
-    const keywords = categoryKeywords[skill.category] || [];
-    for (const kw of keywords) {
-      if (promptLower.includes(kw)) score += 15;
+    // V.95: Score by description keywords (more flexible)
+    const descLower = (skill.description || '').toLowerCase();
+    const promptWords = promptLower.split(/\s+/).filter(w => w.length > 2);
+    for (const word of promptWords) {
+      if (descLower.includes(word)) score += 3;
+      // partial matches
+      for (const descWord of descLower.split(/\s+/)) {
+        if (descWord.length > 3 && (descWord.startsWith(word.slice(0, 4)) || word.startsWith(descWord.slice(0, 4)))) {
+          score += 1;
+          break;
+        }
+      }
     }
 
     // Score by name keywords
     const nameLower = skill.name.toLowerCase();
     const nameWords = nameLower.split(/[\s-]+/).filter(w => w.length > 3);
     for (const word of nameWords) {
-      if (promptLower.includes(word)) score += 5;
+      if (promptLower.includes(word)) score += 8;
     }
 
     // Priority bonus
