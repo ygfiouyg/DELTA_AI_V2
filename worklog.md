@@ -5806,3 +5806,52 @@ Task: تنفيذ الماستر برومبت — Zero-Trigger Architecture + Sel
 - الـ Space هيـ rebuild (10-15 دقيقة)
 
 *Last updated: 2026-07-26 (V.93) — Master Prompt execution*
+
+---
+Task ID: v94-global-skill-registry
+Agent: main (Z.ai Code)
+Task: بناء Global Skill Registry + persistent HF storage (الماستر برومبت الإضافي)
+
+### المشكلة الهيكلية اللي اتحلت:
+قبل V.94: الأدوات بتـ install في ephemeral sandbox → بتضيع مع كل rebuild → الموديل بيهلوس ويقول "متاحة" وهي مش متاحة.
+
+### الحل (V.94 — Global Skill Registry):
+استخدمت HF Hub API كـ persistent storage لأن HF Spaces free tier مفيهوش persistent writable filesystem.
+
+**Architecture:**
+1. لما user يثبت أداة → `persistent-installer.ts` بـ:
+   - pip install (runtime — فوري)
+   - write لـ `requirements-runtime.txt` (local)
+   - **register في `skill-registry.ts`** (جديد)
+2. `skill-registry.ts` بـ:
+   - update `skills_manifest.json` محلياً
+   - upload `skills_manifest.json` لـ HF repo root
+   - upload skill metadata لـ `/skills/{name}.json` على HF
+3. عند الـ rebuild:
+   - repo بيتـ pull تلقائياً → `skills_manifest.json` موجود
+   - Dockerfile CMD بيـ sync skills من manifest
+4. `getAvailableTools()` في `autonomous-agent.ts` بقى بيقرا الـ Skill Registry الأول
+
+### الملفات الجديدة/المتعدلة:
+- `src/lib/skill-registry.ts` (جديد) — Global Skill Registry manager
+- `src/lib/persistent-installer.ts` — بيسجّل في Registry بعد كل install
+- `src/lib/autonomous-agent.ts` — `getAvailableTools()` بيقرا Registry + فحص 25+ مكتبة
+- `src/app/api/skills/registry/route.ts` (جديد) — admin endpoint
+- `Dockerfile` — CMD بيعمل sync للـ skills عند startup
+- `skills_manifest.json` — uploaded لـ HF root
+
+### قيود واقعية (بصراحة):
+1. الـ HF token محتاج يفضل valid — لو انتهى، الـ upload هيوقف
+2. الـ rebuild بياخد 10-15 دقيقة → "instant availability" بين users قبل الـ rebuild مش متاح (بس runtime install بيشغل فوراً للي ثبّتها)
+3. بعد الـ rebuild، كل الـ skills المسجّلة هتبقى متاحة لكل الـ users
+
+### اختبار فعلي:
+✅ registerSkill('test-package') → اتعمل → skills_manifest.json اترفع لـ HF root
+✅ listGlobalSkills() → رجع الـ skill صح
+✅ HF repo عندها `skills_manifest.json` + `skills/` directory
+
+### اترفعت على HF:
+- 6 files على `kopabdo/DELTA_AI_V2` (sha: 670b7dd8eb)
+- الـ Space بيـ rebuild (10-15 دقيقة)
+
+*Last updated: 2026-07-26 (V.94) — Global Skill Registry*

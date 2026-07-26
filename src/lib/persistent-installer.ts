@@ -24,6 +24,7 @@ export interface InstallResult {
   message: string;
   package: string;
   alreadyInstalled: boolean;
+  persisted?: boolean;
 }
 
 /**
@@ -61,14 +62,31 @@ export async function installPythonPackagePersistent(
     const success = !stderr.toLowerCase().includes("error");
 
     if (success) {
-      // 3. اكتب في requirements-runtime.txt (persist)
+      // 3. اكتب في requirements-runtime.txt (local persist)
       await appendToRuntimeRequirements(packageName, gitUrl);
+
+      // V.94: سجّل في Global Skill Registry (HF repo persist)
+      let persisted = false;
+      try {
+        const { registerSkill } = await import("./skill-registry");
+        persisted = await registerSkill({
+          name: packageName,
+          type: gitUrl ? "github" : "pip",
+          installCommand: installCmd,
+          githubUrl: gitUrl,
+          description: `Python package: ${packageName}`,
+          category: "python",
+        });
+      } catch (err) {
+        console.warn("[PersistentInstaller] Skill registry failed:", err);
+      }
 
       return {
         success: true,
-        message: `✅ تم تثبيت ${packageName} وحفظه في requirements-runtime.txt`,
+        message: `✅ تم تثبيت ${packageName}${persisted ? " وتسجيله في Global Registry" : " وحفظه محلياً"}`,
         package: packageName,
         alreadyInstalled: false,
+        persisted,
       };
     } else {
       return {

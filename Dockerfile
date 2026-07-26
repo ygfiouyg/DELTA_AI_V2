@@ -172,5 +172,17 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
     if [ -f /app/requirements-runtime.txt ]; then \
       pip3 install --break-system-packages -r /app/requirements-runtime.txt 2>&1 | tail -5 || echo "Runtime requirements install partial"; \
     fi && \
+    echo "[Startup] V.94: Syncing Global Skill Registry..." && \
+    node -e " \
+      (async () => { \
+        try { \
+          const { syncSkillsFromRepo } = require('./dist/lib/skill-registry.js'); \
+          const r = await syncSkillsFromRepo(); \
+          console.log('[Startup] Skills synced:', r.installed, 'available,', r.failed.length, 'failed'); \
+        } catch (e) { \
+          console.log('[Startup] Skill sync skipped:', e.message); \
+        } \
+      })(); \
+    " 2>&1 || echo "Skill sync skipped (non-critical)" && \
     echo "[Startup] Starting Next.js..." && \
     DATABASE_URL="file:/app/db/custom.db" npx next start -p 3000 -H 0.0.0.0

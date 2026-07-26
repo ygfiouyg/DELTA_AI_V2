@@ -425,12 +425,20 @@ async function verifyToolAvailable(toolName: string, installType: string): Promi
 export async function getAvailableTools(): Promise<string[]> {
   const tools: string[] = [];
 
-  // Check Python packages
-  const pythonPackages = ['pptx', 'openpyxl', 'PIL', 'fitz', 'matplotlib', 'requests', 'bs4', 'qrcode', 'gtts'];
+  // V.94: First, check Global Skill Registry (persistent across rebuilds)
+  try {
+    const { getAvailableSkillsForLLM } = await import('./skill-registry');
+    const registrySkills = await getAvailableSkillsForLLM();
+    tools.push(...registrySkills);
+  } catch {}
+
+  // Check Python packages (runtime verification)
+  const pythonPackages = ['pptx', 'openpyxl', 'PIL', 'fitz', 'matplotlib', 'requests', 'bs4', 'qrcode', 'gtts', 'pandas', 'yfinance', 'ta', 'numpy', 'scipy', 'seaborn', 'sklearn', 'fpdf', 'weasyprint', 'reportlab', 'docx', 'pydub', 'sympy', 'pyfiglet', 'wikipedia', 'lxml'];
   for (const pkg of pythonPackages) {
     try {
       await execAsync(`python3 -c "import ${pkg}"`, { timeout: 5_000 });
-      tools.push(pkg === 'PIL' ? 'pillow' : pkg === 'fitz' ? 'pymupdf' : pkg === 'pptx' ? 'python-pptx' : pkg);
+      const displayName = pkg === 'PIL' ? 'pillow' : pkg === 'fitz' ? 'pymupdf' : pkg === 'pptx' ? 'python-pptx' : pkg === 'sklearn' ? 'scikit-learn' : pkg === 'fpdf' ? 'fpdf2' : pkg === 'docx' ? 'python-docx' : pkg;
+      if (!tools.includes(displayName)) tools.push(displayName);
     } catch {}
   }
 

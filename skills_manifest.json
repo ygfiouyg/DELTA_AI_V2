@@ -1,0 +1,14 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-07-26T15:05:48.656Z",
+  "skills": [
+    {
+      "name": "test-package",
+      "type": "pip",
+      "installCommand": "pip install test",
+      "description": "test skill",
+      "installedAt": "2026-07-26T15:05:48.656Z",
+      "available": true
+    }
+  ]
+}
