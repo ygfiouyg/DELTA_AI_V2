@@ -5290,3 +5290,49 @@ Task: شيل الـ AI من جزء التطبيقات (Anzaro Apps) لأنه ب�
 - `src/components/chat/AnzaroAppLauncher.tsx` — unsupported UI + info box
 
 *Last updated: 2026-07-26 (V.89) — No-AI app importer working*
+
+---
+Task ID: v90-full-clone-build
+Agent: main (Z.ai Code)
+Task: المستخدم طلب إن الـ importer ياخد كل ملفات المشروع ويحولها لتطبيق شغّال (مش بس index.html)
+
+### التغيير الجذري (V.90):
+شيلت GitHub API fetch واستخدمت `git clone --depth 1` للـ repo كامل. بعدين بـ detect نوع المشروع وبـ build حسب النوع:
+
+**Pipeline:**
+1. `git clone --depth 1 {repo}.git` → clone كامل في `/tmp/anzaro-builds/`
+2. `detectProjectType()` → يحدد نوع المشروع
+3. حسب النوع:
+   - **static** (فيه index.html حقيقي) → inline assets + render
+   - **vite** (React/Vue/Svelte/Angular) → `npm install` + `npm run build` → inline dist/
+   - **nextjs** → مستحيل (محتاج server)
+   - **python** → مستحيل (محتاج runtime)
+   - **tauri/electron/flutter/rust** → مستحيل (desktop binaries)
+
+**ميزات V.90:**
+- بياخد **كل** ملفات المشروع (مش بس 60)
+- بيعمل **build حقيقي** للـ Vite/React/Vue apps (npm install + vite build)
+- بيعمل **fallback** بين npm/pnpm/yarn
+- لو vite build نجح بس tsc فشل → بيقبل الـ dist/ (V.90b)
+- لو مفيش index.html في dist/ بيبني stub HTML يـ load الـ JS
+
+### اختبارات فعلية:
+| Repo | النوع | النتيجة |
+|------|-------|---------|
+| codrops/AnimatedHeader | static | ✅ اشتغل (11 ملف inline) |
+| vuejs/petite-vue | vite (vanilla) | ✅ npm install + vite build نجح → 66KB HTML |
+| Tencent/tdesign-vue-next | static (site/) | ✅ اشتغل |
+| shadcn-ui/ui | vite (pnpm workspaces) | ❌ npm install فشل (workspace:*) |
+| AppFlowy-IO/AppFlowy | flutter (1976 dart + pubspec) | ❌ اترفض صح كـ Flutter |
+| vitejs/vite | vite (pnpm workspaces) | ❌ npm install فشل |
+
+### القيود الواقعية:
+1. **pnpm/yarn workspaces** — npm مش بيدعم `workspace:*` protocol. الحل: نثبّت pnpm/yarn
+2. **memory محدود** (4GB sandbox، Next.js بياخد 2.5GB) → builds كبيرة ممكن تفشل
+3. **desktop apps** (Tauri/Electron/Flutter/Rust) — مستحيل فعلاً في browser
+4. **Next.js apps** — محتاجة server runtime دايماً
+
+### الملفات:
+- `src/app/api/apps/import-github/route.ts` — إعادة كتابة كاملة (git clone + build)
+
+*Last updated: 2026-07-26 (V.90c) — git clone + real build working*
