@@ -1399,6 +1399,14 @@ export async function POST(request: NextRequest) {
                 if (acquireResult.installed) {
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage: 'tool_acquired', progress: 30, message: `✅ ${acquireResult.installMessage}` } })}\n\n`));
                   analysis.hasToolLocally = true;
+                } else {
+                  // V.92: التثبيت فشل — قول للمستخدم بصراحة ووقف الـ flow
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage: 'tool_failed', progress: 100, message: `❌ تعذر تثبيت ${analysis.toolName}` } })}\n\n`));
+                  const failMsg = `⚠️ **تعذر تنفيذ طلبك**\n\nالموديل اكتشف إن طلبك يحتاج أداة \`${analysis.toolName}\` بس مش قادر يثبّتها.\n\n**السبب:** ${acquireResult.installMessage || 'فشل التثبيت'}\n\n**إيه اللي تقدر تعمله:**\n1. جرّب تاني بعد شوية\n2. استخدم أداة بديلة متاحة\n3. لو طلب Python code، تأكد إن المكتبة متاحة على السيرفر\n\nالـ tools المتاحة: ${analysis.allTools?.filter(t => t.available).map(t => t.name).join(', ') || 'أساسية فقط'}`;
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: failMsg })}\n\n`));
+                  controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                  controller.close();
+                  return;
                 }
               }
 
@@ -3115,6 +3123,28 @@ ${toolData}${extraStr}
                             }
                           }
                         }
+
+                        // V.92: اعرض أي ملفات تانية اتعملت (PDF, MP3, CSV, إلخ)
+                        if (execResult.files && execResult.files.length > 0) {
+                          console.log(`[Chat] V.92: Found ${execResult.files.length} files to display`);
+                          for (const fileInfo of execResult.files) {
+                            try {
+                              const sizeKB = (fileInfo.size / 1024).toFixed(1);
+                              const fileIcon: Record<string, string> = {
+                                pdf: '📄', audio: '🎵', video: '🎬', csv: '📊',
+                                text: '📝', json: '📋', html: '🌐', image: '🖼️',
+                                spreadsheet: '📈', document: '📄', presentation: '📊',
+                                archive: '🗜️', file: '📎',
+                              };
+                              const icon = fileIcon[fileInfo.fileType] || '📎';
+                              const fileContent = `\n\n${icon} **تم إنشاء الملف:** \`${fileInfo.fileName}\` (${sizeKB} KB)\n\n👉 [اضغط هنا لتحميل الملف](${fileInfo.url})\n\n`;
+                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: fileContent, fileGenerated: { success: true, fileUrl: fileInfo.url, fileName: fileInfo.fileName, fileType: fileInfo.fileType } })}\n\n`));
+                              console.log(`[Chat] V.92: Displayed file ${fileInfo.fileName} (${sizeKB} KB)`);
+                            } catch (fileErr) {
+                              console.warn(`[Chat] V.92: Failed to display file ${fileInfo.fileName}:`, fileErr instanceof Error ? fileErr.message : String(fileErr));
+                            }
+                          }
+                        }
                       }
                     } catch (execErr) {
                       console.warn('[Chat] V.75: Code exec failed:', execErr instanceof Error ? execErr.message : String(execErr));
@@ -4590,6 +4620,30 @@ ${toolData}${extraStr}
                             }
                           } catch (imgErr) {
                             console.warn(`[Chat] V.91c: Failed to display image ${imgPath}:`, imgErr instanceof Error ? imgErr.message : String(imgErr));
+                          }
+                        }
+                      }
+
+                      // V.92: اعرض أي ملفات تانية اتعملت (PDF, MP3, CSV, إلخ)
+                      if (execResult.files && execResult.files.length > 0) {
+                        console.log(`[Chat] V.92c: Found ${execResult.files.length} files to display`);
+                        for (const fileInfo of execResult.files) {
+                          try {
+                            const sizeKB = (fileInfo.size / 1024).toFixed(1);
+                            const fileIcon: Record<string, string> = {
+                              pdf: '📄', audio: '🎵', video: '🎬', csv: '📊',
+                              text: '📝', json: '📋', html: '🌐', image: '🖼️',
+                              spreadsheet: '📈', document: '📄', presentation: '📊',
+                              archive: '🗜️', file: '📎',
+                            };
+                            const icon = fileIcon[fileInfo.fileType] || '📎';
+                            const fileContent = `\n\n${icon} **تم إنشاء الملف:** \`${fileInfo.fileName}\` (${sizeKB} KB)\n\n👉 [اضغط هنا لتحميل الملف](${fileInfo.url})\n\n`;
+                            if (!streamClosed) {
+                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: fileContent, fileGenerated: { success: true, fileUrl: fileInfo.url, fileName: fileInfo.fileName, fileType: fileInfo.fileType } })}\n\n`));
+                              console.log(`[Chat] V.92c: Displayed file ${fileInfo.fileName} (${sizeKB} KB)`);
+                            }
+                          } catch (fileErr) {
+                            console.warn(`[Chat] V.92c: Failed to display file ${fileInfo.fileName}:`, fileErr instanceof Error ? fileErr.message : String(fileErr));
                           }
                         }
                       }

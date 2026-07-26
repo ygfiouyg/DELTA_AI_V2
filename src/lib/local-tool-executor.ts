@@ -452,7 +452,7 @@ export function parseVCardFromMessage(message: string): string | null {
 export async function executePythonCode(
   code: string,
   timeoutMs: number = 30_000
-): Promise<{ success: boolean; output: string; error: string; images?: string[] }> {
+): Promise<{ success: boolean; output: string; error: string; images?: string[]; files?: Array<{ path: string; url: string; fileName: string; fileType: string; size: number }> }> {
   try {
     const { exec } = await import('child_process');
     const { promisify } = await import('util');
@@ -462,6 +462,13 @@ export async function executePythonCode(
     const fileId = randomUUID();
     const scriptPath = path.join(DOWNLOAD_DIR, `exec_${fileId}.py`);
     await fs.mkdir(DOWNLOAD_DIR, { recursive: true });
+
+    // V.92: سجل الملفات الموجودة قبل التنفيذ عشان نـ detect الجديدة
+    const filesBefore = new Set<string>();
+    try {
+      const existing = await fs.readdir(DOWNLOAD_DIR);
+      for (const f of existing) filesBefore.add(f);
+    } catch {}
 
     // V.91: استخدم DOWNLOAD_DIR الصحيح (مش hardcoded /app/download)
     // V.83: Wrap code — auto-save matplotlib figures + capture output
@@ -554,13 +561,52 @@ sys.stdout.flush()
       }
     }
 
+    // V.92: اكتشف أي ملفات جديدة اتعملت (PDF, MP3, CSV, TXT, إلخ)
+    const files: Array<{ path: string; url: string; fileName: string; fileType: string; size: number }> = [];
+    try {
+      const filesAfter = await fs.readdir(DOWNLOAD_DIR);
+      for (const f of filesAfter) {
+        if (filesBefore.has(f)) continue; // ملف قديم
+        if (f.startsWith('exec_') && f.endsWith('.py')) continue; // السكريبت نفسه
+        if (f.startsWith('fig_') && f.endsWith('.png')) continue; // الصور (هتتعامل في images)
+
+        const fullPath = path.join(DOWNLOAD_DIR, f);
+        try {
+          const stat = await fs.stat(fullPath);
+          if (!stat.isFile()) continue;
+          if (stat.size > 50 * 1024 * 1024) continue; // تجاهل ملفات أكبر من 50MB
+
+          // حدد نوع الملف
+          const ext = path.extname(f).toLowerCase().slice(1);
+          const fileTypeMap: Record<string, string> = {
+            pdf: 'pdf', mp3: 'audio', wav: 'audio', m4a: 'audio',
+            mp4: 'video', webm: 'video', mov: 'video',
+            csv: 'csv', xlsx: 'spreadsheet', xls: 'spreadsheet',
+            txt: 'text', json: 'json', html: 'html',
+            png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', svg: 'image',
+            docx: 'document', doc: 'document', pptx: 'presentation',
+            zip: 'archive', tar: 'archive', gz: 'archive',
+          };
+          const fileType = fileTypeMap[ext] || 'file';
+
+          files.push({
+            path: fullPath,
+            url: `/api/file/download/${encodeURIComponent(f)}`,
+            fileName: f,
+            fileType,
+            size: stat.size,
+          });
+        } catch {}
+      }
+    } catch {}
+
     if (error && !output) {
-      return { success: false, output: '', error: error.substring(0, 500), images };
+      return { success: false, output: '', error: error.substring(0, 500), images, files };
     }
 
     // V.91: شيل الـ FIGURES_LIST من الـ output قبل ما نرجعه
     const cleanOutput = output.replace(/\[FIGURES_LIST\].*?\[\/FIGURES_LIST\]/, '').trim();
-    return { success: true, output: cleanOutput.substring(0, 2000), error: error.substring(0, 500), images };
+    return { success: true, output: cleanOutput.substring(0, 2000), error: error.substring(0, 500), images, files };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     return { success: false, output: '', error: errMsg.substring(0, 500) };

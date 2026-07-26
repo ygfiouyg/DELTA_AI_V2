@@ -110,10 +110,29 @@ EXPOSE 3000
 # Start the application.
 # V.56: Force DATABASE_URL to SQLite (overrides any HF Space Secret that might
 # still point to PostgreSQL). This matches schema.prisma provider=sqlite.
-# 1. `prisma db push --skip-generate --accept-data-loss` creates/syncs the
-#    SQLite schema at /app/db/custom.db
-# 2. `next start` serves the prebuilt app with DATABASE_URL forced to SQLite
+# V.92: Auto-setup admin user on every startup (SQLite DB gets wiped on rebuild)
+# Admin credentials: ADMIN_EMAIL / ADMIN_PASSWORD env vars (set as HF Secrets)
+# Default fallback: admin@anzaro.local / admin123456
 CMD export DATABASE_URL="file:/app/db/custom.db" && \
     npx prisma db push --skip-generate --accept-data-loss 2>&1 | tail -20 && \
-    echo "[Startup] Database schema synced. Starting Next.js..." && \
+    echo "[Startup] Database schema synced. Setting up admin user..." && \
+    node -e " \
+      const { PrismaClient } = require('@prisma/client'); \
+      const bcrypt = require('bcryptjs'); \
+      (async () => { \
+        const db = new PrismaClient(); \
+        const email = (process.env.ADMIN_EMAIL || 'admin@anzaro.local').toLowerCase().trim(); \
+        const password = process.env.ADMIN_PASSWORD || 'admin123456'; \
+        const existing = await db.user.findFirst({ where: { role: 'admin' } }); \
+        if (existing) { \
+          console.log('[Startup] Admin exists:', existing.email); \
+        } else { \
+          const hash = await bcrypt.hash(password, 12); \
+          const u = await db.user.create({ data: { email, password: hash, name: 'Admin', role: 'admin', isVerified: true, isActive: true } }); \
+          console.log('[Startup] Admin created:', u.email); \
+        } \
+        await db.\$disconnect(); \
+      })().catch(e => { console.error('[Startup] Admin setup failed:', e.message); process.exit(0); }); \
+    " && \
+    echo "[Startup] Starting Next.js..." && \
     DATABASE_URL="file:/app/db/custom.db" npx next start -p 3000 -H 0.0.0.0

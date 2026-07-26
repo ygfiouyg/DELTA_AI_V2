@@ -5380,3 +5380,58 @@ Task: المستخدم بعت طلب تحليل Bitcoin + RSI + MACD + chart، �
 المشكلة كانت إن **الصور كانت بتتعمل بس مش بتتبعت للـ frontend**. دلوقتي الصور بتظهر في الـ chat زي ما المستخدم متوقع.
 
 *Last updated: 2026-07-26 (V.91) — Python charts now display in chat*
+
+---
+Task ID: v92-fix-all-issues
+Agent: main (Z.ai Code)
+Task: حل كل المشاكل اللي طلعت من سجل المحادثة
+
+### المشاكل اللي اتحلت:
+
+**1. PDF/MP3 files مش بتظهر في الشات (V.92):**
+- `executePythonCode` دلوقتي بـ scan الـ DOWNLOAD_DIR قبل وبعد التنفيذ
+- بتـ detect أي ملفات جديدة (PDF, MP3, CSV, TXT, إلخ)
+- بترجع `files: Array<{path, url, fileName, fileType, size}>`
+- الـ stream route بيـ display كل ملف كـ download link مع icon حسب النوع
+
+**2. مفيش download endpoint (V.92):**
+- اتعمل `/api/file/download/[fileName]/route.ts`
+- بيـ serve أي ملف من الـ DOWNLOAD_DIR بـ MIME type صحيح
+- فيه path traversal protection (مش بيقبل ../)
+
+**3. capability detector بيـ execute كود قبل التثبيت (V.92):**
+- لو التثبيت فشل → الـ flow بيقف فوراً
+- بيرجع رسالة واضحة للمستخدم: "تعذر تثبيت {tool} - السبب: {error}"
+- بيقترح حلول بديلة
+
+**4. admin login بيفشل بعد كل rebuild (V.92):**
+- السبب: SQLite DB بتتفرمت مع كل rebuild على HF
+- الحل: الـ Dockerfile دلوقتي بيعمل auto-setup admin في الـ startup
+- Admin credentials من env vars: `ADMIN_EMAIL` / `ADMIN_PASSWORD`
+- Default fallback: `admin@anzaro.local` / `admin123456`
+- لو admin موجود → بيتخطى؛ لو مش موجود → بيوحد واحد
+
+### اختبارات فعلية:
+✅ MP3 generation: gTTS حفظ → اتكشف → download URL اشتغل (HTTP 200, audio/mpeg, 18KB)
+✅ PDF generation: fpdf حفظ → اتكشف → file info صحيح
+✅ download endpoint: شغّال مع MIME types صحيحة
+✅ capability detector: بيقف عند فشل التثبيت
+
+### الملفات اللي اتعملت/اتعدلت:
+- `src/lib/local-tool-executor.ts` — إضافة files detection
+- `src/app/api/chat/stream/route.ts` — عرض الملفات في الشات (مكانين)
+- `src/app/api/file/download/[fileName]/route.ts` — جديد: download endpoint
+- `Dockerfile` — auto-setup-admin في الـ CMD
+
+### اترفعت على HF:
+كل الملفات اترفعت على `kopabdo/DELTA_AI_V2` (sha: ef2d314caf)
+الـ Space بيـ rebuild دلوقتي. هياخد 10-15 دقيقة.
+
+### إعدادات الـ admin على HF:
+بعد ما الـ Space يخلص rebuild، الـ admin هيكون:
+- Email: `admin@anzaro.local` (أو ADMIN_EMAIL لو مضبوط كـ HF Secret)
+- Password: `admin123456` (أو ADMIN_PASSWORD لو مضبوط كـ HF Secret)
+
+عشان تغيرهم: اضف HF Secrets: `ADMIN_EMAIL` و `ADMIN_PASSWORD`
+
+*Last updated: 2026-07-26 (V.92) — كل المشاكل اتحلت*
