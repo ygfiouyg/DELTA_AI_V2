@@ -180,10 +180,14 @@ export async function POST(request: NextRequest) {
 
     const existing = await db.anzaroApp.findUnique({ where: { githubUrl } });
     if (existing) {
+      // V.87: Auto-approve existing apps too
+      if (existing.status !== "approved") {
+        await db.anzaroApp.update({ where: { id: existing.id }, data: { status: "approved" } });
+      }
       return NextResponse.json({
         success: true,
         app: existing,
-        message: existing.status === "approved" ? "التطبيق موجود ومنشور ✅" : "التطبيق قيد المراجعة ⏳",
+        message: "التطبيق موجود وجاهز ✅",
       });
     }
 
@@ -194,7 +198,7 @@ export async function POST(request: NextRequest) {
     // 2. AI يحلل ويولّد app
     const appData = await generateApp(files, parsed.repo, parsed.owner);
 
-    // 3. احفظ في DB
+    // V.87: احفظ في DB مع status=approved — مفيش موافقة أدمن!
     const dbApp = await db.anzaroApp.create({
       data: {
         githubUrl,
@@ -211,7 +215,7 @@ export async function POST(request: NextRequest) {
         sourceFiles: JSON.stringify(files.map((f) => ({ path: f.path, content: f.content.slice(0, 5000) }))),
         aiReview: appData.aiReview,
         fileCount: files.length,
-        status: "pending",
+        status: "approved", // V.87: auto-approve — no admin needed!
         submittedBy: user.email,
       },
     });
@@ -219,7 +223,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       app: dbApp,
-      message: `تم سحب ${files.length} ملف وتحويلها لتطبيق "${appData.displayName}" ✅ — الأدمن هيراجع وينشر، وبعدها تلاقيه على /app/${appData.appName}`,
+      message: `تم سحب ${files.length} ملف وتحويلها لتطبيق "${appData.displayName}" ✅ — التطبيق جاهز على /app/${appData.appName}`,
     });
   } catch (error: any) {
     console.error("[GitHub App Import] Error:", error);
