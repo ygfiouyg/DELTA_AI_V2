@@ -5911,3 +5911,61 @@ Task: Skill Indexing & JIT Context Injection (الماستر برومبت الإ
 الـ Space هيـ rebuild
 
 *Last updated: 2026-07-26 (V.95) — Skill Indexing & JIT*
+
+---
+Task ID: v96-framework-installer-jit
+Agent: main (Z.ai Code)
+Task: Framework Installation & Registry Automation (sequential installer + JIT)
+
+### TASK 1: scripts/install_frameworks.py ✅
+- Sequential installer بـ subprocess.run + --no-cache-dir
+- كل framework في try/except (لو فشل واحد، الباقي بيكمل)
+- 5 frameworks: langchain, autogen, crewai, semantic-kernel, autogpt-forge (--no-deps)
+- بيكتب frameworks_manifest.json بعد كل تثبيت
+- CLI args: --skip <name>, --only <name>
+- logging للـ stdout + frameworks_install.log
+
+### TASK 2: Integration في startup ✅
+- الـ Dockerfile CMD بيـ run الـ script كـ **background task** (nohup + &)
+- مش blocking → الـ Next.js بيبدأ فوراً
+- الـ frameworks بتـ install في الـ background بعد الـ startup
+- الـ manifest بيتحدث على disk
+
+### TASK 3: Skill Discovery & JIT ✅
+- `src/lib/framework-discovery.ts` (جديد):
+  - readFrameworksManifest() — بيقرا frameworks_manifest.json
+  - findMatchingFrameworks() — بيدور على framework matching طلب المستخدم
+  - getFrameworksContext() — بيرجع context للـ system prompt
+- `src/lib/chat/system-prompt-builder.ts`:
+  - بعد الـ skills auto-load، بيتحقق لو فيه frameworks matching
+  - لو فيه → بيـ inject "Available AI Frameworks" context
+- `src/app/api/frameworks/route.ts` (جديد):
+  - GET endpoint لـ frameworks status (للأدمن/المستخدمين)
+
+### اختبار فعلي:
+✅ framework-discovery بيقرا frameworks_manifest.json
+✅ findMatchingFrameworks("استخدم LangChain") → بيرجع langchain
+✅ getFrameworksContext() → بيرجع context جاهز للـ system prompt
+
+### الـ flow الكامل:
+1. الـ Space بيبدأ → Next.js يشتغل فوراً
+2. في الـ background، install_frameworks.py بيشتغل:
+   - يثبّت langchain → لو نجح، يسجّله في manifest
+   - يثبّت autogen → لو فشل، بيكمل للتالي
+   - ... الخ
+3. لما المستخدم يطلب "استخدم LangChain":
+   - findMatchingFrameworks() بيلقى langchain متاح
+   - getFrameworksContext() بيرجع context
+   - system-prompt-builder بيـ inject الـ context
+   - الـ LLM بيشوف "انت تقدر تستخدم langchain" وبيكتب كود صح
+
+### بصراحة كاملة:
+- **autogpt-forge** مش Python package حقيقي → غالباً هيفشل (--no-deps بيساعد)
+- **الـ background install** مش هيخلص قبل ما المستخدم يبدأ → الـ frameworks مش هتكون متاحة في أول دقايق
+- **بعد ما الـ installer يخلص** (10-15 دقيقة)، الـ frameworks هتكون متاحة لكل الـ requests الجاية
+
+### اترفعت على HF:
+6 files على `kopabdo/DELTA_AI_V2` (sha: 906d62a151)
+الـ Space بيـ rebuild
+
+*Last updated: 2026-07-26 (V.96) — Framework installer + JIT*

@@ -184,5 +184,8 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
         } \
       })(); \
     " 2>&1 || echo "Skill sync skipped (non-critical)" && \
+    echo "[Startup] V.96: Starting framework installer in background..." && \
+    nohup python3 /app/scripts/install_frameworks.py > /app/frameworks_install.log 2>&1 &
+    echo "[Startup] Framework installer running in background (non-blocking)" && \
     echo "[Startup] Starting Next.js..." && \
     DATABASE_URL="file:/app/db/custom.db" npx next start -p 3000 -H 0.0.0.0

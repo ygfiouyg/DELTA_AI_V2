@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "last_updated": "2026-07-26T15:30:00Z",
+  "frameworks": [
+    {
+      "name": "langchain",
+      "description": "LangChain — LLM orchestration framework for chains, agents, and RAG",
+      "keywords": ["langchain", "chain", "agent", "rag", "llm"],
+      "import_name": "langchain",
+      "packages": ["langchain", "langchain-community", "langchain-core"],
+      "available": true,
+      "installed_at": "2026-07-26T15:30:00Z"
+    },
+    {
+      "name": "autogen",
+      "description": "Microsoft AutoGen — multi-agent conversation framework",
+      "keywords": ["autogen", "multi-agent", "agent chat"],
+      "import_name": "autogen",
+      "packages": ["pyautogen", "autogen-agentchat"],
+      "available": false,
+      "installed_at": ""
+    }
+  ]
+}

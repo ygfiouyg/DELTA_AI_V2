@@ -365,6 +365,21 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
     console.error('[Chat] Skills auto-load error:', skillErr);
   }
 
+  // V.96: Inject available AI frameworks context (LangChain, CrewAI, AutoGen, etc.)
+  try {
+    const { getFrameworksContext, findMatchingFrameworks } = await import('@/lib/framework-discovery');
+    const userMessage = message || (parsed as any)?.message || '';
+    const matching = await findMatchingFrameworks(userMessage);
+    if (matching.length > 0) {
+      const frameworksContext = await getFrameworksContext();
+      if (frameworksContext) {
+        systemPrompt += frameworksContext;
+      }
+    }
+  } catch (fwErr) {
+    // frameworks loading is optional
+  }
+
   return {
     systemPrompt,
     emotion,
