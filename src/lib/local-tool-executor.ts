@@ -532,17 +532,48 @@ sys.stdout.flush()
 }
 
 /**
- * V.74: Extract Python code from AI response
+ * V.84: Extract Python code from AI response — multiple formats
  */
 export function extractPythonCode(text: string): string | null {
-  // Look for ```python ... ``` blocks
-  const match = text.match(/```python\s*\n([\s\S]*?)```/);
-  if (match) return match[1].trim();
+  // 1. Look for ```python ... ``` blocks
+  const match1 = text.match(/```python\s*\n([\s\S]*?)```/);
+  if (match1) return match1[1].trim();
 
-  // Look for ``` ... ``` blocks (without language specifier)
+  // 2. Look for ``` ... ``` blocks (without language specifier)
   const match2 = text.match(/```\s*\n([\s\S]*?)```/);
   if (match2 && (match2[1].includes('import ') || match2[1].includes('print('))) {
     return match2[1].trim();
+  }
+
+  // V.84: 3. Look for "python" followed by code (no backticks — GLM sometimes does this)
+  // Pattern: "python\nimport ..." or "python import ..."
+  const match3 = text.match(/(?:^|\n)python\s*\n((?:import |from |print|#|def |class |if |for |while |try |x |y |plt|np|pd|fig|ax|data|df)\n?[\s\S]*?)(?:\n\n(?:⚙️|✅|❌|توصية|$))/);
+  if (match3 && match3[1].length > 20) {
+    return match3[1].trim();
+  }
+
+  // V.84: 4. Find ANY block that starts with "import " and contains Python-like code
+  const lines = text.split('\n');
+  let codeStart = -1;
+  let codeEnd = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].match(/^\s*(import |from |plt\.|np\.|pd\.|fig|ax\.|data\s*=|df\s*=|x\s*=|y\s*=)/)) {
+      if (codeStart === -1) codeStart = i;
+      codeEnd = i;
+    } else if (codeStart !== -1 && lines[i].trim() === '') {
+      // Empty line — might be end of code
+    } else if (codeStart !== -1 && !lines[i].match(/^\s*(import |from |plt\.|np\.|pd\.|fig|ax\.|data\s*=|df\s*=|x\s*=|y\s*=|#|print|plt|np|pd|fig|ax|data|df|if |for |while |def |class |try |except|return|with |assert|raise|lambda|global|nonlocal|yield|break|continue|pass|del|in |not |and |or |is |None|True|False|[0-9\.\+\-\*\/\(\)\[\]\{\}:=<>!,\s\\'"])/)) {
+      // Non-code line after code block — end it
+      break;
+    } else if (codeStart !== -1) {
+      codeEnd = i;
+    }
+  }
+  if (codeStart !== -1 && codeEnd !== -1 && codeEnd > codeStart) {
+    const code = lines.slice(codeStart, codeEnd + 1).join('\n').trim();
+    if (code.length > 20 && code.includes('import ')) {
+      return code;
+    }
   }
 
   return null;
