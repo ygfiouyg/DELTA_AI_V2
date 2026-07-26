@@ -1,10 +1,10 @@
 {
   "version": "1.0",
-  "last_updated": "2026-07-26T16:36:26Z",
+  "last_updated": "2026-07-26T17:17:52Z",
   "frameworks": [
     {
       "name": "langchain",
-      "description": "LangChain — LLM orchestration framework for chains, agents, and RAG",
+      "description": "LangChain v1.x — LLM orchestration framework for chains, agents, and RAG (with langchain-openai + chromadb)",
       "keywords": [
         "langchain",
         "chain",
@@ -12,34 +12,39 @@
         "rag",
         "llm"
       ],
-      "import_name": "langchain",
+      "import_name": "langchain_core",
       "packages": [
         "langchain",
         "langchain-community",
-        "langchain-core"
+        "langchain-core",
+        "langchain-openai",
+        "chromadb>=0.5.0,<0.6.0",
+        "numpy<2.0"
       ],
       "available": true,
-      "installed_at": "2026-07-26T16:35:05Z"
+      "installed_at": "2026-07-26T17:16:53Z"
     },
     {
       "name": "autogen",
-      "description": "Microsoft AutoGen — multi-agent conversation framework",
+      "description": "Microsoft AutoGen (v0.7+) — multi-agent conversation framework with autogen_ext + autogen_core",
       "keywords": [
         "autogen",
         "multi-agent",
-        "agent chat"
+        "agent chat",
+        "autogen_ext"
       ],
-      "import_name": "autogen",
+      "import_name": "autogen_ext",
       "packages": [
-        "pyautogen",
+        "autogen-ext",
+        "autogen-core",
         "autogen-agentchat"
       ],
-      "available": false,
-      "installed_at": "2026-07-26T16:35:09Z"
+      "available": true,
+      "installed_at": "2026-07-26T17:16:56Z"
     },
     {
       "name": "crewai",
-      "description": "CrewAI — role-playing autonomous AI agents framework",
+      "description": "CrewAI — role-playing autonomous AI agents framework (with chromadb + numpy compat)",
       "keywords": [
         "crewai",
         "crew",
@@ -48,10 +53,12 @@
       "import_name": "crewai",
       "packages": [
         "crewai",
-        "crewai-tools"
+        "crewai-tools",
+        "chromadb>=0.5.0,<0.6.0",
+        "numpy<2.0"
       ],
       "available": true,
-      "installed_at": "2026-07-26T16:35:58Z"
+      "installed_at": "2026-07-26T17:17:13Z"
     },
     {
       "name": "semantic-kernel",
@@ -66,22 +73,24 @@
         "semantic-kernel"
       ],
       "available": true,
-      "installed_at": "2026-07-26T16:36:25Z"
+      "installed_at": "2026-07-26T17:17:20Z"
     },
     {
       "name": "autogpt-forge",
-      "description": "AutoGPT Forge — framework for building autonomous AI agents (--no-deps)",
+      "description": "AutoGPT Forge — framework for building autonomous AI agents (with agpt package)",
       "keywords": [
         "autogpt",
         "auto-gpt",
-        "autonomous agent"
+        "autonomous agent",
+        "forge"
       ],
       "import_name": "autogpt",
       "packages": [
-        "autogpt-forge"
+        "autogpt-forge",
+        "agpt"
       ],
-      "available": false,
-      "installed_at": "2026-07-26T16:36:26Z"
+      "available": true,
+      "installed_at": "2026-07-26T17:17:52Z"
     }
   ]
 }
