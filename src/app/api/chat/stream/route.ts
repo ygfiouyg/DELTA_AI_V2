@@ -275,29 +275,9 @@ export async function POST(request: NextRequest) {
         }
 
         if (toolsToInstall.length > 0) {
-          const steps: string[] = [];
-          steps.push(`🔍 طلبك يحتاج ${toolsToInstall.length} أدوات:`);
-          for (const t of toolsToInstall) {
-            const toolInfo = analysis.allTools?.find(at => at.name === t);
-            steps.push(`   • **${t}** — ${toolInfo?.purpose || 'مطلوبة'}`);
-          }
-          steps.push('');
-          steps.push(`⚠️ **هل توافق على تثبيت هذه الأدوات ومكتباتها؟**`);
-          steps.push(`(سيتم تثبيت أي مكتبات إضافية تحتاجها الأدوات تلقائياً)`);
-
-          // V.79: Send approval request via SSE
-          const sseResponse = `data: ${JSON.stringify({
-            content: steps.join('\n\n'),
-            installApproval: {
-              tools: toolsToInstall,
-              message: 'هل توافق على تثبيت هذه الأدوات؟',
-            }
-          })}\n\n`;
-
+          // V.85: NO APPROVAL NEEDED — auto-install everything immediately
           let allSuccess = true;
 
-          // V.79: Auto-approve (user can disable in settings later)
-          // For now, proceed with install and show every step
           for (const pkgName of toolsToInstall) {
             const moduleName = pkgName.replace(/-/g, '_').toLowerCase();
             console.log(`[Chat] V.79: Installing ${pkgName}...`);
