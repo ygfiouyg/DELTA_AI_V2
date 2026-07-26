@@ -463,12 +463,23 @@ export async function executePythonCode(
     const scriptPath = path.join(DOWNLOAD_DIR, `exec_${fileId}.py`);
     await fs.mkdir(DOWNLOAD_DIR, { recursive: true });
 
-    // Add stdout flush at the end
-    // V.76b: Wrap code to capture the last expression value
-    // If the AI writes 'solutions' without print(), we need to capture it
+    // V.83: Wrap code — auto-save matplotlib figures + capture output
     const fullCode = `
 import sys
 import io
+import matplotlib
+matplotlib.use('Agg')  # V.83: Force non-interactive backend — no plt.show() needed
+import matplotlib.pyplot as plt
+# V.83: Override plt.show() to save figure instead
+_original_show = plt.show
+_fig_count = [0]
+def _save_show(*args, **kwargs):
+    _fig_count[0] += 1
+    plt.savefig(f'/app/download/fig_{_fig_count[0]}.png', dpi=100, bbox_inches='tight')
+    print(f"[Figure saved: fig_{_fig_count[0]}.png]")
+    plt.close()
+plt.show = _save_show
+
 _old_stdout = sys.stdout
 _capture = io.StringIO()
 sys.stdout = _capture
