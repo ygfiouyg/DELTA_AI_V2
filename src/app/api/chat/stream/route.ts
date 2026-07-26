@@ -983,12 +983,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── Inline Media Generation Detection ──
-    // If user wants to generate an image/video, we'll generate it in parallel
-    // with the text response and include it in the stream
-    const mediaGenIntent = detectInlineMediaGenIntent(parsed.cleanedMessage || message);
-    const shouldGenerateImage = mediaGenIntent?.type === 'image';
-    const shouldGenerateVideo = mediaGenIntent?.type === 'video';
+    // V.82: Disabled media gen regex — LLM handles everything
+    // const mediaGenIntent = detectInlineMediaGenIntent(parsed.cleanedMessage || message);
+    // mediaGenIntent is already set to null above (V.82)
+    // shouldGenerateImage and shouldGenerateVideo are already false
 
     // ── File Generation Intent Detection ──
     // In open mode, we also detect HTML output as a file generation intent
