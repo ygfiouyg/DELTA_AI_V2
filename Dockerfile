@@ -66,7 +66,41 @@ RUN npx playwright install chromium 2>/dev/null || echo "Playwright Chromium ins
 # V.67: Install Python libraries for local file generation (PPTX/XLSX)
 # V.68b: Add --break-system-packages for HF's externally-managed Python
 # V.68c: Add qrcode and gTTS for QR code + audiobook generation
-RUN pip3 install --no-cache-dir --break-system-packages python-pptx openpyxl Pillow PyMuPDF matplotlib qrcode gTTS 2>/dev/null || echo "Python packages install partial"
+# V.93: MASTER PROMPT — pre-install ALL data science, document generation,
+#        and media processing libraries so runtime auto-install is rarely needed.
+#        These persist across container restarts (baked into the image).
+RUN pip3 install --no-cache-dir --break-system-packages \
+    # ── Document Generation ──
+    python-pptx \
+    openpyxl \
+    fpdf2 \
+    weasyprint \
+    reportlab \
+    python-docx \
+    # ── Data Science & Analysis ──
+    pandas \
+    numpy \
+    scipy \
+    matplotlib \
+    seaborn \
+    yfinance \
+    ta \
+    pandas-ta \
+    scikit-learn \
+    # ── Media Processing ──
+    gTTS \
+    pydub \
+    Pillow \
+    PyMuPDF \
+    # ── Utilities ──
+    qrcode \
+    requests \
+    beautifulsoup4 \
+    lxml \
+    sympy \
+    pyfiglet \
+    wikipedia \
+    2>/dev/null || echo "Python packages install partial (some may have failed)"
 
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
@@ -134,5 +168,9 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
         await db.\$disconnect(); \
       })().catch(e => { console.error('[Startup] Admin setup failed:', e.message); process.exit(0); }); \
     " && \
+    echo "[Startup] Installing runtime requirements (if any)..." && \
+    if [ -f /app/requirements-runtime.txt ]; then \
+      pip3 install --break-system-packages -r /app/requirements-runtime.txt 2>&1 | tail -5 || echo "Runtime requirements install partial"; \
+    fi && \
     echo "[Startup] Starting Next.js..." && \
     DATABASE_URL="file:/app/db/custom.db" npx next start -p 3000 -H 0.0.0.0

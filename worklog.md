@@ -5435,3 +5435,374 @@ Task: حل كل المشاكل اللي طلعت من سجل المحادثة
 عشان تغيرهم: اضف HF Secrets: `ADMIN_EMAIL` و `ADMIN_PASSWORD`
 
 *Last updated: 2026-07-26 (V.92) — كل المشاكل اتحلت*
+
+---
+Task ID: audit-triggers
+Agent: Explore agent
+Task: Audit شامل لكل regex/keyword triggers
+
+Work Log:
+- قرأت `/home/z/my-project/worklog.md` لفهم السياق (المشروع في V.92، فيه هدف مسبق V.82 لشيل الـ regex triggers).
+- عملت `LS` للمشروع وللمجلدات المطلوبة: `src/lib/intent/`, `src/lib/chat/`, `src/app/api/chat/`.
+- لاحظت إن `src/lib/chat/content-classifier.ts` مش موجود فعلياً — الملف موجود في `src/lib/content-classifier.ts` (تم تدوينه).
+- قريت كل ملف من الـ 13 ملف المطلوبين بالكامل (في حدود 7000+ سطر):
+  - `src/lib/intent/patterns.ts` (144 سطر)
+  - `src/lib/intent/router.ts` (182 سطر)
+  - `src/lib/chat/media-intent.ts` (86 سطر)
+  - `src/lib/chat/doc-intent-classifier.ts` (1356 سطر) — أكبر ملف trigger
+  - `src/lib/chat/chat-tool-calling.ts` (313 سطر)
+  - `src/lib/content-classifier.ts` (371 سطر)
+  - `src/app/api/chat/stream/route.ts` (4862 سطر) — اكبر hub للـ triggers
+  - `src/app/api/chat/send/route.ts` (803 سطر)
+  - `src/lib/quiz-intent.ts` (94 سطر)
+  - `src/lib/llm-capability-detector.ts` (262 سطر)
+  - `src/lib/autonomous-agent.ts` (592 سطر)
+  - `src/lib/skill-discovery.ts` (237 سطر)
+- استخدمت `Grep` للبحث عن `.includes(`, `.test(`, `new RegExp`, و الـ keywords المطلوبة (pdf, صورة, صوت, ملف, ppt, excel, chart, رسم, video, image) في كل ملف.
+- لقيت إن `stream/route.ts` بـ import من `@/lib/chat-utils` اللي هو فيه الـ QUIZ_INTENT_KEYWORDS و FILE_GEN_KEYWORDS و WEB_SEARCH_TRIGGERS الجداد — قريت `src/lib/chat-utils.ts` كامل (833 سطر) عشان أسجل كل الـ triggers.
+- اكتشفت 3 ملفات إضافية مش في الـ explicit list لكنها trigger hubs مهمة:
+  - `src/lib/ai-tools/media-intent-llm.ts` (192 سطر) — regex-based media routing (radio/youtube/spotify/tts/stop)
+  - `src/lib/anzaro-smart-ball-detector.ts` (311 سطر) — regex-based device/media/scene commands
+  - `src/lib/ai-tools/mcp-chat-integration.ts` (900 سطر) — ~30 regex trigger patterns للأدوات المتخصصة
+- كل الـ triggers اتسجلت بالـ file path + line number + نوع الـ trigger + إيه اللي بـ trigger عليه + الأكشن.
+
+Stage Summary:
+
+═══ 1. src/lib/intent/patterns.ts (الـ trigger الرئيسي للـ script-writer و content-studio) ═══
+- L11-22: `AR_SCRIPT_PATTERNS` (regex × 11) — يـ trigger `script-writer` engine لأجل "اكتبلي سكريبت/ريلز/تيك توك/يوتيوب/بودكاست/مقال".
+- L25-32: `EN_SCRIPT_PATTERNS` (regex × 6) — نفس الشيء بالإنجليزي ("write me a script", "create a script/reel/tiktok").
+- L35-41: `CONTENT_TYPE_HINTS` (regex × 5) — بيكشف نوع المحتوى (youtube/reel/tiktok/podcast/blog) من كلمات زي "يوتيوب/ريلز/بودكاست/مقال".
+- L44-50: `NEGATIVE_KEYWORDS` (regex × 5) — بياخد ثقة لو فيه "شرح/ترجمة/كود/لينك/تحليل".
+- L53-59: `REFINE_PATTERNS` (regex × 5) — بيكشف طلب تعديل سكريبت موجود.
+- L64-81: `AR_STUDIO_PATTERNS` (regex × 17) — بـ trigger `content-studio` engine لأجل "استوديو محتوى/حزمة محتوى/caption/thumbnail".
+- L84-92: `EN_STUDIO_PATTERNS` (regex × 7) — نفس الشيء بالإنجليزي.
+- L95-102: `COMPLEMENT_PATTERNS` (regex × 6) — بيكشف thumbnail/caption/hashtag/جدول نشر.
+- الأكشن: route لـ `scriptwriter/engine.ts` أو `content-studio/engine.ts` (consumer: `stream/route.ts` L553).
+
+═══ 2. src/lib/intent/router.ts (orchestrator لـ patterns.ts) ═══
+- L35-106: `detectScriptWriterIntent()` — بيجرب AR_SCRIPT_PATTERNS + EN_SCRIPT_PATTERNS + NEGATIVE_KEYWORDS → بيرجع `tool: "script-writer"`.
+- L112-154: `detectContentStudioIntent()` — بيجرب AR_STUDIO_PATTERNS + EN_STUDIO_PATTERNS → بيرجع `tool: "content-studio"`.
+- L160-181: `detectIntent()` — orchestrator principal (content-studio > script-writer).
+- L91: regex inline `/ريلز|ريل|short|reel|short/i` للثقة.
+- الأكشن: بيتـ calling من `stream/route.ts` L553.
+
+═══ 3. src/lib/chat/media-intent.ts (DEPRECATED — V.82 شال الـ call) ═══
+- L8-85: `detectInlineMediaGenIntent()` — رغم إنه مش بيتـ calling في stream/route.ts (معلّق في L1084)، إلا إنه لسه معرّف.
+- L17-35: `nonImageDrawPhrases[]` (regex × 13) — skip patterns لـ "draw a conclusion/رسم بياني/chart/graph/macd/rsi/bitcoin/أسعار الإغلاق".
+- L38-53: `imagePatterns[]` (regex × 13) — بيكشف "اعمل صورة/ارسم/ولد صورة/generate image/draw me".
+- L55-62: `videoPatterns[]` (regex × 6) — بيكشف "اعمل فيديو/طلع فيديو/generate video".
+- L67-68: regex لتنظيف الـ prompt من الـ action verbs.
+- الأكشن: كان بـ trigger توليد inline للصور/الفيديو (دلوقتي معلّق).
+
+═══ 4. src/lib/chat/doc-intent-classifier.ts (الأضخم — regex-only classifier) ═══
+- L57-383: `INTENT_PATTERNS[]` (10 intent types × ~13 regex each ≈ 130 regex):
+  - extract-topic (12 regex), summarize (28 regex), compile (24 regex), outline (15 regex), compare (12 regex), flashcards (12 regex), quiz (12 regex), smart-doc (24 regex), generate-pptx (15 regex), generate-docx (12 regex), generate-xlsx (10 regex), generate-file (0 regex)
+  - كل pattern بيكشف "ملف/pdf/pptx/وورد/اكسل/تجميعة/ملخص/quiz" عربي وإنجليزي.
+- L388-413: `TOPIC_PATTERNS_AR` (13 regex) — استخراج الموضوع من الرسالة.
+- L415-430: `TOPIC_PATTERNS_EN` (8 regex) — نفس الشيء بالإنجليزي.
+- L437-495: `DEPTH_PATTERNS` (brief × 16 + detailed × 14 = 30 regex) — كشف عمق الطلب.
+- L499-518: `SCOPE_ALL_PATTERNS` (15 regex) — كشف "كل/جميع/كامل/all".
+- L522-581: `FORMAT_PATTERNS` (5 formats: pptx × 11, docx × 5, pdf × 5, all × 4, text × 6 = 31 regex) — كشف الصيغة المطلوبة.
+- L586-602: `FILE_HINT_PATTERNS` (10 regex) — استخراج "المحاضرة X/الملف Y".
+- L607-630: `NEGATIVE_PATTERNS` (17 regex) — skip patterns للأسئلة المحضة.
+- L638-675: `IMPLICIT_FILE_GEN_PATTERNS` (24 regex) — كشف "لخص القوانين/اجمع المحاضرات/ملف شامل".
+- L681-722: `EXPLICIT_FILE_GEN_PATTERNS` (40 regex) — كشف صريح "اعمل ملف/اعمل pdf/اعمل باوربوينت/اعمل وورد".
+- L917: `actionVerbRegex` — لأجل استخراج topic.
+- L1143: regex لتحويل summarize → extract-topic.
+- L1152: regex `/شامل/` لتحويل smart-doc → compile.
+- L1212: regex `/كل|كلهم|جميع|all|every/i` لتحديد scope.
+- L1273: regex `/(?:ملف|pdf|مستند|وثيقة|file|document|pdf)/i` للـ AI fallback trigger.
+- الأكشن: `classifyDocIntent()` بيرجع نوع الـ intent → `stream/route.ts` L890 و `send/route.ts` L358 بيتخدموه لـ routing (smart-doc pipeline, pptx generator, docx generator, xlsx generator, quiz service).
+
+═══ 5. src/lib/chat/chat-tool-calling.ts (manual keyword fallback لـ tool selection) ═══
+- L68-70: `REFUSAL_PATTERNS` (regex × 1) — بيكشف رفض الـ LLM.
+- L73-75: `FALSE_SUCCESS_PATTERNS` (regex × 1) — بيكشف "تم/خلاص/حطيت/ضفت" بدون tool call.
+- L228: `.includes()` chain لـ "تذكير/ذكرني/فكرني/موعد/اجتماع/ميتب/reminder" → `google_calendar_reminder`.
+- L244: `.includes()` لـ "رقم/هاتف/contact" → `google_contacts_reader`.
+- L248: `.includes()` لـ "ملف/pdf/drive/دورلي" → `google_drive_file_search`.
+- L252: `.includes()` لـ "جدول/مواعيد/calendar/عندي ايه" → `google_calendar_lister`.
+- L255: `.includes()` لـ "مهمة/task/ضيف" → `google_tasks_manager`.
+- الأكشن: manual fallback لو الـ LLM رفض أو قال "تم" من غير tool call.
+
+═══ 6. src/lib/content-classifier.ts (keyword-based content categorization) ═══
+- L44-150: `CATEGORY_KEYWORDS` (12 category × ~40 keyword each ≈ 500 keyword):
+  - medical, academic, islamic, technical, programming, business, financial, legal, creative, science, humanities, general
+- L213-220: `new RegExp(\`\\b${escapeRegex(keyword)}\\b\`, 'gi')` + `combined.match(regex)` — بيتعمل keyword counting.
+- ملاحظة: مش بـ trigger أدوات، بس بيحدد design theme (هوية لونية + psychology). أقل خطورة من غيره لكنه لسه keyword-based.
+
+═══ 7. src/app/api/chat/stream/route.ts (الـ trigger hub الرئيسي — 4862 سطر) ═══
+- L33: `import { isFileGenerationIntent, isQuizIntent, getZAIClient } from '@/lib/chat-utils'` — entry point للـ triggers في chat-utils.ts.
+- L47: `import { classifyDocIntent, classifyDocIntentWithAI, hasDocIntent } from '@/lib/chat/doc-intent-classifier'`.
+- L223-224: comment صريح "V.82: NO MORE REGEX TRIGGERS" — بس ده مش صحيح بالكامل (لأن الـ imports لسه شغالة).
+- L233: `message.match(/(https?:\/\/github\.com\/[^\s]+)/i)` — بـ trigger git clone + install لما المستخدم يـ paste GitHub URL.
+- L265-289: `.includes('package.json')` / `.includes('requirements.txt')` / `.includes('app.py')` / `.includes('main.py')` — كشف نوع المشروع و install.
+- L485: `hasEmbeddedAttachments = message.includes('[DELTA_IMAGE:') || message.includes('[DELTA_PDF:') || message.includes('[DELTA_DOCX:')` — guard عشان ما يـ triggerش MCP/media للـ attachments.
+- L890: `classifyDocIntent(message, parsed.hasAttachments || isFileGenerationIntent(message))` — regex classification.
+- L892-895: `classifyDocIntentWithAI(message, parsed.hasAttachments)` — AI fallback.
+- L915: `message.match(/(?:mcp|MCP)[:：\s]+(https?:\/\/[^\s]+)/i)` — بـ trigger MCP server connection تلقائي.
+- L1084: `// const mediaGenIntent = detectInlineMediaGenIntent(...)` — معلّق (V.82).
+- L1090: `const fileGenIntent = isFileGenerationIntent(message)` — بـ trigger PDF/PPTX generation inline في السطر 4282.
+- L1131: `const hasQuizIntent = isQuizIntent(parsed.cleanedMessage || message)` — بـ trigger quiz generation.
+- L1314-1317 و L1385-1388: `analyzeCapabilityWithLLM()` — LLM-based لكنه بـ trigger pip install تلقائي.
+- L2255-2258: `_ACTION_VERBS` و `_CONTACT_KEYWORDS` regex (pre-scan لجهات الاتصال).
+- L2259: `_isQuestion` regex (skip pattern).
+- L2269: regex لاستخراج اسم جهة الاتصال.
+- L2677: `isQuestion` regex — نفس الشيء في pre-scan layer التاني.
+- L2680: `hasActionVerb` regex — كشف أفعال الأمر (اعمل/أنشئ/حط/ضيف/هاتلي/...).
+- L2692-2796: `.includes()` chains لـ:
+  - "رقم/هاتف/اتصال/contact" → `google_contacts_reader` (L2692)
+  - "تذكير/ذكرني/فكرني/موعد" → `google_calendar_reminder` (L2698)
+  - "مهمة/task/ضيف" → `google_tasks_manager` (L2728)
+  - "امسح/احذف/delete/شيل" → `google_drive_deleter` (L2734)
+  - "ارفع/upload/احفظ/drive" → `google_drive_uploader` (L2750)
+  - "فولدر/مجلد/folder" → `google_drive_folder_creator` (L2759)
+  - "دورلي/ابحث/ملف/pdf/drive" → `google_drive_file_search` (L2785)
+  - "جدول/مواعيد/عندي ايه" → `google_calendar_lister` (L2791)
+- L2701-2702, L2707-2709, L2731, L2737, L2753, L2755, L2762, L2788: regex لاستخراج الاسم/العنوان من الرسالة.
+- L2891-2896: tool calling prompt فيه keywords صريحة للـ LLM (تذكير/مهمة/رقم/ملف/pdf/مستند/شيت) — مش regex بس بتأثر على قرارات الـ LLM.
+- الأكشن: pre-scan layer بيـ execute tools قبل ما الـ LLM يقدر يرفض + inline PDF/PPTX generation.
+
+═══ 8. src/app/api/chat/send/route.ts (lighter version من stream) ═══
+- L23: `import { classifyDocIntent } from '@/lib/chat/doc-intent-classifier'` — entry point.
+- L358: `classifyDocIntent(message, parsed.hasAttachments)` — regex classification.
+- L641: `customUrl.includes('/chat/completions')` — URL formatting (مش trigger سلوك).
+- ملاحظة: ملف send/route.ts أبسط من stream — معظمه بنفس النمط.
+
+═══ 9. src/lib/quiz-intent.ts (client-safe quiz keywords) ═══
+- L10-46: `QUIZ_INTENT_KEYWORDS` (46 entries) — كلها `.includes()` keywords:
+  - "اعملي اسئله/اعمللي كويز/اختبرني/امتحاني/quiz me/test me/generate quiz/questions about" إلخ.
+  - Short keywords خطيرة: "اسئله/اسئلة/كويز/اختبار" (false positives محتملة).
+- L52-57: `isQuizIntent()` بستخدم `.includes()` بعد `toLowerCase()`.
+- L66-71: `extractTopicFromMessage()` regex × 2 (عربي/إنجليزي).
+- L82-90: regex chain لتنظيف الـ topic من الـ quiz keywords.
+- الأكشن: بـ trigger quiz generation service.
+
+═══ 10. src/lib/llm-capability-detector.ts (V.69 — LLM-based) ═══
+- ملاحظة: ده أقرب ملف للـ LLM-driven approach. مفيش فيه keyword triggers للحاجات الأساسية.
+- L100: `content.match(/\{[\s\S]*\}/)` — استخراج JSON من رد الـ LLM (مش trigger سلوك).
+- L118: `t.name.replace(/-/g, '_').toLowerCase()` — normalize module name.
+- ملاحظة مهمة: رغم إنه LLM-based، إلا إنه بـ trigger pip install تلقائي لما LLM يقول إنه محتاج أداة — مش keyword based بس لسه بيتخطى الـ LLM الرئيسي.
+
+═══ 11. src/lib/autonomous-agent.ts (keyword-based capability checker) ═══
+- L78-138: `capabilities[]` array (9 entries × keyword array) — كل entry بـ trigger GitHub search + auto-install:
+  - L85: QR code keywords: `'كود qr', 'qr code', 'qr', 'كيو ار', 'باركود', 'barcode', 'vcard', 'كارت اتصال'` → qrcode pip package.
+  - L91: Audiobook keywords: `'كتاب صوتي', 'audiobook', 'تحويل النص لصوت', 'text to speech', 'tts', 'mp3 من pdf', 'pdf to mp3', 'كتاب مسموع'` → gtts + pymupdf.
+  - L97: PPTX keywords: `'باور بوينت', 'بوربوينت', 'powerpoint', 'pptx', 'عرض تقديم', 'شرائح', 'presentation', 'slides'` → python-pptx.
+  - L103: Excel keywords: `'اكسل', 'excel', 'xlsx', 'جدول بيانات', 'spreadsheet'` → openpyxl.
+  - L109: Image keywords: `'صورة', 'صور', 'image', 'photo', 'extract image', 'استخرج الصور', 'أضف صور'` → pillow + python-pptx.
+  - L115: PDF extraction keywords: `'pdf استخراج', 'extract pdf', 'pdf images', 'صور من pdf'` → pymupdf + pillow.
+  - L121: Audio/video conversion keywords: `'تحويل', 'convert', 'mp3', 'mp4', 'صوت', 'audio', 'فيديو', 'video'` → ffmpeg.
+  - L127: Translation keywords: `'ترجمة', 'translate', 'translation'` → translator.
+  - L133: Chart keywords: `'رسم', 'chart', 'بيان', 'graph', 'مخطط'` → matplotlib.
+- L141: `if (cap.keywords.some(kw => msg.includes(kw)))` — keyword matching فاض.
+- L215-217: `detectInstallType()` بستخدم `.includes()` على desc/name لكشف docker/npm/python.
+- الأكشن: trigger GitHub search → install tool تلقائي.
+
+═══ 12. src/lib/skill-discovery.ts (keyword-based skill injection) ═══
+- L137-142: `directMatches[]` (4 entries × keyword array) — keywords تـ trigger skill injection:
+  - `['pdf', 'ملف', 'مستند', 'document', 'لخص', 'تلخيص', 'summar']` → 'PDF Design Master' skill.
+  - `['لخص', 'تلخيص', 'summar', 'تحليل', 'analysis', 'ملخص', 'محاضرة', 'lecture']` → 'Academic Summary Skill'.
+  - `['kpi', 'timeline', 'chart', 'مخطط', 'رسم', 'جدول', 'مقارنة']` → 'Visual Components Skill'.
+  - `['عربي', 'arabic', 'rtl', 'ترجمة', 'نص']` → 'Arabic RTL Skill'.
+- L147: `dm.keywords.some(kw => promptLower.includes(kw))` — direct keyword matching.
+- L162-167: `categoryKeywords{}` — 4 categories × keywords:
+  - 'pdf-design': `['pdf', 'ملف', 'مستند', 'تصميم', 'document']`
+  - 'content-quality': `['لخص', 'تلخيص', 'summarize', 'تحليل', 'analysis', 'ملخص']`
+  - 'visual-design': `['تصميم', 'بصري', 'visual', 'kpi', 'timeline', 'chart', 'مخطط']`
+  - 'localization': `['عربي', 'arabic', 'rtl', 'ترجمة']`
+- L171: `promptLower.includes(kw)` — keyword scoring.
+- الأكشن: inject skill content في الـ LLM system prompt.
+
+═══ 12.5 ملفات إضافية اكتشفتها (مش في الـ explicit list لكنها trigger hubs): ═══
+
+(a) **src/lib/chat-utils.ts** (833 سطر — الـ trigger library الأساسي):
+- L154-190: `QUIZ_INTENT_KEYWORDS` (46 entries) — مكرر من quiz-intent.ts.
+- L192-197: `isQuizIntent()` — بستخدم `.includes()` بعد `toLowerCase()`.
+- L205-279: `FILE_GEN_KEYWORDS` (75+ entries) — كلها `.includes()` keywords:
+  - Arabic PDF: 'ولد ملف', 'ولد pdf', 'اعمل ملف', 'اعملي pdf', 'اعمللي pdf', 'طلعلي pdf', إلخ.
+  - Arabic PPTX: 'ولد pptx', 'اعمل باوربوينت', 'اعملي عرض تقديم', 'سلايدات', إلخ.
+  - V.68c QR code: 'كود qr', 'qr code', 'qr', 'كيو ار', 'باركود', 'vcard', 'كارت اتصال'.
+  - V.68c Audiobook: 'كتاب صوتي', 'audiobook', 'تحويل لصوت', 'نص لصوت', 'pdf to mp3', 'ملف صوتي'.
+  - English: 'generate pdf', 'create pdf', 'export pptx', 'create slides', إلخ.
+  - Implicit: 'تجميعة القوانين', 'لخص القوانين', 'كل القوانين', 'ملف شامل', 'تقرير شامل', إلخ.
+- L281-284: `isFileGenerationIntent()` — بستخدم `.includes()` بعد `toLowerCase()`.
+- L294-389: `emotionMatrix{}` (12 emotions × keywords) — keyword-based emotion detection.
+- L391-399: `detectEmotion()` — بستخدم `.includes()` لتعيين emotion.
+- L476-483: `WEB_SEARCH_TRIGGERS` (23 entries) — `.includes()` keywords لـ auto web search:
+  - 'ابحث', 'بحث عن', 'دور على', 'search for', 'latest', 'current', 'recent', 'now', 'today', 'حالي', 'أحدث', 'الأخبار', 'news', إلخ.
+- L486-489: `needsWebSearch()` — fast-path `.includes()`.
+- L549-555: `SKIP_PATTERNS` (5 regex) — skip patterns للـ auto search classifier.
+- L563-572: `CREATIVE_PATTERNS` (7 regex) — skip patterns لـ creative/instructional messages.
+- الأكشن: الـ isQuizIntent و isFileGenerationIntent بـ trigger quiz generation و PDF/PPTX/DOCX generation في stream/route.ts.
+
+(b) **src/lib/ai-tools/media-intent-llm.ts** (192 سطر — regex-based media routing):
+- L25-38: `RECITERS[]` (12 entries × aliases) — keyword-based reciter detection.
+- L53-63: `extractReciter()` بستخدم `norm.includes(normAlias)`.
+- L68-86: `extractSearchQuery()` بستخدم 12 regex لشيل الـ command verbs.
+- L106: `hasGenerateVerb` regex `/اعمل(?:ي|لي)?|ولد(?:لي|ي)?|طلع(?:لي|ي)?|جيب(?:لي|ي)?|صوّ?r(?:لي|ي)?|ارسم(?:لي|ي)?|حوّل|generate|make|create|draw/i`.
+- L107: `hasMediaKeyword` regex `/صور[ةه]|فيديو|فديو|video|image|picture|portrait|رسم|لوح/i`.
+- L123: Arabic stop regex `/(?:اقفل|اقفله|اقفلي|قفل|وقف|وقفه|قفلي|سكته|اسكت|إيقاف|ايقاف|كتم|صامت)/i`.
+- L124: English stop regex `/(?:\bstop\b|\bpause\b|\bmute\b|close\s+(?:the\s+)?(?:radio|player|music)|shut\s*up)/i`.
+- L127: play verb regex `/شغل|افتح|ابعت|play|start|put\s*on/i`.
+- L134: TTS regex `/اقرأ\s*(لي|لنا|نا)?|اقرألي|نطق|تحدث|اقرأ\s*النص|convert\s*to\s*voice|tts/i`.
+- L145: radio keywords regex `/راديو|إذاعة|اذاعه|radio|station|محطه|محطة|إذاعه/i`.
+- L151: Quran keywords regex `/قرآن|قران|quran|تلاوه|تلاوة|قراءه|قراءة/i`.
+- L152: video signal regex `/فيديو|video|يوتيوب|youtube|قناة|channel|مشاهده|مشاهدة|حلقه|حلقة/i`.
+- L165: music regex `/أغني|اغني|song|music|موسيقى|spotify|سبوتيفاي|نشيد|نشيده|اناشيد|أناشيد/i`.
+- L172: play/listen verbs regex `/شغل|اسمع|استمع|افتح|play|تشغيل|سمع|حط|اببع/i`.
+- الأكشن: route لـ radio/spotify/youtube/tts/stop.
+
+(c) **src/lib/anzaro-smart-ball-detector.ts** (311 سطر — regex-based smart ball commands):
+- L36-37: media STOP regex — keywords: `اقفل/قفل/وقف/أوقف/إيقاف/اطفي/طفّي/stop/turn it off/kill` + `الراديو/الأغنية/القرآن/radio/song/music/quran/stream/الصوت/الموسيقى`.
+- L59-61: media PAUSE regex — keywords: `وقف/توقف/pause/paused/موقّف`.
+- L80-81: media RESUME regex — keywords: `كمل/استكمل/resume/continue/رجّع/رجع`.
+- L108-109: media PLAY regex — keywords: `شغّل/شغل/play/ابدأ/تشغيل` + `قرآن/قران/راديو/radio/music/موسيقى/أناشيد/أنشودة/nasheed/quran/نجوم/إذاعة/اذاعة/محطة/محطه/station/إليسا/دياب/هيتس/9090/أخبار/اخبار/news/رياضة/رياضه/sport`.
+- L127-131: GENERIC Set of stop words (token-based filtering).
+- L140-143: `normName.includes(t)` لـ DB station matching.
+- L164-173: 4 regexes لـ category fallback (quran/news/music/sports).
+- L233-234: scene detection regex `/(?:وضع|مشهد|scene|mode)\s*(?:ال)?(.+?)(?:\s*$|\s*من فضلك)/` + `/(?:focus|cinema|sleep|business|recording|تركيز|سينما|نوم|أعمال|تسجيل)/i`.
+- L236-240: 5 scene-specific regexes.
+- L260-262: device ON regex — keywords: `ولّع/ولع/افتح/شغّل/turn on/open/fire up/ابدأ` + `النور/اللمبة/الشاشة/التلفزيون/التكييف/المرور/الستارة/السوفت/light/tv/screen/\bac\b/fan/curtain/softbox` + negative `محاضرة/spectroscop/organic/analysis/chemistry/تحليل/كيمياء/ملخص/لخص/محتوى/نص`.
+- L263: alias match regex لاستخراج اسم الجهاز.
+- L285-287: device OFF regex — نفس keywords بس مع negative `راديو/أغنية/radio/song/music/قرآن/قران`.
+- L288: alias match regex لاستخراج اسم الجهاز.
+- الأكشن: execute media control / scene / device actions via control-engine.
+
+(d) **src/lib/ai-tools/mcp-chat-integration.ts** (900 سطر — ~30 regex trigger patterns للأدوات):
+- L36-92: `detectAndRunMCP()` — regex/url-based detection.
+- L520: code chat trigger — `message.includes('```') && (lower.includes('اشرح') || ... )`.
+- L553: sales patterns — regex trigger لـ biz-sales tool.
+- L583: portfolio patterns — regex trigger لـ biz-portfolio tool.
+- L598: API patterns — regex trigger لـ biz-website-api tool.
+- L613: model compare patterns — regex trigger لـ compare-models tool.
+- L622: code evaluation trigger — `message.includes('```') && (lower.includes('قيّم') || ...)`.
+- L636: finetune patterns — regex trigger.
+- L651: meeting patterns — regex trigger لـ audio-meeting-notes.
+- L666: audio analysis patterns — regex trigger.
+- L680: swarm patterns — regex trigger لـ agent-swarm.
+- L695: build agent patterns — regex trigger.
+- L709: ACP patterns — regex trigger لـ agent-acp.
+- L723: A2A patterns — regex trigger لـ agent-a2a.
+- L737: content plan patterns — regex trigger لـ agent-content-planner.
+- L752: SQL router patterns — regex trigger لـ rag-sql-router.
+- L766: context engine patterns — regex trigger لـ rag-context.
+- L803: OCR patterns — regex trigger لـ ocr-extract.
+- L828: LaTeX patterns — regex trigger لـ ocr-latex.
+- L851: chart patterns — regex trigger لـ chart-analyze.
+- L874: structured patterns — regex trigger لـ ocr-structured.
+- الأكشن: route لـ MCP/RAG/business/audio/compare/agent tools.
+
+═══ خلاصة الـ Triggers حسب الـ Category ═══
+
+1. **PDF triggers** (توليد/قراية PDF):
+   - chat-utils.ts L207-228, 248-249 (FILE_GEN_KEYWORDS)
+   - doc-intent-classifier.ts L278-303 (smart-doc), L552-559 (FORMAT pdf), L681-722 (EXPLICIT_FILE_GEN_PATTERNS)
+   - autonomous-agent.ts L115-118 (PDF extraction)
+   - skill-discovery.ts L138 (PDF Design Master)
+   - chat-tool-calling.ts L248 (`ملف/pdf/drive`)
+   - stream/route.ts L2785 (`ملف/pdf/drive`)
+
+2. **Image/صورة triggers**:
+   - media-intent.ts L38-53 (imagePatterns) — DISABLED
+   - media-intent-llm.ts L107 (hasMediaKeyword regex)
+   - autonomous-agent.ts L109-113 (image keywords)
+   - mcp-chat-integration.ts L802-876 (vision/OCR triggers)
+
+3. **Video/فيديو triggers**:
+   - media-intent.ts L55-62 (videoPatterns) — DISABLED
+   - media-intent-llm.ts L152 (video signal regex)
+   - autonomous-agent.ts L121 (audio/video conversion)
+
+4. **Audio/صوت triggers**:
+   - autonomous-agent.ts L91-95 (audiobook), L121-125 (audio conversion)
+   - chat-utils.ts L245-246 ('كتاب صوتي', 'تحويل لصوت', 'نص لصوت', 'ملف صوتي')
+   - media-intent-llm.ts L134 (TTS), L165 (music)
+
+5. **PPTX/PowerPoint triggers**:
+   - chat-utils.ts L230-238 (PPTX keywords)
+   - doc-intent-classifier.ts L307-327 (generate-pptx), L524-540 (FORMAT pptx)
+   - autonomous-agent.ts L97-101 (PPTX keywords)
+
+6. **Excel triggers**:
+   - chat-utils.ts (مش موجود explicit — بس عبر 'spreadsheet' في L252)
+   - doc-intent-classifier.ts L351-371 (generate-xlsx)
+   - autonomous-agent.ts L103-107 (Excel keywords)
+
+7. **Chart/رسم triggers**:
+   - media-intent.ts L22-34 (nonImageDrawPhrases — skip patterns)
+   - autonomous-agent.ts L133-137 (chart keywords → matplotlib)
+   - skill-discovery.ts L140 (Visual Components Skill)
+   - mcp-chat-integration.ts L850-851 (chart analyze)
+
+8. **ملف triggers**:
+   - كل ملفات الـ doc-intent-classifier.ts
+   - chat-utils.ts L207-228 (file keywords)
+   - skill-discovery.ts L138 (PDF Design Master)
+
+9. **Quiz triggers**:
+   - quiz-intent.ts L10-46 (QUIZ_INTENT_KEYWORDS)
+   - chat-utils.ts L154-190 (QUIZ_INTENT_KEYWORDS — مكرر)
+   - doc-intent-classifier.ts L244-267 (quiz intent)
+
+═══ التوصيات (مش تنفيذ — بس توصيات للتشخيص): ═══
+- `chat-utils.ts` هو الـ trigger library الرئيسي — أي عملية cleanup لازم تبدأ منه.
+- `doc-intent-classifier.ts` (1356 سطر) فيه ~300 regex pattern — ده أكبر مصدر للـ triggers.
+- `stream/route.ts` فيه pre-scan layer (L2652-2863) بيـ execute tools قبل الـ LLM — ده الأكثر خطورة لأنه بيتخطى الـ LLM تماماً.
+- `autonomous-agent.ts` بيـ trigger pip install تلقائي بناءً على 9 keyword groups.
+- `anzaro-smart-ball-detector.ts` و `media-intent-llm.ts` بـ regex pattern matching كـ fast-path قبل LLM fallback.
+- `mcp-chat-integration.ts` فيه ~30 regex trigger للأدوات المتخصصة (مش في الـ explicit list لكن مهم).
+- الـ V.82 comment في stream/route.ts L223 ("NO MORE REGEX TRIGGERS") مش صحيح بالكامل — الـ imports والـ calls لسه شغالة.
+
+*Last updated: 2026-07-26 (audit-triggers) — Full trigger audit complete, no files modified*
+
+---
+Task ID: v93-master-prompt-execution
+Agent: main (Z.ai Code)
+Task: تنفيذ الماستر برومبت — Zero-Trigger Architecture + Self-Healing Environment + Format Matching
+
+### الخطوات اللي اتنفذت:
+
+**Step 1 — Audit (تم بواسطة Explore agent):**
+- اتعمل audit شامل لكل الـ regex/keyword triggers
+- اتلاقي ~500+ trigger pattern في 12+ ملف
+- أخطرها: `stream/route.ts` pre-scan layer (L2225) و `autonomous-agent.ts` keyword auto-install
+- `doc-intent-classifier.ts` فيه ~300 regex (أكبر مصدر)
+
+**Step 2 — Dockerfile (V.93):**
+- اتعمل pre-install لكل المكتبات الشائعة:
+  - Document Generation: python-pptx, openpyxl, fpdf2, weasyprint, reportlab, python-docx
+  - Data Science: pandas, numpy, scipy, matplotlib, seaborn, yfinance, ta, pandas-ta, scikit-learn
+  - Media: gTTS, pydub, Pillow, PyMuPDF
+  - Utilities: qrcode, requests, beautifulsoup4, lxml, sympy, pyfiglet, wikipedia
+- ده بيلغي الحاجة لـ runtime install في أغلب الحالات
+
+**Step 3 — Persistent Auto-Installer (V.93):**
+- اتعمل `src/lib/persistent-installer.ts`
+- `installPythonPackagePersistent()` — بـ install + بيكتب في `requirements-runtime.txt`
+- الـ Dockerfile CMD بيشوف الملف ده عند الـ startup ويثبت كل اللي فيه
+- ده "self-healing environment" — الأدوات اللي بتـ install وقت التشغيل بتفضل موجودة
+
+**Step 4 — LLM Intent Parser (V.93):**
+- `LLMCapabilityAnalysis` دلوقتي فيه:
+  - `requestedFormat`: pdf, pptx, xlsx, docx, mp3, mp4, png, csv, json, text, python_code, chart, none
+  - `requestedAction`: وصف العملية
+  - `shouldGenerateFile`: boolean
+- الـ LLM prompt بقى يطلب format matching صريح
+- قواعد صارمة: "ممنوع تستبدل format بـ format تاني! لو طلب PowerPoint → اعمل pptx فقط"
+
+**Step 5 — Disable Pre-Scan Triggers (V.93):**
+- الـ pre-scan layer في `stream/route.ts` (L2225-2862) اتعطل بـ `if (false) {`
+- الـ LLM بقى هو اللي بياخد قرار استدعاء الأدوات (LLM-driven intent parsing)
+- الـ code الأصلي محفوظ (مش محذوف) عشان نقدر نرجعله لو احتجنا
+
+### ملاحظات بصراحة:
+- مسح 300+ regex من `doc-intent-classifier.ts` في خطوة واحدة خطير (هيكسر Smart Doc pipeline)
+- اتعطل الأخطر (pre-scan layer)، والباقي هيتعطل تدريجياً
+- الـ Dockerfile pre-install هو الحل الجذري للأدوات
+- الـ persistent installer بيضمن إن أي أداة جديدة تفضل موجودة
+
+### اترفعت على HF:
+- Dockerfile, persistent-installer.ts, llm-capability-detector.ts, stream/route.ts
+- الـ Space هيـ rebuild (10-15 دقيقة)
+
+*Last updated: 2026-07-26 (V.93) — Master Prompt execution*

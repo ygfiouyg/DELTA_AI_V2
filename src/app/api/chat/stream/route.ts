@@ -2223,14 +2223,12 @@ export async function POST(request: NextRequest) {
             // ────────────────────────────────────────────────────────────────────
             // TOP-LEVEL PRE-SCAN LAYER (contacts-fix-1)
             // ────────────────────────────────────────────────────────────────────
-            // المشكلة: الـ LLM (أي provider) لما بيشوف system prompt بيقول "استخدم أداة
-            // google_contacts_reader" بيطبع JSON-as-text بدل ما يستدعي الأداة فعلاً.
-            // والحل القديم كان مدفون جوه streamFromZhipuAI() — اللي مش بيتندى أبداً
-            // (dead code). فعشان نحل المشكلة لكل الـ providers (ZAI, Pollinations,
-            // Cerebras, HF, Groq, Gemini, …) بنعمل pre-scan هنا على أعلى مستوى:
-            // لو رسالة المستخدم فيها طلب واضح لرقم/جهة اتصال → ننفّذ الأداة مباشرة
-            // → نـ format الرد (بـ LLM لو متاح، أو template كـ fallback) → نقفل الـ stream.
+            // V.93: MASTER PROMPT — ZERO-TRIGGER POLICY
+            // تم تعطيل الـ pre-scan layer (keyword-based tool execution).
+            // الـ LLM هو اللي بياخد قرار استدعاء الأدوات (LLM-driven intent parsing).
+            // الـ code الأصلي محفوظ تحت في الـ else branch بس مش بيـ trigger.
             // ────────────────────────────────────────────────────────────────────
+            if (false) {
             try {
               const _hasImageAttachmentsPre = parsed.attachments.some((a) => a.type === 'image');
               const _isFileGenIntent = isFileGenerationIntent(parsed.cleanedMessage || message);
@@ -2861,6 +2859,7 @@ ${toolData}${extraStr}
               } catch (preScanError) {
                 console.warn('[Chat] Pre-scan layer failed:', preScanError instanceof Error ? preScanError.message : String(preScanError));
               }
+            } // V.93: end of if (false) — pre-scan disabled
 
               // ── TOOL-CALLING LAYER (LLM-driven) — fallback لو الـ pre-scan ملقش طلب ──
               try {

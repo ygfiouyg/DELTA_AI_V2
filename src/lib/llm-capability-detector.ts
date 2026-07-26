@@ -28,6 +28,10 @@ export interface LLMCapabilityAnalysis {
     purpose: string;
     available: boolean;
   }>;
+  // V.93: Format matching — إيه الـ format المطلوب بالظبط
+  requestedFormat?: string; // 'pdf' | 'pptx' | 'xlsx' | 'docx' | 'mp3' | 'mp4' | 'png' | 'csv' | 'json' | 'text' | 'python_code' | 'chart' | 'none'
+  requestedAction?: string; // وصف العملية المطلوبة
+  shouldGenerateFile?: boolean; // هل المفروض يولّد ملف؟
 }
 
 /**
@@ -47,6 +51,8 @@ export async function analyzeCapabilityWithLLM(
 3. إيه نوع التثبيت لكل أداة؟ (pip, npm, docker, local, system)
 4. إيه أمر التثبيت لكل أداة؟
 5. إيه استعلام البحث في GitHub؟
+6. **إيه الـ format المطلوب بالظبط؟** (pdf, pptx, xlsx, docx, mp3, mp4, png, csv, json, text, python_code, chart, none)
+7. هل المفروض يولّد ملف؟
 
 الأدوات المتاحة حالياً: ${availableTools.join(', ')}
 
@@ -61,6 +67,9 @@ export async function analyzeCapabilityWithLLM(
   "githubSearchQuery": "استعلام البحث أو فارغ",
   "reason": "السبب",
   "hasToolLocally": true/false,
+  "requestedFormat": "pdf|pptx|xlsx|docx|mp3|mp4|png|csv|json|text|python_code|chart|none",
+  "requestedAction": "وصف العملية المطلوبة",
+  "shouldGenerateFile": true/false,
   "allTools": [
     {"name": "pytube", "type": "pip", "purpose": "تنزيل الفيديو", "available": false},
     {"name": "pydub", "type": "pip", "purpose": "استخراج الصوت", "available": false},
@@ -81,7 +90,19 @@ export async function analyzeCapabilityWithLLM(
 - لو الأداة Python stdlib (مثل os, json, smtplib) → available: true, type: "system"
 - لو الطلب محادثة عادية → needsSpecialTool: false, allTools: []
 - لو الطلب تحليل بيانات أو رسم بياني → ده كود Python مش توليد صورة!
-- toolName = الأداة الأولى في allTools (الأهم)`;
+- toolName = الأداة الأولى في allTools (الأهم)
+
+**قواعد Format Matching (مهمة جداً):**
+- لو المستخدم قال "PowerPoint" أو "باوربوينت" أو "ppt" → requestedFormat: "pptx" (مش PDF!)
+- لو المستخدم قال "Excel" أو "اكسل" أو "xlsx" → requestedFormat: "xlsx"
+- لو المستخدم قال "PDF" أو "بي دي اف" → requestedFormat: "pdf"
+- لو المستخدم قال "Word" أو "وورد" أو "docx" → requestedFormat: "docx"
+- لو المستخدم قال "MP3" أو "ملف صوتي" أو "صوت" → requestedFormat: "mp3"
+- لو المستخدم قال "رسم بياني" أو "chart" أو "مخطط" → requestedFormat: "chart"
+- لو المستخدم قال "صورة" أو "ارسم" → requestedFormat: "png"
+- لو المستخدم قال "تحليل" أو "حساب" بدون ما يطلب ملف → requestedFormat: "python_code"
+- لو المستخدم بيسأل سؤال → requestedFormat: "none", shouldGenerateFile: false
+- **ممنوع تستبدل format بـ format تاني!** لو طلب PowerPoint → اعمل pptx فقط، مش PDF.`;
 
   try {
     const { getZAIClient } = await import('./chat-utils');
@@ -164,7 +185,11 @@ export async function analyzeCapabilityWithLLM(
       githubSearchQuery: parsed.githubSearchQuery || '',
       reason: parsed.reason || '',
       hasToolLocally,
-      allTools, // V.76: Pass the VERIFIED allTools (not the LLM's untrusted version)
+      allTools,
+      // V.93: Format matching
+      requestedFormat: parsed.requestedFormat || 'none',
+      requestedAction: parsed.requestedAction || '',
+      shouldGenerateFile: parsed.shouldGenerateFile || false,
     };
   } catch (error) {
     console.warn('[LLMCapability] Analysis failed:', error instanceof Error ? error.message : String(error));
@@ -181,6 +206,9 @@ function defaultAnalysis(): LLMCapabilityAnalysis {
     githubSearchQuery: '',
     reason: '',
     hasToolLocally: true,
+    requestedFormat: 'none',
+    requestedAction: '',
+    shouldGenerateFile: false,
   };
 }
 
