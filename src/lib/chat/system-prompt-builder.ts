@@ -371,10 +371,14 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
     const userMessage = message || (parsed as any)?.message || '';
     const matching = await findMatchingFrameworks(userMessage);
     if (matching.length > 0) {
-      const frameworksContext = await getFrameworksContext();
-      if (frameworksContext) {
-        systemPrompt += frameworksContext;
+      // V.97: استخدم ZAI context بدل OpenAI — عندنا GLM-5.2!
+      const { getFrameworksZAIContext, writeZAIWrappersToFile } = await import('@/lib/framework-zai-wrappers');
+      const zaiContext = getFrameworksZAIContext();
+      if (zaiContext) {
+        systemPrompt += zaiContext;
       }
+      // اكتب wrappers file عشان الـ executePythonCode يـ import منها
+      await writeZAIWrappersToFile();
     }
   } catch (fwErr) {
     // frameworks loading is optional
