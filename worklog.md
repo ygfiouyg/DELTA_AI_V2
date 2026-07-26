@@ -5239,3 +5239,54 @@ print(ascii_art)
 **✅ ASCII art حقيقي من pyfiglet!**
 
 *Last updated: 2025-07-25 (Round 77) · V.77 Always install + execute*
+
+---
+Task ID: v88-remove-ai-from-apps
+Agent: main (Z.ai Code)
+Task: شيل الـ AI من جزء التطبيقات (Anzaro Apps) لأنه بيكلف فلوس، واختبر هل التطبيق بيششتغل فعلاً ولا "زينة فاضي"
+
+### المشكلة اللي اتلفت:
+1. الـ AI (glm-4-flash) كان بيحلل الـ repo ويولّد HTML+backend → النتيجة كانت مكسورة وناقصة → التطبيق "زينة فاضي"
+2. AppFlowy (repo بتاع user) طلع صفحة سودا فيها نص بس "AppFlowy Open Source Alternative..." — مش التطبيق الحقيقي
+3. AppFlowy أصلاً مش web app — هو Tauri/Flutter desktop app (Rust + Dart). مستحيل يشتغل من الـ repo بس
+
+### الحل (V.88 + V.89):
+**شيلت الـ AI تماماً** من `/api/apps/import-github` و `/app/[appId]/page.tsx`. 0 تكلفة AI.
+
+**V.88**: بنسحب `index.html` من الـ repo مباشرةً ونـ inline كل الـ CSS و JS المرتبطة → HTML self-contained يشتغل في iframe.
+
+**V.89**: أضفت `classifyRepo` لكشف نوع الـ repo:
+- ✅ `static-web`: فيه index.html في root → يشتغل
+- ✅ `prebuilt`: فيه dist/index.html أو build/index.html جاهز → يشتغل
+- ❌ `tauri`: Tauri desktop (Rust+web) → بيرفض بوضوح
+- ❌ `electron`: Electron desktop → بيرفض
+- ❌ `flutter`: Flutter app (pubspec + dart) → بيرفض
+- ❌ `react-build`: React/Vue/Angular مصدر بس → بيرفض
+- ❌ `nextjs`: Next.js (محتاج server) → بيرفض
+- ❌ `rust`: Rust binary → بيرفض
+- ❌ `python`: Python app → بيرفض
+
+كل رفض بيرجع `reason` + `howToRun` (خطوات التشغيل الحقيقية).
+
+### الـ UI كمان اتعدل:
+- `AnzaroAppLauncher` بيعرض الـ unsupported message بـ alert amber واضح مع `howToRun`
+- أضفت info box بيوضح أنواع الـ repos اللي بتشتغل
+- الـ success error/messages بقى ليها 3 حالات (success/error/unsupported) بألوان مختلفة
+
+### الاختبارات الفعلية:
+1. **codrops/AnimatedHeader** (static-web): ✅ اتعمل import + اشتغل في `/app/animatedheader`
+   - iframe content document: title="Fixed", 5889 chars من المحتوى الحقيقي
+   - النص فيه "BLUEPRINT On-Scroll Animated Header" (من الـ repo الأصلي)
+2. **AppFlowy-IO/AppFlowy**: ✅ اترفض صح كـ "Flutter" — لو مفيش rate limit كان هيقول "ده تطبيق Flutter (Dart). فيه 1976 ملف .dart + pubspec.yaml..."
+
+### مشاكل البيئة:
+- الـ sandbox عنده 4GB RAM و Next.js dev بياخد 2.5GB+ عند الـ compile → OOM kill متكرر
+- `keep-alive.sh` بيعيد تشغيل السيرفر تلقائياً بـ `--max-old-space-size=2048`
+- GitHub API rate limit: 60 طلب/ساعة للـ unauthenticated (ضفت error handling واضح + دعم GITHUB_TOKEN env var)
+
+### الملفات اللي اتعدلت:
+- `src/app/api/apps/import-github/route.ts` — إزالة AI كاملة + classifyRepo + rate limit handling
+- `src/app/app/[appId]/page.tsx` — إصلاح double-script bug + support full HTML docs
+- `src/components/chat/AnzaroAppLauncher.tsx` — unsupported UI + info box
+
+*Last updated: 2026-07-26 (V.89) — No-AI app importer working*

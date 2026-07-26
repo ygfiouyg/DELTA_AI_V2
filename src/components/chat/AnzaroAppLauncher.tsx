@@ -3,14 +3,15 @@
 /**
  * AnzaroAppLauncher
  * =================
- * V.87: واجهة سحب التطبيقات من GitHub + تشغيلها فوراً بدون موافقة أدمن.
+ * V.88: واجهة سحب التطبيقات من GitHub + تشغيلها فوراً بدون AI وبدون موافقة أدمن.
  *
- * - المستخدم: يحط URL → التطبيق يتسحب ويتثبت ويشتغل فوراً
+ * - المستخدم: يحط URL → التطبيق يتسحب (index.html + assets) ويشتغل فوراً
+ * - 0 تكلفة AI — بنستخدم كود الـ repo الأصلي زي ما هو
  * - مفيش موافقة أدمن — كل حاجة أوتوماتيك
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { Github, Loader2, CheckCircle2, XCircle, Clock, Smartphone, Download, ExternalLink, ShieldCheck } from 'lucide-react';
+import { Github, Loader2, CheckCircle2, XCircle, Clock, Smartphone, Download, ExternalLink, ShieldCheck, AlertTriangle, Info } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useAuthStore } from '@/store/auth-store';
@@ -48,7 +49,7 @@ export function AnzaroAppLauncher() {
   const [loading, setLoading] = useState(true);
   const [importUrl, setImportUrl] = useState('');
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<string | null>(null);
+  const [importResult, setImportResult] = useState<{ kind: 'success' | 'error' | 'unsupported'; message: string; details?: string; howToRun?: string } | null>(null);
   const [expandedApp, setExpandedApp] = useState<string | null>(null);
 
   const fetchApps = useCallback(async () => {
@@ -79,14 +80,22 @@ export function AnzaroAppLauncher() {
       });
       const data = await resp.json();
       if (resp.ok && data.success) {
-        setImportResult(data.message || 'تم السحب ✅');
+        setImportResult({ kind: 'success', message: data.message || 'تم السحب ✅' });
         setImportUrl('');
         fetchApps();
+      } else if (data.supported === false) {
+        // repo مش web app — اعرض السبب بصراحة
+        setImportResult({
+          kind: 'unsupported',
+          message: data.error || 'التطبيق ده مش web app',
+          details: data.reason,
+          howToRun: data.howToRun,
+        });
       } else {
-        setImportResult(data.error || 'فشل السحب');
+        setImportResult({ kind: 'error', message: data.error || 'فشل السحب' });
       }
     } catch (e) {
-      setImportResult('فشل الاتصال');
+      setImportResult({ kind: 'error', message: 'فشل الاتصال' });
     }
     setImporting(false);
   };
@@ -117,9 +126,17 @@ export function AnzaroAppLauncher() {
           <Github className="size-5 text-zinc-300" />
           <h3 className="text-sm font-semibold text-zinc-100">سحب تطبيق من GitHub</h3>
         </div>
-        <p className="text-[11px] text-zinc-500 mb-3">
-          حط رابط repo والـ AI هيحوله لتطبيق كامل (frontend + backend) يشتغل جوه Anzaro.
+        <p className="text-[11px] text-zinc-500 mb-2">
+          حط رابط repo والتطبيق يتسحب زي ما هو (HTML + CSS + JS) ويشتغل فوراً. <span className="text-emerald-400">بدون AI — 0 تكلفة.</span>
         </p>
+        <div className="mb-3 rounded-md bg-zinc-900/50 border border-zinc-700/30 p-2">
+          <p className="text-[10px] text-zinc-500 mb-1 flex items-center gap-1"><Info className="size-3" /> بيشتغل مع:</p>
+          <ul className="text-[10px] text-zinc-400 space-y-0.5 mr-4">
+            <li>✅ Repos فيها <code className="text-emerald-400">index.html</code> في الـ root (vanilla HTML/CSS/JS)</li>
+            <li>✅ Repos فيها <code className="text-emerald-400">dist/</code> أو <code className="text-emerald-400">build/</code> جاهز</li>
+            <li>❌ مش بيشتغل: Tauri, Electron, Flutter, Next.js, React/Vue بدون build</li>
+          </ul>
+        </div>
         <div className="flex gap-2">
           <input
             value={importUrl}
@@ -138,7 +155,29 @@ export function AnzaroAppLauncher() {
           </Button>
         </div>
         {importResult && (
-          <p className="mt-2 text-[11px] text-zinc-400">{importResult}</p>
+          <div className={`mt-3 rounded-lg p-3 text-[11px] ${
+            importResult.kind === 'success' ? 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-300' :
+            importResult.kind === 'unsupported' ? 'bg-amber-500/10 border border-amber-500/30 text-amber-200' :
+            'bg-red-500/10 border border-red-500/30 text-red-300'
+          }`}>
+            <div className="flex items-start gap-2">
+              {importResult.kind === 'success' && <CheckCircle2 className="size-4 shrink-0 mt-0.5" />}
+              {importResult.kind === 'unsupported' && <AlertTriangle className="size-4 shrink-0 mt-0.5" />}
+              {importResult.kind === 'error' && <XCircle className="size-4 shrink-0 mt-0.5" />}
+              <div className="flex-1 min-w-0">
+                <p className="font-medium">{importResult.message}</p>
+                {importResult.details && (
+                  <p className="mt-1 text-[10px] opacity-90 leading-relaxed">{importResult.details}</p>
+                )}
+                {importResult.howToRun && (
+                  <div className="mt-2 pt-2 border-t border-current/20">
+                    <p className="text-[10px] font-semibold flex items-center gap-1 mb-1"><Info className="size-3" /> عشان يشتغل:</p>
+                    <p className="text-[10px] opacity-90 font-mono leading-relaxed whitespace-pre-wrap">{importResult.howToRun}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         )}
       </div>
 
@@ -227,8 +266,8 @@ export function AnzaroAppLauncher() {
 
                 {expandedApp === app.id && app.aiReview && (
                   <div className="mt-2 pt-2 border-t border-zinc-700/30">
-                    <p className="text-[9px] font-bold text-amber-400 mb-1 flex items-center gap-1">
-                      <ShieldCheck className="size-3" /> AI Review
+                    <p className="text-[9px] font-bold text-emerald-400 mb-1 flex items-center gap-1">
+                      <ShieldCheck className="size-3" /> معلومات الاستيراد
                     </p>
                     <p className="text-[10px] text-zinc-400 whitespace-pre-wrap">{app.aiReview}</p>
                   </div>
