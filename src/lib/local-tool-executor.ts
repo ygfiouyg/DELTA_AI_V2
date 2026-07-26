@@ -452,7 +452,7 @@ export function parseVCardFromMessage(message: string): string | null {
 export async function executePythonCode(
   code: string,
   timeoutMs: number = 30_000
-): Promise<{ success: boolean; output: string; error: string }> {
+): Promise<{ success: boolean; output: string; error: string; images?: string[] }> {
   try {
     const { exec } = await import('child_process');
     const { promisify } = await import('util');
@@ -463,22 +463,40 @@ export async function executePythonCode(
     const scriptPath = path.join(DOWNLOAD_DIR, `exec_${fileId}.py`);
     await fs.mkdir(DOWNLOAD_DIR, { recursive: true });
 
+    // V.91: استخدم DOWNLOAD_DIR الصحيح (مش hardcoded /app/download)
     // V.83: Wrap code — auto-save matplotlib figures + capture output
+    // V.91: كل صورة بـ UUID عشان ما تتعارضش
+    const figuresDir = DOWNLOAD_DIR.replace(/\\/g, '\\\\');
     const fullCode = `
 import sys
 import io
+import os
 import matplotlib
-matplotlib.use('Agg')  # V.83: Force non-interactive backend — no plt.show() needed
+matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-# V.83: Override plt.show() to save figure instead
+
+_figures_saved = []
 _original_show = plt.show
-_fig_count = [0]
 def _save_show(*args, **kwargs):
-    _fig_count[0] += 1
-    plt.savefig(f'/app/download/fig_{_fig_count[0]}.png', dpi=100, bbox_inches='tight')
-    print(f"[Figure saved: fig_{_fig_count[0]}.png]")
+    import uuid as _uuid
+    _fname = f'fig_${fileId}_{len(_figures_saved)+1}.png'
+    _fpath = os.path.join('${figuresDir}', _fname)
+    # استخدم الـ original savefig عشان ما نـ triggerش الـ wrapper
+    _original_savefig(_fpath, dpi=100, bbox_inches='tight')
+    _figures_saved.append(_fpath)
+    print(f"[Figure saved: {_fname}]")
     plt.close()
 plt.show = _save_show
+
+# V.91: كمان اخترق savefig عشان نـ collect أي صورة بـ savefig مباشرة
+# بس نتأكد إننا ما نضيفش نفس الصورة مرتين
+_original_savefig = plt.savefig
+def _wrapped_savefig(fname, *a, **kw):
+    _original_savefig(fname, *a, **kw)
+    if isinstance(fname, str) and fname not in _figures_saved:
+        _figures_saved.append(fname)
+        print(f"[Figure saved: {os.path.basename(fname)}]")
+plt.savefig = _wrapped_savefig
 
 _old_stdout = sys.stdout
 _capture = io.StringIO()
@@ -503,6 +521,9 @@ if _last and not _captured and not _last.startswith(('print', 'import', 'from', 
             print(_result)
     except:
         pass
+# V.91: Print list of saved figures for the executor to pick up
+if _figures_saved:
+    print("[FIGURES_LIST]" + "|".join(_figures_saved) + "[/FIGURES_LIST]")
 sys.stdout.flush()
 `;
     await fs.writeFile(scriptPath, fullCode, 'utf-8');
@@ -514,17 +535,32 @@ sys.stdout.flush()
       env: { ...process.env, PYTHONUNBUFFERED: '1' },
     });
 
-    // Cleanup
+    // Cleanup script
     await fs.unlink(scriptPath).catch(() => {});
 
     const output = stdout.trim();
     const error = stderr.trim();
 
-    if (error && !output) {
-      return { success: false, output: '', error: error.substring(0, 500) };
+    // V.91: استخرج قائمة الصور المولّدة من الـ output
+    const images: string[] = [];
+    const figListMatch = output.match(/\[FIGURES_LIST\](.*?)\[\/FIGURES_LIST\]/);
+    if (figListMatch) {
+      const figPaths = figListMatch[1].split('|').filter(Boolean);
+      for (const figPath of figPaths) {
+        try {
+          await fs.access(figPath);
+          images.push(figPath);
+        } catch {}
+      }
     }
 
-    return { success: true, output: output.substring(0, 2000), error: error.substring(0, 500) };
+    if (error && !output) {
+      return { success: false, output: '', error: error.substring(0, 500), images };
+    }
+
+    // V.91: شيل الـ FIGURES_LIST من الـ output قبل ما نرجعه
+    const cleanOutput = output.replace(/\[FIGURES_LIST\].*?\[\/FIGURES_LIST\]/, '').trim();
+    return { success: true, output: cleanOutput.substring(0, 2000), error: error.substring(0, 500), images };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     return { success: false, output: '', error: errMsg.substring(0, 500) };

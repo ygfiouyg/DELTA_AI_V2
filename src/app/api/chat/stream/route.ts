@@ -3096,6 +3096,25 @@ ${toolData}${extraStr}
                         } else if (execResult.error) {
                           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\u274c **\u062e\u0637\u0623:**\n```\n' + execResult.error.substring(0, 300) + '\n```\n' })}\n\n`));
                         }
+
+                        // V.91: اعرض الصور المولّدة (matplotlib charts) في الـ chat
+                        if (execResult.images && execResult.images.length > 0) {
+                          console.log(`[Chat] V.91: Found ${execResult.images.length} images to display`);
+                          for (const imgPath of execResult.images) {
+                            try {
+                              const { promises: fsImg } = await import('fs');
+                              const imgBuf = await fsImg.readFile(imgPath);
+                              const base64 = imgBuf.toString('base64');
+                              const dataUrl = `data:image/png;base64,${base64}`;
+                              const fileName = imgPath.split('/').pop() || 'chart.png';
+                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `\n\n📊 **الرسم البياني:** ${fileName}\n\n` })}\n\n`));
+                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ generatedImage: { dataUrl, prompt: fileName } })}\n\n`));
+                              console.log(`[Chat] V.91: Displayed image ${fileName} (${imgBuf.length} bytes)`);
+                            } catch (imgErr) {
+                              console.warn(`[Chat] V.91: Failed to display image ${imgPath}:`, imgErr instanceof Error ? imgErr.message : String(imgErr));
+                            }
+                          }
+                        }
                       }
                     } catch (execErr) {
                       console.warn('[Chat] V.75: Code exec failed:', execErr instanceof Error ? execErr.message : String(execErr));
@@ -4552,6 +4571,27 @@ ${toolData}${extraStr}
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `✅ **النتيجة:**\n\`\`\`\n${execResult.output}\n\`\`\`\n` })}\n\n`));
                       } else if (execResult.error) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `❌ **خطأ:**\n\`\`\`\n${execResult.error.substring(0, 300)}\n\`\`\`\n` })}\n\n`));
+                      }
+
+                      // V.91: اعرض الصور المولّدة (matplotlib charts) في الـ chat
+                      if (execResult.images && execResult.images.length > 0) {
+                        console.log(`[Chat] V.91c: Found ${execResult.images.length} images to display`);
+                        for (const imgPath of execResult.images) {
+                          try {
+                            const { promises: fsImg } = await import('fs');
+                            const imgBuf = await fsImg.readFile(imgPath);
+                            const base64 = imgBuf.toString('base64');
+                            const dataUrl = `data:image/png;base64,${base64}`;
+                            const fileName = imgPath.split('/').pop() || 'chart.png';
+                            if (!streamClosed) {
+                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `\n\n📊 **الرسم البياني:** ${fileName}\n\n` })}\n\n`));
+                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ generatedImage: { dataUrl, prompt: fileName } })}\n\n`));
+                              console.log(`[Chat] V.91c: Displayed image ${fileName} (${imgBuf.length} bytes)`);
+                            }
+                          } catch (imgErr) {
+                            console.warn(`[Chat] V.91c: Failed to display image ${imgPath}:`, imgErr instanceof Error ? imgErr.message : String(imgErr));
+                          }
+                        }
                       }
                     }
                   } else {

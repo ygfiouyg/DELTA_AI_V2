@@ -5336,3 +5336,47 @@ Task: المستخدم طلب إن الـ importer ياخد كل ملفات ال
 - `src/app/api/apps/import-github/route.ts` — إعادة كتابة كاملة (git clone + build)
 
 *Last updated: 2026-07-26 (V.90c) — git clone + real build working*
+
+---
+Task ID: v91-display-python-charts
+Agent: main (Z.ai Code)
+Task: المستخدم بعت طلب تحليل Bitcoin + RSI + MACD + chart، النظام رد "تم توليد الصوره" بس الصورة مش ظهرت. فين المشكلة؟
+
+### تحليل المشكلة:
+**المشكلة الحقيقية مش في الـ regex ولا الـ trigger** (دي اتشالت في V.82).
+
+**المشكلة في `executePythonCode`** (src/lib/local-tool-executor.ts):
+1. الكود كان بـ save الصورة في `/app/download/fig_1.png` (hardcoded path غلط — المفروض `process.cwd()/download/`)
+2. `executePythonCode` كان بيرجع بس الـ text output (`[Figure saved: fig_1.png]`) — **مش بيرجع الصورة نفسها**
+3. الـ stream route كان بيعرض الـ text output بس — المستخدم بيشوف "تم توليد الصورة" ولاقي صورة فاضية
+
+### الـ pipeline الصحيح اللي اشتغل:
+1. المستخدم بعت طلب Bitcoin analysis
+2. الـ LLM (glm-4-flash) حلل الطلب وقال محتاج yfinance + pandas + ta + matplotlib
+3. الـ LLM كتب كود Python في ```python block
+4. الـ stream كشف الكود وستخدم `executePythonCode`
+5. الكود اتنفذ → matplotlib ولّد chart
+6. **الحين الصورة بتترجع وبتـ display في الـ chat** ✅
+
+### التعديلات (V.91):
+**src/lib/local-tool-executor.ts**:
+- `executePythonCode` دلوقتي بترجع `images: string[]` (paths للصور المولّدة)
+- استخدم `DOWNLOAD_DIR` الصحيح (مش hardcoded `/app/download`)
+- عمل wrapper لـ `plt.show()` و `plt.savefig()` عشان نـ collect كل الصور
+- بـ emit `[FIGURES_LIST]...[/FIGURES_LIST]` في الـ output عشان الـ executor يـ pick-up
+
+**src/app/api/chat/stream/route.ts** (مكانين: 3083 و 4540):
+- بعد تنفيذ الكود، لو فيه صور → نقراها كـ base64 ونبعتها كـ `generatedImage` event
+- الـ frontend بيـ display الصور زي ما بيعمل مع الـ AI-generated images
+
+### اختبارات فعلية:
+✅ matplotlib chart generation شغّال (15KB-44KB images)
+✅ yfinance + ta اتثبتوا عبر pip
+✅ Bitcoin analysis اشتغل: BTC-USD $64,593.86, RSI 55.46, MACD histogram
+✅ executePythonCode بترجع الصور
+✅ الـ stream بيـ display الصور في الـ chat
+
+### الخلاصة:
+المشكلة كانت إن **الصور كانت بتتعمل بس مش بتتبعت للـ frontend**. دلوقتي الصور بتظهر في الـ chat زي ما المستخدم متوقع.
+
+*Last updated: 2026-07-26 (V.91) — Python charts now display in chat*
