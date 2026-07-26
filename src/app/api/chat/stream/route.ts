@@ -225,10 +225,127 @@ export async function POST(request: NextRequest) {
     // The LLM-based capability detector (V.79) handles ALL tool detection now
 
     // V.82: Disable media gen regex trigger — let the LLM decide
-    // The LLM capability detector will handle image/video generation requests
-    const mediaGenIntent = null; // V.82: disabled — was detectInlineMediaGenIntent()
-    const shouldGenerateImage = false; // V.82: LLM decides
-    const shouldGenerateVideo = false; // V.82: LLM decides
+    const mediaGenIntent = null;
+    const shouldGenerateImage = false;
+    const shouldGenerateVideo = false;
+
+    // V.86: GITHUB REPO CLONING — if user pastes a GitHub URL, clone + install + run
+    const githubUrlMatch = message.match(/(https?:\/\/github\.com\/[^\s]+)/i);
+    if (githubUrlMatch) {
+      const repoUrl = githubUrlMatch[1];
+      console.log(`[Chat] V.86: GitHub repo detected: ${repoUrl}`);
+
+      try {
+        const { exec } = await import('child_process');
+        const { promisify } = await import('util');
+        const { promises: fs } = await import('fs');
+        const path = (await import('path')).default;
+        const execAsync = promisify(exec);
+
+        // Extract repo name from URL
+        const repoName = repoUrl.split('/').pop()?.replace(/\.git$/, '') || 'github-app';
+        const installDir = path.join(process.cwd(), 'tools', repoName);
+        await fs.mkdir(path.join(process.cwd(), 'tools'), { recursive: true });
+
+        // Clone the repo
+        const sseResponse = `data: ${JSON.stringify({ content: `📦 جاري استنساخ التطبيق من GitHub...\n🔗 ${repoUrl}\n\n` })}\n\ndata: ${JSON.stringify({ content: `⚙️ استنساخ ${repoName}...` })}\n\n`;
+
+        try {
+          // Remove existing dir if exists
+          try { await fs.rm(installDir, { recursive: true, force: true }); } catch {}
+          await execAsync(`git clone --depth 1 ${repoUrl} "${installDir}"`, { timeout: 60_000 });
+          console.log(`[Chat] V.86: Cloned ${repoName} to ${installDir}`);
+
+          // List files
+          const files = await fs.readdir(installDir);
+          let fileList = files.slice(0, 20).join('\n• ');
+          let response = `✅ تم استنساخ التطبيق بنجاح!\n\n📁 المسار: tools/${repoName}/\n📂 الملفات (${files.length}):\n• ${fileList}\n\n`;
+
+          // Install dependencies if package.json exists (Node.js app)
+          if (files.includes('package.json')) {
+            response += `📦 جاري تثبيت dependencies (npm install)...\n`;
+            try {
+              await execAsync(`cd "${installDir}" && npm install`, { timeout: 120_000 });
+              response += `✅ npm install تم بنجاح!\n\n`;
+
+              // Try to run the app
+              const pkgContent = await fs.readFile(path.join(installDir, 'package.json'), 'utf-8');
+              const pkg = JSON.parse(pkgContent);
+              if (pkg.scripts?.start) {
+                response += `🚀 جاري تشغيل التطبيق (npm start)...\n`;
+                // Start in background — don't block the chat
+                execAsync(`cd "${installDir}" && nohup npm start > /tmp/${repoName}.log 2>&1 &`, { timeout: 5_000 }).catch(() => {});
+                response += `✅ التطبيق بدأ في الخلفية!\n📝 السجل: /tmp/${repoName}.log\n`;
+              }
+            } catch (npmErr) {
+              response += `⚠️ npm install فشل: ${npmErr instanceof Error ? npmErr.message.substring(0, 100) : 'خطأ'}\n`;
+            }
+          }
+
+          // Install dependencies if requirements.txt exists (Python app)
+          if (files.includes('requirements.txt')) {
+            response += `📦 جاري تثبيت Python dependencies...\n`;
+            try {
+              await execAsync(`cd "${installDir}" && pip3 install --break-system-packages -r requirements.txt`, { timeout: 120_000 });
+              response += `✅ Python dependencies تم تثبيتها!\n\n`;
+
+              // Try to run main.py or app.py
+              const pyEntry = files.includes('app.py') ? 'app.py' : files.includes('main.py') ? 'main.py' : null;
+              if (pyEntry) {
+                response += `🚀 جاري تشغيل ${pyEntry}...\n`;
+                const { stdout, stderr } = await execAsync(`cd "${installDir}" && timeout 10 python3 ${pyEntry} 2>&1`, { timeout: 15_000 });
+                if (stdout) response += `📋 النتيجة:\n\`\`\`\n${stdout.substring(0, 1000)}\n\`\`\`\n`;
+                if (stderr && !stdout) response += `⚠️ تحذير:\n\`\`\`\n${stderr.substring(0, 500)}\n\`\`\`\n`;
+              }
+            } catch (pipErr) {
+              response += `⚠️ pip install فشل: ${pipErr instanceof Error ? pipErr.message.substring(0, 100) : 'خطأ'}\n`;
+            }
+          }
+
+          // Install if setup.py or pyproject.toml exists
+          if (files.includes('setup.py') || files.includes('pyproject.toml')) {
+            response += `📦 جاري تثبيت الحزمة (pip install -e .)...\n`;
+            try {
+              await execAsync(`cd "${installDir}" && pip3 install --break-system-packages -e .`, { timeout: 120_000 });
+              response += `✅ الحزمة تم تثبيتها!\n\n`;
+            } catch (instErr) {
+              // Try regular pip install
+              try {
+                await execAsync(`pip3 install --break-system-packages ${repoUrl}`, { timeout: 120_000 });
+                response += `✅ تم تثبيت ${repoName} من GitHub!\n\n`;
+              } catch {
+                response += `⚠️ فشل التثبيت\n`;
+              }
+            }
+          }
+
+          response += `\n🎉 التطبيق **${repoName}** تم تثبيته في \`tools/${repoName}/\``;
+
+          const finalResponse = `data: ${JSON.stringify({ content: response })}\n\ndata: [DONE]\n\n`;
+          return new Response(finalResponse, {
+            headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+          });
+
+        } catch (cloneErr) {
+          // Clone failed — try pip install directly
+          console.log(`[Chat] V.86: Clone failed, trying pip install ${repoUrl}`);
+          try {
+            await execAsync(`pip3 install --break-system-packages ${repoUrl}`, { timeout: 120_000 });
+            const errResponse = `data: ${JSON.stringify({ content: `✅ تم تثبيت ${repoName} من GitHub عبر pip!\n\n📦 الحزمة جاهزة للاستخدام.` })}\n\ndata: [DONE]\n\n`;
+            return new Response(errResponse, {
+              headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+            });
+          } catch (pipErr2) {
+            const errResponse = `data: ${JSON.stringify({ content: `❌ فشل تثبيت ${repoName}. تأكد من أن الرابط صحيح.\nخطأ: ${pipErr2 instanceof Error ? pipErr2.message.substring(0, 200) : 'خطأ غير معروف'}` })}\n\ndata: [DONE]\n\n`;
+            return new Response(errResponse, {
+              headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
+            });
+          }
+        }
+      } catch (v86Err) {
+        console.warn('[Chat] V.86 GitHub clone failed:', v86Err);
+      }
+    }
     // The LLM analyzes the request and decides if a tool is needed.
     // If the tool is NOT available → search GitHub → install → notify user.
     // This is the TRUE autonomous agent — no regex, the model decides.
