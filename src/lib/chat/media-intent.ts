@@ -18,6 +18,20 @@ export function detectInlineMediaGenIntent(msg: string): { type: 'image' | 'vide
     /draw\s+(a\s+)?(conclusion|inference|distinction|parallel|comparison|line|boundary)/i,
     /draw\s+(attention|focus|from|out|up|on|near|closer|back|away|off)/i,
     /draw\s+the\s+(line|curtain|attention|conclusion)/i,
+    // V.81: Skip technical/analytical requests that use "رسم" or "chart"
+    /رسم\s*بياني/i,
+    /رسم\s*إحصائي/i,
+    /مخطط\s*بياني/i,
+    /chart\b/i,
+    /graph\b/i,
+    /plot\b/i,
+    /تحليل\s*(فني|تقني|بياني)/i,
+    /مؤشر\s*(القوة|النسبي)/i,
+    /macd\b/i,
+    /rsi\b/i,
+    /bitcoin\b/i,
+    /أسعار?\s*(الإغلاق|الحية|المباشرة)/i,
+    /توصية\s*(سريعة|فنية)/i,
   ];
   if (nonImageDrawPhrases.some(p => p.test(lower))) return null;
   // Arabic patterns for image generation
