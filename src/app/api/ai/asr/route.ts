@@ -222,7 +222,7 @@ export async function POST(request: NextRequest) {
     }
 
     // All external providers failed — V.102: try local Whisper
-    console.log('[ASR] All external providers failed, trying local Whisper...');
+    console.log('[ASR] Trying local Whisper...');
     try {
       const { promises: fs } = await import('fs');
       const path = (await import('path')).default;
@@ -231,26 +231,30 @@ export async function POST(request: NextRequest) {
       const execAsync = promisify(exec);
 
       // احفظ الصوت في ملف مؤقت
-      const tempPath = path.join(process.cwd(), 'exports', `asr_${Date.now()}.webm`);
-      await fs.mkdir(path.dirname(tempPath), { recursive: true });
-      await fs.writeFile(tempPath, audioBuffer);
+      const tempDir = path.join(process.cwd(), 'exports');
+      await fs.mkdir(tempDir, { recursive: true });
+      const tempAudio = path.join(tempDir, `asr_${Date.now()}.webm`);
+      const tempScript = path.join(tempDir, `whisper_${Date.now()}.py`);
+      await fs.writeFile(tempAudio, audioBuffer);
 
-      // شغل Whisper local
-      const pythonBin = '/home/z/.venv/bin/python3';
-      const script = `
+      // اكتب script في ملف (مش inline عشان نتجنب quoting issues)
+      await fs.writeFile(tempScript, `
 import whisper, json, sys
-model = whisper.load_model('base')
-result = model.transcribe('${tempPath}', language='${language}')
+model = whisper.load_model('tiny')
+result = model.transcribe("${tempAudio.replace(/"/g, '\\"')}", language="${language}")
 print(json.dumps({"text": result["text"]}))
-`;
-      const { stdout } = await execAsync(`${pythonBin} -c '${script.replace(/'/g, "'\\''")}'`, { timeout: 60_000 });
-      
-      // تنظيف
-      await fs.unlink(tempPath).catch(() => {});
+`, 'utf-8');
 
-      const result = JSON.parse(stdout.trim());
+      const pythonBin = '/home/z/.venv/bin/python3';
+      const { stdout } = await execAsync(`${pythonBin} "${tempScript}"`, { timeout: 90_000 });
+
+      // تنظيف
+      await fs.unlink(tempAudio).catch(() => {});
+      await fs.unlink(tempScript).catch(() => {});
+
+      const result = JSON.parse(stdout.trim().split('\n').pop() || '{}');
       if (result.text && result.text.trim()) {
-        traceAPI(`ASR: Local Whisper نجح (${result.text.length} حرف)`);
+        console.log(`[ASR] Local Whisper success: "${result.text.slice(0, 80)}"`);
         return NextResponse.json({
           text: result.text.trim(),
           language,
