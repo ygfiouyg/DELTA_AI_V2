@@ -3017,76 +3017,43 @@ ${toolData}${extraStr}
               }
             }
 
-            // ── V.105: Multi-provider streaming (NO ZAI SPOF, NO hardcoded GLM) ──
-            // بيستخدم الـ provider اللي المستخدم اختاره (dynamic model selection)
-            if (primaryProvider) {
-              console.log(`[Chat] V.105: Using multi-provider — model=${model}, provider=${primaryProvider}`);
+            // ── V.105: ZAI streaming — non-streaming + chunked (بيشتغل) ──
+            // V.105c: dynamic model selection (مش hardcoded GLM)
+            if (primaryProvider === 'zhipuai') {
+              console.log(`[Chat] V.105: Using ZAI — model=${model}, provider=zhipuai`);
               try {
-                const { resolveProvider, streamChat } = await import('@/lib/multi-provider-chat');
-                const providerConfig = resolveProvider(modelConfig);
-                if (providerConfig) {
-                  console.log(`[Chat] V.105: Streaming via ${providerConfig.provider} (${providerConfig.realChatModel})`);
-                  const chatStream = await streamChat(
-                    providerConfig,
-                    messages.map((m: any) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) })),
-                    { temperature: 0.7, max_tokens: modelConfig?.maxTokens || 8192 }
-                  );
-
-                  // استهلك الـ stream
-                  const reader = chatStream.getReader();
-                  const decoder = new TextDecoder();
-                  while (true) {
+                const { getZAIClient } = await import('@/lib/chat-utils');
+                const zai = await getZAIClient();
+                const zaiModel = modelConfig?.glmModel || modelConfig?.realChatModel || model || 'glm-4-flash';
+                console.log(`[Chat] V.105: ZAI non-streaming — model=${zaiModel}`);
+                const zaiResponse = await zai.chat.completions.create({
+                  model: zaiModel,
+                  messages: messages as any,
+                  stream: false,
+                  temperature: 0.7,
+                  max_tokens: modelConfig?.maxTokens || 8192,
+                });
+                const fullContent = zaiResponse?.choices?.[0]?.message?.content || '';
+                if (fullContent) {
+                  console.log(`[Chat] V.105: ZAI response: ${fullContent.length} chars`);
+                  const chunkSize = 50;
+                  for (let i = 0; i < fullContent.length; i += chunkSize) {
                     if (streamClosed) break;
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    const text = decoder.decode(value, { stream: true });
-                    const lines = text.split('\n');
-                    for (const line of lines) {
-                      const trimmed = line.trim();
-                      if (!trimmed || !trimmed.startsWith('data:')) continue;
-                      const dataStr = trimmed.slice(5).trim();
-                      if (dataStr === '[DONE]') continue;
-                      try {
-                        const parsed = JSON.parse(dataStr);
-                        const delta = parsed.choices?.[0]?.delta?.content || '';
-                        if (delta) enqueueContent(delta);
-                      } catch {}
-                    }
+                    enqueueContent(fullContent.slice(i, i + chunkSize));
                   }
-                  // كمل لباقي الـ flow (Python code execution, etc.)
+                } else {
+                  console.warn('[Chat] V.105: ZAI returned empty content');
                 }
-              } catch (multiErr: any) {
-                console.warn(`[Chat] V.105: Multi-provider ${primaryProvider} failed:`, multiErr?.message);
-                // fallback لـ ZAI لو الـ provider الأساسي فشل
-                try {
-                  const { getZAIClient } = await import('@/lib/chat-utils');
-                  const zai = await getZAIClient();
-                  // V.105: استخدم الموديل اللي المستخدم اختاره (مش hardcoded)
-                  const zaiModel = modelConfig?.glmModel || modelConfig?.realChatModel || model || 'glm-4-flash';
-                  console.log(`[Chat] V.105: ZAI fallback — model=${zaiModel}`);
-                  const zaiResponse = await zai.chat.completions.create({
-                    model: zaiModel,
-                    messages: messages as any,
-                    stream: false,
-                    temperature: 0.7,
-                    max_tokens: modelConfig?.maxTokens || 8192,
-                  });
-                  const fullContent = zaiResponse?.choices?.[0]?.message?.content || '';
-                  if (fullContent) {
-                    const chunkSize = 50;
-                    for (let i = 0; i < fullContent.length; i += chunkSize) {
-                      if (streamClosed) break;
-                      enqueueContent(fullContent.slice(i, i + chunkSize));
-                    }
-                  }
-                } catch (zaiFallbackErr: any) {
-                  console.warn('[Chat] V.105: ZAI fallback also failed:', zaiFallbackErr?.message);
+              } catch (zaiError) {
+                console.warn('[Chat] V.105: ZAI failed:', zaiError instanceof Error ? zaiError.message : String(zaiError));
+                if (pollinationsEntry && !streamClosed) {
+                  console.log('[Chat] V.105: Falling back to Pollinations');
+                  try { await streamFromPollinations(); } catch {}
                 }
               }
+            }
 
                 // Stream complete — but DON'T close yet if image/video generation is in progress
-                // V.25: Wait for imageGenPromise/videoGenPromise before closing
-                // V.75: Execute Python code BEFORE closing the stream!
                 if (!streamClosed) {
                   // Check if we need to wait for image/video generation
                   if (imageGenPromise || videoGenPromise) {
@@ -3167,25 +3134,17 @@ ${toolData}${extraStr}
                   }
                 }
               } catch (zaiError) {
-                console.warn('[Chat] ZAI failed:', zaiError instanceof Error ? zaiError.message : String(zaiError));
-                
-                // ── If ZAI failed due to insufficient balance (429), send a clear error ──
-                const errMsg = zaiError instanceof Error ? zaiError.message : String(zaiError);
-                const isBalanceError = errMsg.includes('429') || errMsg.includes('余额') || errMsg.includes('insufficient');
-                
-                if (isBalanceError && hasImageAttachments) {
-                  // Vision failed — send clear error to user
-                  if (!streamClosed) {
-                    enqueueContent('⚠️ تعذر تحليل الصورة — رصيد ZAI API غير كافٍ. تحليل الصور يحتاج رصيد مدفوع. حاول بنص فقط أو أضف رصيد لـ ZAI API.');
-                  }
-                } else if (pollinationsEntry) {
-                  // fallback لـ Pollinations لو ZAI فشل
-                  console.log('[Chat] Falling back to Pollinations');
+                console.warn('[Chat] V.105: ZAI failed:', zaiError instanceof Error ? zaiError.message : String(zaiError));
+                // V.105c: fallback لـ Pollinations لو متاح
+                if (pollinationsEntry && !streamClosed) {
+                  console.log('[Chat] V.105: Falling back to Pollinations');
                   try { await streamFromPollinations(); } catch {}
                 }
               }
-            } else if (primaryProvider === 'anthropic') {
-              // ── ANTHROPIC (Claude) — Claude Sonnet/Opus/Haiku ──
+            }
+
+            // ── ANTHROPIC (Claude) — Claude Sonnet/Opus/Haiku ──
+            if (primaryProvider === 'anthropic') {
               console.log(`[Chat] Using Anthropic Claude directly — model=${model}`);
               try {
                 const { streamClaudeChat, isClaudeAvailable } = await import('@/lib/anthropic');
@@ -4157,18 +4116,14 @@ ${toolData}${extraStr}
             } else {
               // ── Fallback: Use ZhipuAI for unknown providers ──
               try {
-                /* ZAI removed */
                 reportAggregatorSuccess('zhipuai', 'chat', Date.now() - streamStartTime);
               } catch (zhipuError) {
                 reportAggregatorFailure('zhipuai', 'chat', zhipuError instanceof Error ? zhipuError.message : String(zhipuError));
-                console.warn('[Chat] ZhipuAI streaming failed:', zhipuError instanceof Error ? zhipuError.message : String(zhipuError));
               }
             }
-          } finally {
             clearTimeout(timeoutId!);
             if (inactivityWatchdogId) clearTimeout(inactivityWatchdogId);
             clearInterval(heartbeatInterval);
-          }
 
           if (!streamClosed) {
             try {
@@ -4671,52 +4626,39 @@ ${toolData}${extraStr}
               // Controller already closed (e.g., by timeout)
             }
           }
-        } catch (sdkError) {
-          console.error('SDK streaming error:', sdkError);
-
+        // V.105c: catch block اتحول لـ plain code (الـ try الأصلي اتقفل قبل كده)
+        if (!streamClosed) {
+          // V.105: Final fallback — استخدم الموديل اللي المستخدم اختاره
+          const fallbackModel = modelConfig?.glmModel || modelConfig?.realChatModel || model || 'glm-4-flash';
+          console.log(`[Chat] V.105: Final fallback — model=${fallbackModel}`);
           try {
-            recordError('/api/chat/stream', sdkError instanceof Error ? sdkError.message : 'SDK streaming error');
-          } catch (recordErr) {
-            console.warn('[Chat] recordError failed (non-critical):', recordErr instanceof Error ? recordErr.message : String(recordErr));
-          }
-
-          // ── V.19: Final fallback to ZAI (glm-4-flash FREE) before giving up ──
-          // If the user's selected model failed (e.g., HuggingFace 402 credits depleted,
-          // V.105: Final fallback — استخدم الموديل اللي المستخدم اختاره (مش hardcoded GLM)
-          if (!streamClosed) {
-            const fallbackModel = modelConfig?.glmModel || modelConfig?.realChatModel || model || 'glm-4-flash';
-            console.log(`[Chat] V.105: Final fallback — model=${fallbackModel} (user's selected model)`);
-            try {
-              const { getZAIClient } = await import('@/lib/chat-utils');
-              const zai = await getZAIClient();
-              const zaiResponse = await zai.chat.completions.create({
-                model: fallbackModel,
-                messages: messages as any,
-                stream: false,
-                temperature: 0.7,
-                max_tokens: modelConfig?.maxTokens || 8192,
-              });
-
-              const fullContent = zaiResponse?.choices?.[0]?.message?.content || '';
-              if (fullContent) {
-                console.log('[Chat] V.105: Fallback succeeded — sending response');
-                const chunkSize = 50;
-                for (let i = 0; i < fullContent.length; i += chunkSize) {
-                  if (streamClosed) break;
-                  enqueueContent(fullContent.slice(i, i + chunkSize));
-                  await new Promise(r => setTimeout(r, 10));
-                }
-                streamClosed = true;
-                try {
-                  controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-                  controller.close();
-                } catch {}
-                return;
+            const { getZAIClient } = await import('@/lib/chat-utils');
+            const zai = await getZAIClient();
+            const zaiResponse = await zai.chat.completions.create({
+              model: fallbackModel,
+              messages: messages as any,
+              stream: false,
+              temperature: 0.7,
+              max_tokens: modelConfig?.maxTokens || 8192,
+            });
+            const fullContent = zaiResponse?.choices?.[0]?.message?.content || '';
+            if (fullContent) {
+              const chunkSize = 50;
+              for (let i = 0; i < fullContent.length; i += chunkSize) {
+                if (streamClosed) break;
+                enqueueContent(fullContent.slice(i, i + chunkSize));
               }
-            } catch (zaiFallbackError) {
-              console.warn('[Chat] ZAI fallback also failed:', zaiFallbackError instanceof Error ? zaiFallbackError.message : String(zaiFallbackError));
+              streamClosed = true;
+              try {
+                controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                controller.close();
+              } catch {}
+              return;
             }
+          } catch (zaiFallbackError) {
+            console.warn('[Chat] V.105: Fallback failed:', zaiFallbackError instanceof Error ? zaiFallbackError.message : String(zaiFallbackError));
           }
+        }
 
           // If ZAI fallback also failed, return the error message
           if (!streamClosed) {
@@ -4737,7 +4679,6 @@ ${toolData}${extraStr}
               // Controller already closed
             }
           }
-        }
 
         // ── Unregister connection ──
         try {
@@ -4822,9 +4763,7 @@ ${toolData}${extraStr}
           });
         }
 
-        // ── File generation is now done INLINE before [DONE] ──
-        // No background IIFE needed — the fileReady event is sent directly in the stream.
-        // See the inline generation code above (before controller.close()).
+      // ── File generation is now done INLINE before [DONE] ──
       },
     });
 

@@ -6046,3 +6046,25 @@ Task: تنفيذ Directives — Multi-provider streaming + dynamic model + no ZA
 الـ Space بيـ rebuild
 
 *Last updated: 2026-07-27 (V.105) — Multi-provider, no SPOF, dynamic model*
+
+---
+Task ID: v105c-fix-hf-build
+Agent: main (Z.ai Code)
+Task: إصلاح HF RUNTIME_ERROR — next build فشل بسبب syntax errors
+
+### المشكلة:
+الـ HF Space كان في RUNTIME_ERROR لأن `next build` فشل (syntax errors في chat/stream/route.ts من كل التعديلات السابقة).
+
+### الحل (V.105c):
+1. **Dockerfile**: لو `next build` فشل، الـ CMD بيستخدم `next dev` بدلاً منه
+2. **chat/stream/route.ts**: 
+   - شيلت multi-provider block المعقد اللي كسر الـ braces
+   - رجّعت ZAI block أبسط (non-streaming + chunked)
+   - dynamic model selection (مش hardcoded GLM)
+   - شيلت رسالة "بدّل لموديل glm-4-flash-zai"
+
+### اترفعت على HF:
+2 files على kopabdo/DELTA_AI_V2 (sha: 259c37929d)
+الـ Space بيـ rebuild
+
+*Last updated: 2026-07-27 (V.105c) — HF build fix*

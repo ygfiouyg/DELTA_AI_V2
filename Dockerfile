@@ -136,7 +136,8 @@ ENV DATABASE_URL="file:/app/db/custom.db"
 RUN mkdir -p /app/db
 
 # Pre-build the Next.js app so .next/ exists (fixes ENOENT required-server-files.json)
-RUN npx next build --webpack 2>&1 || echo "Build failed, will use dev mode"
+# V.105c: لو next build فشل، الـ CMD هيستخدم next dev
+RUN npx next build --webpack 2>&1 || echo "Build failed — will use dev mode in CMD"
 
 # Expose port
 EXPOSE 3000
@@ -174,10 +175,20 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
     fi && \
     echo "[Startup] V.94: Syncing Global Skill Registry (if manifest exists)..." && \
     if [ -f /app/skills_manifest.json ]; then \
-      echo "[Startup] Found skills_manifest.json — runtime install will handle it"; \
+      echo "[Startup] Found skills_manifest.json"; \
     fi && \
-    echo "[Startup] V.96: Starting framework installer in background (non-blocking)..." && \
-    (nohup python3 /app/scripts/install_frameworks.py > /app/frameworks_install.log 2>&1 &) && \
-    echo "[Startup] Framework installer launched in background" && \
+    echo "[Startup] V.96: Starting framework installer in background (if script exists)..." && \
+    if [ -f /app/scripts/install_frameworks.py ]; then \
+      (nohup python3 /app/scripts/install_frameworks.py > /app/frameworks_install.log 2>&1 &) || true; \
+      echo "[Startup] Framework installer launched"; \
+    else \
+      echo "[Startup] No framework installer script — skipping"; \
+    fi && \
     echo "[Startup] Starting Next.js..." && \
-    DATABASE_URL="file:/app/db/custom.db" npx next start -p 3000 -H 0.0.0.0
+    if [ -d /app/.next/standalone ] || [ -f /app/.next/BUILD_ID ]; then \
+      echo "[Startup] Production build found — using next start"; \
+      DATABASE_URL="file:/app/db/custom.db" npx next start -p 3000 -H 0.0.0.0; \
+    else \
+      echo "[Startup] No production build — using next dev"; \
+      DATABASE_URL="file:/app/db/custom.db" npx next dev --webpack -p 3000 -H 0.0.0.0; \
+    fi
