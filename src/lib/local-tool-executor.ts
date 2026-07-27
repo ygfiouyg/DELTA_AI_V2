@@ -106,7 +106,7 @@ print(f"SUCCESS:{output_path}")
     const scriptPath = path.join(DOWNLOAD_DIR, `gen_pptx_${fileId}.py`);
     await fs.writeFile(scriptPath, script, 'utf-8');
 
-    const { stdout, stderr } = await execAsync(`python3 "${scriptPath}"`, { timeout: 30_000 });
+    const { stdout, stderr } = await execAsync(`/home/z/.venv/bin/python3 "${scriptPath}"`, { timeout: 30_000 });
 
     // Cleanup script
     await fs.unlink(scriptPath).catch(() => {});
@@ -215,7 +215,7 @@ print(f"SUCCESS:{output_path}")
     const scriptPath = path.join(DOWNLOAD_DIR, `gen_xlsx_${fileId}.py`);
     await fs.writeFile(scriptPath, script, 'utf-8');
 
-    const { stdout, stderr } = await execAsync(`python3 "${scriptPath}"`, { timeout: 30_000 });
+    const { stdout, stderr } = await execAsync(`/home/z/.venv/bin/python3 "${scriptPath}"`, { timeout: 30_000 });
 
     await fs.unlink(scriptPath).catch(() => {});
 
@@ -374,7 +374,7 @@ print("SUCCESS:${filePath}")
     const scriptPath = path.join(DOWNLOAD_DIR, `gen_qr_${fileId}.py`);
     await fs.writeFile(scriptPath, script, 'utf-8');
 
-    const { stdout, stderr } = await execAsync(`python3 "${scriptPath}"`, { timeout: 15_000 });
+    const { stdout, stderr } = await execAsync(`/home/z/.venv/bin/python3 "${scriptPath}"`, { timeout: 15_000 });
     await fs.unlink(scriptPath).catch(() => {});
 
     if (stdout.includes('SUCCESS:')) {
@@ -536,7 +536,7 @@ sys.stdout.flush()
     await fs.writeFile(scriptPath, fullCode, 'utf-8');
 
     // Execute with timeout
-    const { stdout, stderr } = await execAsync(`python3 "${scriptPath}"`, {
+    const { stdout, stderr } = await execAsync(`/home/z/.venv/bin/python3 "${scriptPath}"`, {
       timeout: timeoutMs,
       cwd: DOWNLOAD_DIR,
       env: { ...process.env, PYTHONUNBUFFERED: '1' },

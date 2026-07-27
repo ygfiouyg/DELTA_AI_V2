@@ -32,6 +32,9 @@ export async function POST(request: NextRequest) {
 
     const zai = await getZAIClient();
     const useModel = model || "glm-4-flash";
+    // V.102: تمرير tools + tool_choice للـ ZAI SDK
+    const tools = body.tools;
+    const toolChoice = body.tool_choice;
 
     if (stream) {
       // Streaming response
@@ -39,13 +42,17 @@ export async function POST(request: NextRequest) {
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            const completion = await zai.chat.completions.create({
+            const streamParams: any = {
               model: useModel,
               messages,
               temperature: temperature ?? 0.7,
               max_tokens: max_tokens ?? 4096,
               stream: true,
-            });
+            };
+            if (tools) streamParams.tools = tools;
+            if (toolChoice) streamParams.tool_choice = toolChoice;
+
+            const completion = await zai.chat.completions.create(streamParams);
 
             for await (const chunk of completion) {
               const content = chunk.choices?.[0]?.delta?.content || "";
@@ -86,14 +93,35 @@ export async function POST(request: NextRequest) {
     }
 
     // Non-streaming
-    const completion = await zai.chat.completions.create({
+    const completionParams: any = {
       model: useModel,
       messages,
       temperature: temperature ?? 0.7,
       max_tokens: max_tokens ?? 4096,
-    });
+    };
+    if (tools) completionParams.tools = tools;
+    if (toolChoice) completionParams.tool_choice = toolChoice;
 
-    // Return OpenAI-compatible response
+    const completion = await zai.chat.completions.create(completionParams);
+
+    // Return OpenAI-compatible response (V.102: pass through tool_calls)
+    const choice = completion.choices?.[0];
+    const message = choice?.message || {};
+
+    // V.102: لو الـ tool_calls رجعت كـ string "NONE" → undefined
+    let toolCalls = message.tool_calls;
+    if (toolCalls === "NONE" || toolCalls === "null" || toolCalls === null) {
+      toolCalls = undefined;
+    }
+
+    const responseMessage: any = {
+      role: message.role || "assistant",
+      content: message.content || "",
+    };
+    if (Array.isArray(toolCalls) && toolCalls.length > 0) {
+      responseMessage.tool_calls = toolCalls;
+    }
+
     return NextResponse.json({
       id: `chatcmpl-${Date.now()}`,
       object: "chat.completion",
@@ -102,11 +130,8 @@ export async function POST(request: NextRequest) {
       choices: [
         {
           index: 0,
-          message: {
-            role: "assistant",
-            content: completion.choices?.[0]?.message?.content || "",
-          },
-          finish_reason: "stop",
+          message: responseMessage,
+          finish_reason: choice?.finish_reason || (toolCalls ? "tool_calls" : "stop"),
         },
       ],
       usage: {
