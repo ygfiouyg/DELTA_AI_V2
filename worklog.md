@@ -6013,3 +6013,36 @@ Task: إصلاح ZAI streaming + المايك + رفع كل حاجة على HF
 الـ Space بيـ rebuild
 
 *Last updated: 2026-07-27 (V.104) — ZAI streaming + mic fixed*
+
+---
+Task ID: v105-multi-provider-no-spof
+Agent: main (Z.ai Code)
+Task: تنفيذ Directives — Multi-provider streaming + dynamic model + no ZAI SPOF
+
+### الـ Directives اللي اتنفذت:
+
+**1. Multi-provider streaming (NO ZAI SPOF):**
+- بنيت `src/lib/multi-provider-chat.ts` (جديد)
+- بيدعم 11 providers: openai, anthropic, groq, gemini, github, cloudflare, ovh, openrouter, huggingface, pollinations, zhipuai
+- كل provider بيـ stream مباشرة (true streaming)
+- ZAI بيستخدم كـ fallback أخير بس (مش SPOF)
+
+**2. Dynamic model selection (NO hardcoded GLM):**
+- الـ chat stream بيستخدم `modelConfig.glmModel || modelConfig.realChatModel || model`
+- الـ final fallback بيستخدم الموديل اللي المستخدم اختاره (مش 'glm-4-flash' hardcoded)
+- شيلت رسالة "بدّل لموديل glm-4-flash-zai" — بقت "جرّب موديل تاني"
+
+**3. Speed optimization:**
+- شيلت chunked workaround delays (`setTimeout(r, 10)`)
+- chunkSize بقى 50 (بدل 30) عشان سرعة أكتر
+- الـ providers اللي بـ stream مباشرة (OpenAI, Groq, Gemini) بتبعت tokens فوراً
+
+**4. NO sandbox testing:**
+- مش هختبر في sandbox
+- هرفع على HF وأختبر من الـ UI هناك
+
+### اترفعت على HF:
+2 files على kopabdo/DELTA_AI_V2 (sha: 2c69d5bc43)
+الـ Space بيـ rebuild
+
+*Last updated: 2026-07-27 (V.105) — Multi-provider, no SPOF, dynamic model*

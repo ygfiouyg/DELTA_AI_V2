@@ -3017,39 +3017,72 @@ ${toolData}${extraStr}
               }
             }
 
-            // ── FIRST PRIORITY: ZAI (GLM-5.2 / GLM-4-Flash) — العميل الأساسي ──
-            // V.17: Re-enabled ZAI for zhipuai models ONLY (عبس + glm-4-flash)
-            // Other models use their own providers (HuggingFace, Groq, etc.)
-            if (primaryProvider === 'zhipuai') {
-              console.log(`[Chat] Using ZAI directly — model=${model}, provider=zhipuai`);
+            // ── V.105: Multi-provider streaming (NO ZAI SPOF, NO hardcoded GLM) ──
+            // بيستخدم الـ provider اللي المستخدم اختاره (dynamic model selection)
+            if (primaryProvider) {
+              console.log(`[Chat] V.105: Using multi-provider — model=${model}, provider=${primaryProvider}`);
               try {
-                const { getZAIClient } = await import('@/lib/chat-utils');
-                const zai = await getZAIClient();
-                const zaiModel = modelConfig.glmModel || model || 'glm-4-flash';
-                console.log(`[Chat] ZAI non-streaming: model=${zaiModel}`);
+                const { resolveProvider, streamChat } = await import('@/lib/multi-provider-chat');
+                const providerConfig = resolveProvider(modelConfig);
+                if (providerConfig) {
+                  console.log(`[Chat] V.105: Streaming via ${providerConfig.provider} (${providerConfig.realChatModel})`);
+                  const chatStream = await streamChat(
+                    providerConfig,
+                    messages.map((m: any) => ({ role: m.role, content: typeof m.content === 'string' ? m.content : JSON.stringify(m.content) })),
+                    { temperature: 0.7, max_tokens: modelConfig?.maxTokens || 8192 }
+                  );
 
-                // V.104: non-streaming call (ZAI SDK streaming بيهنج)
-                const zaiResponse = await zai.chat.completions.create({
-                  model: zaiModel,
-                  messages: messages as any,
-                  stream: false,
-                  temperature: 0.7,
-                  max_tokens: 8192,
-                });
-
-                const fullContent = zaiResponse?.choices?.[0]?.message?.content || '';
-                if (fullContent) {
-                  console.log(`[Chat] ZAI response: ${fullContent.length} chars`);
-                  // قسم النص لـ chunks عشان يحس إنه stream
-                  const chunkSize = 30;
-                  for (let i = 0; i < fullContent.length; i += chunkSize) {
+                  // استهلك الـ stream
+                  const reader = chatStream.getReader();
+                  const decoder = new TextDecoder();
+                  while (true) {
                     if (streamClosed) break;
-                    enqueueContent(fullContent.slice(i, i + chunkSize));
-                    await new Promise(r => setTimeout(r, 10));
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    const text = decoder.decode(value, { stream: true });
+                    const lines = text.split('\n');
+                    for (const line of lines) {
+                      const trimmed = line.trim();
+                      if (!trimmed || !trimmed.startsWith('data:')) continue;
+                      const dataStr = trimmed.slice(5).trim();
+                      if (dataStr === '[DONE]') continue;
+                      try {
+                        const parsed = JSON.parse(dataStr);
+                        const delta = parsed.choices?.[0]?.delta?.content || '';
+                        if (delta) enqueueContent(delta);
+                      } catch {}
+                    }
                   }
-                } else {
-                  console.warn('[Chat] ZAI returned empty content');
+                  // كمل لباقي الـ flow (Python code execution, etc.)
                 }
+              } catch (multiErr: any) {
+                console.warn(`[Chat] V.105: Multi-provider ${primaryProvider} failed:`, multiErr?.message);
+                // fallback لـ ZAI لو الـ provider الأساسي فشل
+                try {
+                  const { getZAIClient } = await import('@/lib/chat-utils');
+                  const zai = await getZAIClient();
+                  // V.105: استخدم الموديل اللي المستخدم اختاره (مش hardcoded)
+                  const zaiModel = modelConfig?.glmModel || modelConfig?.realChatModel || model || 'glm-4-flash';
+                  console.log(`[Chat] V.105: ZAI fallback — model=${zaiModel}`);
+                  const zaiResponse = await zai.chat.completions.create({
+                    model: zaiModel,
+                    messages: messages as any,
+                    stream: false,
+                    temperature: 0.7,
+                    max_tokens: modelConfig?.maxTokens || 8192,
+                  });
+                  const fullContent = zaiResponse?.choices?.[0]?.message?.content || '';
+                  if (fullContent) {
+                    const chunkSize = 50;
+                    for (let i = 0; i < fullContent.length; i += chunkSize) {
+                      if (streamClosed) break;
+                      enqueueContent(fullContent.slice(i, i + chunkSize));
+                    }
+                  }
+                } catch (zaiFallbackErr: any) {
+                  console.warn('[Chat] V.105: ZAI fallback also failed:', zaiFallbackErr?.message);
+                }
+              }
 
                 // Stream complete — but DON'T close yet if image/video generation is in progress
                 // V.25: Wait for imageGenPromise/videoGenPromise before closing
@@ -4649,26 +4682,25 @@ ${toolData}${extraStr}
 
           // ── V.19: Final fallback to ZAI (glm-4-flash FREE) before giving up ──
           // If the user's selected model failed (e.g., HuggingFace 402 credits depleted,
-          // Groq rate limit, etc.), try ZAI glm-4-flash which is always free.
+          // V.105: Final fallback — استخدم الموديل اللي المستخدم اختاره (مش hardcoded GLM)
           if (!streamClosed) {
-            console.log('[Chat] Final fallback: trying ZAI glm-4-flash (free model)');
+            const fallbackModel = modelConfig?.glmModel || modelConfig?.realChatModel || model || 'glm-4-flash';
+            console.log(`[Chat] V.105: Final fallback — model=${fallbackModel} (user's selected model)`);
             try {
               const { getZAIClient } = await import('@/lib/chat-utils');
               const zai = await getZAIClient();
-              // V.104: non-streaming call (ZAI SDK streaming بيهنج)
               const zaiResponse = await zai.chat.completions.create({
-                model: 'glm-4-flash',
+                model: fallbackModel,
                 messages: messages as any,
                 stream: false,
                 temperature: 0.7,
-                max_tokens: 8192,
+                max_tokens: modelConfig?.maxTokens || 8192,
               });
 
               const fullContent = zaiResponse?.choices?.[0]?.message?.content || '';
               if (fullContent) {
-                console.log('[Chat] ZAI fallback succeeded — sending response');
-                // قسم النص لـ chunks
-                const chunkSize = 30;
+                console.log('[Chat] V.105: Fallback succeeded — sending response');
+                const chunkSize = 50;
                 for (let i = 0; i < fullContent.length; i += chunkSize) {
                   if (streamClosed) break;
                   enqueueContent(fullContent.slice(i, i + chunkSize));
@@ -4694,8 +4726,8 @@ ${toolData}${extraStr}
               const errorMsg = sdkError instanceof Error ? sdkError.message : String(sdkError);
               const is402 = errorMsg.includes('402') || errorMsg.includes('depleted') || errorMsg.includes('credits');
               const userMessage = is402
-                ? 'رصيد الموديل ده خلص. بدّل لموديل **glm-4-flash-zai** (مجاني) من القائمة اللي فوق، وهشتغللك فوراً. ✅'
-                : 'حصل خطأ في الاتصال. بدّل لموديل **glm-4-flash-zai** (مجاني) من القائمة اللي فوق.';
+                ? `⚠️ رصيد الموديل ده خلص. جرّب موديل تاني من القائمة اللي فوق.`
+                : `⚠️ حصل خطأ في الاتصال بـ ${model || 'الموديل'}. جرّب موديل تاني من القائمة.`;
               controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify({ content: userMessage })}\n\n`)
               );
