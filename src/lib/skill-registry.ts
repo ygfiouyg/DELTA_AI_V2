@@ -79,17 +79,23 @@ export async function writeManifest(manifest: SkillsManifest): Promise<void> {
 async function uploadToHFRepo(filePath: string, pathInRepo: string): Promise<boolean> {
   if (!HF_TOKEN) return false;
   try {
-    const { HfApi } = await import("huggingface_hub" as any).catch(() => ({ HfApi: null }));
-    if (!HfApi) return false;
-    const api = new (HfApi as any)({ token: HF_TOKEN });
-    await api.upload_file({
-      path_or_fileobj: filePath,
-      path_in_repo: pathInRepo,
-      repo_id: HF_REPO_ID,
-      repo_type: "space",
+    // V.104: استخدم fetch مباشرة بدل Python huggingface_hub
+    const fs = await import("fs");
+    const fileBuffer = fs.readFileSync(filePath);
+    const resp = await fetch(`https://huggingface.co/api/spaces/${HF_REPO_ID}/upload/${pathInRepo}`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${HF_TOKEN}`,
+        "Content-Type": "application/octet-stream",
+      },
+      body: fileBuffer,
     });
-    console.log(`[SkillRegistry] Uploaded ${pathInRepo} to HF repo`);
-    return true;
+    if (resp.ok) {
+      console.log(`[SkillRegistry] Uploaded ${pathInRepo} to HF repo`);
+      return true;
+    }
+    console.warn(`[SkillRegistry] HF upload ${pathInRepo} failed: ${resp.status}`);
+    return false;
   } catch (err: any) {
     console.warn(`[SkillRegistry] HF upload failed for ${pathInRepo}:`, err?.message || String(err));
     return false;

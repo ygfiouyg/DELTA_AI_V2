@@ -2,8 +2,9 @@
 // Extracted from api/chat/send/route.ts and api/chat/stream/route.ts
 // to eliminate code duplication.
 
-// ─── ZAI SDK Singleton ───────────────────────────────────────────────
-// بيستخدم zai-client اللي بيدعم ZAI_API_KEY env var
+// ─── ZAI Proxy Client (V.104) ───────────────────────────────────────
+// الـ ZAI SDK بيهنج بسبب session token منتهي.
+// الحل: نستخدم الـ ZAI proxy endpoint اللي بيشتغل بـ ZAI.create() الداخلي.
 import { getZAIClient as getZAI } from './zai-client';
 
 declare global {
@@ -11,9 +12,22 @@ declare global {
   var _zaiInitPromise: Promise<any> | null;
 }
 
+// V.104: proxy client بيـ redirect لـ ZAI.create() مباشرة (مش HTTP)
+async function createProxyClient() {
+  try {
+    const ZAIModule = await import("z-ai-web-dev-sdk");
+    const ZAI = ZAIModule.default;
+    const z = await ZAI.create();
+    return z;
+  } catch (err: any) {
+    console.error("[ZAI Proxy] Failed to create ZAI SDK:", err?.message || String(err));
+    throw err;
+  }
+}
+
 export async function getZAIClient() {
-  // استخدم zai-client الجديد اللي بيدعم env var
-  return getZAI();
+  // V.104: استخدم ZAI.create() مباشرة (اللي بيشتغل)
+  return createProxyClient();
 }
 
 // ─── Fallback Chain (ZAI → Groq → Gemini) ───────────────────────────

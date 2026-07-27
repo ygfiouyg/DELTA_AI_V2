@@ -37,42 +37,73 @@ export async function POST(request: NextRequest) {
     const toolChoice = body.tool_choice;
 
     if (stream) {
-      // Streaming response
+      // V.104: ZAI SDK streaming مش بيرجع content chunks صح.
+      // الحل: non-streaming call + قسم النص لـ chunks صغيرة.
       const encoder = new TextEncoder();
-      const stream = new ReadableStream({
+      const streamResponse = new ReadableStream({
         async start(controller) {
           try {
-            const streamParams: any = {
+            const params: any = {
               model: useModel,
               messages,
               temperature: temperature ?? 0.7,
               max_tokens: max_tokens ?? 4096,
-              stream: true,
+              stream: false,
             };
-            if (tools) streamParams.tools = tools;
-            if (toolChoice) streamParams.tool_choice = toolChoice;
+            if (tools) params.tools = tools;
+            if (toolChoice) params.tool_choice = toolChoice;
 
-            const completion = await zai.chat.completions.create(streamParams);
+            const completion = await zai.chat.completions.create(params);
+            const fullContent = completion.choices?.[0]?.message?.content || "";
+            const toolCalls = completion.choices?.[0]?.message?.tool_calls;
 
-            for await (const chunk of completion) {
-              const content = chunk.choices?.[0]?.delta?.content || "";
-              if (content) {
-                const data = {
-                  id: chunk.id || `chatcmpl-${Date.now()}`,
-                  object: "chat.completion.chunk",
-                  created: chunk.created || Math.floor(Date.now() / 1000),
-                  model: useModel,
-                  choices: [
-                    {
-                      index: 0,
-                      delta: { content },
-                      finish_reason: chunk.choices?.[0]?.finish_reason || null,
-                    },
-                  ],
-                };
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-              }
+            // لو فيه tool_calls، ابعتهم كـ chunk واحد
+            if (toolCalls && Array.isArray(toolCalls) && toolCalls.length > 0) {
+              const toolData = {
+                id: `chatcmpl-${Date.now()}`,
+                object: "chat.completion.chunk",
+                created: Math.floor(Date.now() / 1000),
+                model: useModel,
+                choices: [{
+                  index: 0,
+                  delta: { role: "assistant", tool_calls: toolCalls },
+                  finish_reason: "tool_calls",
+                }],
+              };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(toolData)}\n\n`));
             }
+
+            // قسم الـ content لـ chunks (~20 char كل chunk)
+            const chunkSize = 20;
+            for (let i = 0; i < fullContent.length; i += chunkSize) {
+              const chunk = fullContent.slice(i, i + chunkSize);
+              const data = {
+                id: `chatcmpl-${Date.now()}`,
+                object: "chat.completion.chunk",
+                created: Math.floor(Date.now() / 1000),
+                model: useModel,
+                choices: [{
+                  index: 0,
+                  delta: { content: chunk },
+                  finish_reason: null,
+                }],
+              };
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
+            }
+
+            // finish chunk
+            const finishData = {
+              id: `chatcmpl-${Date.now()}`,
+              object: "chat.completion.chunk",
+              created: Math.floor(Date.now() / 1000),
+              model: useModel,
+              choices: [{
+                index: 0,
+                delta: {},
+                finish_reason: "stop",
+              }],
+            };
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify(finishData)}\n\n`));
             controller.enqueue(encoder.encode("data: [DONE]\n\n"));
             controller.close();
           } catch (err: any) {
@@ -83,7 +114,7 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      return new Response(stream, {
+      return new Response(streamResponse, {
         headers: {
           "Content-Type": "text/event-stream",
           "Cache-Control": "no-cache",

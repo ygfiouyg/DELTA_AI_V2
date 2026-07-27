@@ -267,16 +267,31 @@ export function ChatInput() {
           }
 
           const data = await response.json();
-          if (data.text) {
+          console.log('[ASR] Response:', data);
+          if (data.text && data.text.trim()) {
+            // V.104: تحديث مباشر للـ value + trigger change
+            const newText = data.text.trim();
             setValue((prev) => {
               const separator = prev.trim() ? ' ' : '';
-              return prev + separator + data.text;
+              const updated = prev + separator + newText;
+              console.log('[ASR] Setting value:', updated.slice(0, 80));
+              return updated;
             });
-            // Focus textarea after inserting text
-            setTimeout(() => textareaRef.current?.focus(), 100);
+            // V.104: focus + select end
+            setTimeout(() => {
+              if (textareaRef.current) {
+                textareaRef.current.focus();
+                const len = textareaRef.current.value.length;
+                textareaRef.current.setSelectionRange(len, len);
+              }
+            }, 150);
+          } else {
+            console.warn('[ASR] No text in response:', data);
           }
         } catch (error) {
           console.error('[ASR] Error:', error);
+          // V.104: visual feedback للخطأ
+          setValue((prev) => prev + (prev.trim() ? ' ' : '') + '[فشل تحويل الصوت]');
         } finally {
           setIsTranscribing(false);
         }

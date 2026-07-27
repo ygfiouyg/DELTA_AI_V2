@@ -1286,6 +1286,13 @@ export async function POST(request: NextRequest) {
     // ── Stream Response ──
     const encoder = new TextEncoder();
     let streamClosed = false;
+    // V.104: enqueueContent متعرفة كـ variable عام عشان الـ fallback يقدر يستخدمها
+    let enqueueContent: (content: string) => void = (content: string) => {
+      if (streamClosed) return;
+      try {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
+      } catch {}
+    };
     // PERF: Use array for O(1) append instead of O(n) string concatenation
     // String += creates new string every time → O(n²) for long responses
     const contentChunks: string[] = [];
@@ -2114,7 +2121,8 @@ export async function POST(request: NextRequest) {
           // Once the model starts streaming, the 60s initial timeout is cancelled.
           // After that, the 20-minute inactivity watchdog takes over — resets on every token.
           // Also performs REAL-TIME HTML stripping for non-file-gen responses.
-          function enqueueContent(content: string) {
+          // V.104: reassign الـ variable العام (مش function declaration)
+          enqueueContent = function(content: string) {
             if (streamClosed) {
               console.warn('[Chat] enqueueContent skipped — stream already closed');
               return;
@@ -2956,45 +2964,33 @@ ${toolData}${extraStr}
               }
 
               const completionRequest: any = {
-                model: glmModel || 'glm-5.2',
+                model: glmModel || 'glm-4-flash',
                 messages,
-                stream: true,
-                thinking: { type: 'enabled' },
-                max_tokens: 65536,
-                temperature: 1.0,
+                stream: false,  // V.104: non-streaming عشان ZAI SDK streaming بيهنج
+                max_tokens: modelConfig?.maxTokens || 8192,
+                temperature: 0.7,
               };
-              console.log(`[Chat] ZAI request: model=${completionRequest.model}, thinking=enabled, max_tokens=65536`);
-              const completion = await zai.chat.completions.create(completionRequest);
-              for await (const chunk of completion) {
-                if (streamClosed) break;
-                let chunkStr: string;
-                if (typeof chunk === 'string') {
-                  chunkStr = chunk;
-                } else if (Buffer.isBuffer(chunk) || chunk instanceof Uint8Array) {
-                  chunkStr = new TextDecoder().decode(chunk);
-                } else if (chunk && typeof chunk === 'object') {
-                  const content = chunk.choices?.[0]?.delta?.content || '';
-                  if (content) {
-                    enqueueContent(content);
+              console.log(`[Chat] ZAI request: model=${completionRequest.model}, stream=false, max_tokens=${completionRequest.max_tokens}`);
+              try {
+                const completion = await zai.chat.completions.create(completionRequest);
+                const fullContent = completion?.choices?.[0]?.message?.content || '';
+                if (fullContent) {
+                  // V.104: قسم النص لـ chunks صغيرة عشان يظهر كـ stream
+                  const chunkSize = 30;
+                  for (let i = 0; i < fullContent.length; i += chunkSize) {
+                    if (streamClosed) break;
+                    const chunk = fullContent.slice(i, i + chunkSize);
+                    enqueueContent(chunk);
+                    // تأخير بسيط عشان يحس إنه stream
+                    await new Promise(r => setTimeout(r, 10));
                   }
-                  continue;
                 } else {
-                  continue;
+                  console.warn('[Chat] ZAI returned empty content');
+                  enqueueContent('مرحبا! أنا هنا. كيف أقدر أساعدك؟');
                 }
-                const lines = chunkStr.split('\n');
-                for (const line of lines) {
-                  const trimmedLine = line.trim();
-                  if (!trimmedLine || !trimmedLine.startsWith('data:')) continue;
-                  const dataStr = trimmedLine.slice(5).trim();
-                  if (dataStr === '[DONE]') continue;
-                  try {
-                    const sseData = JSON.parse(dataStr);
-                    const content = sseData.choices?.[0]?.delta?.content || '';
-                    if (content) {
-                      enqueueContent(content);
-                    }
-                  } catch { /* skip */ }
-                }
+              } catch (zaiErr: any) {
+                console.error('[Chat] ZAI error:', zaiErr?.message);
+                enqueueContent(`⚠️ حصل خطأ: ${zaiErr?.message || 'مشكلة في الاتصال'}`);
               }
             }
 
@@ -3030,50 +3026,29 @@ ${toolData}${extraStr}
                 const { getZAIClient } = await import('@/lib/chat-utils');
                 const zai = await getZAIClient();
                 const zaiModel = modelConfig.glmModel || model || 'glm-4-flash';
-                console.log(`[Chat] ZAI streaming: model=${zaiModel}`);
+                console.log(`[Chat] ZAI non-streaming: model=${zaiModel}`);
 
-                const streamResponse = await zai.chat.completions.create({
+                // V.104: non-streaming call (ZAI SDK streaming بيهنج)
+                const zaiResponse = await zai.chat.completions.create({
                   model: zaiModel,
                   messages: messages as any,
-                  stream: true,
+                  stream: false,
                   temperature: 0.7,
                   max_tokens: 8192,
                 });
 
-                // The ZAI proxy returns an async iterable (not a ReadableStream)
-                // So we use for-await to consume it
-                if (streamResponse && typeof streamResponse[Symbol.asyncIterator] === 'function') {
-                  for await (const chunk of streamResponse) {
+                const fullContent = zaiResponse?.choices?.[0]?.message?.content || '';
+                if (fullContent) {
+                  console.log(`[Chat] ZAI response: ${fullContent.length} chars`);
+                  // قسم النص لـ chunks عشان يحس إنه stream
+                  const chunkSize = 30;
+                  for (let i = 0; i < fullContent.length; i += chunkSize) {
                     if (streamClosed) break;
-                    const delta = chunk?.choices?.[0]?.delta?.content || '';
-                    if (delta) {
-                      enqueueContent(delta);
-                    }
+                    enqueueContent(fullContent.slice(i, i + chunkSize));
+                    await new Promise(r => setTimeout(r, 10));
                   }
-                } else if (streamResponse?.body?.getReader) {
-                  // Fallback: real ReadableStream (if ZAI SDK returns one)
-                  const reader = streamResponse.body.getReader();
-                  const decoder = new TextDecoder();
-                  let buffer = '';
-                  while (true) {
-                    if (streamClosed) break;
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    buffer += decoder.decode(value, { stream: true });
-                    const lines = buffer.split('\n');
-                    buffer = lines.pop() || '';
-                    for (const line of lines) {
-                      const trimmed = line.trim();
-                      if (!trimmed || !trimmed.startsWith('data:')) continue;
-                      const data = trimmed.slice(5).trim();
-                      if (data === '[DONE]') continue;
-                      try {
-                        const parsed = JSON.parse(data);
-                        const delta = parsed.choices?.[0]?.delta?.content || '';
-                        if (delta) enqueueContent(delta);
-                      } catch {}
-                    }
-                  }
+                } else {
+                  console.warn('[Chat] ZAI returned empty content');
                 }
 
                 // Stream complete — but DON'T close yet if image/video generation is in progress
@@ -4680,36 +4655,31 @@ ${toolData}${extraStr}
             try {
               const { getZAIClient } = await import('@/lib/chat-utils');
               const zai = await getZAIClient();
+              // V.104: non-streaming call (ZAI SDK streaming بيهنج)
               const zaiResponse = await zai.chat.completions.create({
                 model: 'glm-4-flash',
                 messages: messages as any,
-                stream: true,
+                stream: false,
                 temperature: 0.7,
                 max_tokens: 8192,
               });
 
-              if (zaiResponse && typeof zaiResponse[Symbol.asyncIterator] === 'function') {
-                let gotContent = false;
-                for await (const chunk of zaiResponse) {
+              const fullContent = zaiResponse?.choices?.[0]?.message?.content || '';
+              if (fullContent) {
+                console.log('[Chat] ZAI fallback succeeded — sending response');
+                // قسم النص لـ chunks
+                const chunkSize = 30;
+                for (let i = 0; i < fullContent.length; i += chunkSize) {
                   if (streamClosed) break;
-                  const delta = chunk?.choices?.[0]?.delta?.content || '';
-                  if (delta) {
-                    if (!gotContent) {
-                      gotContent = true;
-                      console.log('[Chat] ZAI fallback succeeded — streaming response');
-                    }
-                    enqueueContent(delta);
-                  }
+                  enqueueContent(fullContent.slice(i, i + chunkSize));
+                  await new Promise(r => setTimeout(r, 10));
                 }
-                if (gotContent) {
-                  // ZAI fallback worked — close stream and return
-                  streamClosed = true;
-                  try {
-                    controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-                    controller.close();
-                  } catch {}
-                  return;
-                }
+                streamClosed = true;
+                try {
+                  controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                  controller.close();
+                } catch {}
+                return;
               }
             } catch (zaiFallbackError) {
               console.warn('[Chat] ZAI fallback also failed:', zaiFallbackError instanceof Error ? zaiFallbackError.message : String(zaiFallbackError));

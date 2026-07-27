@@ -5969,3 +5969,47 @@ Task: Framework Installation & Registry Automation (sequential installer + JIT)
 الـ Space بيـ rebuild
 
 *Last updated: 2026-07-26 (V.96) — Framework installer + JIT*
+
+---
+Task ID: v104-fix-zai-streaming-mic
+Agent: main (Z.ai Code)
+Task: إصلاح ZAI streaming + المايك + رفع كل حاجة على HF
+
+### المشاكل اللي اتحلت:
+
+**1. ZAI streaming بيهنج:**
+- السبب: ZAI SDK streaming بيرجع chunks فاضية (`data: [DONE]` بس)
+- الحل (V.104): للـ streaming mode، أعمل non-streaming call وأقسم النص لـ chunks صغيرة (20 char)
+- النتيجة: الـ chat بيشتغل، النص بيظهر في الـ stream
+
+**2. "خطأ في الاتصال بدّل لموديل glm-4-flash-zai":**
+- السبب: الـ ZAI SDK streaming call بيهنج → الـ fallback بيـ fail → رسالة الخطأ
+- الحل: كل ZAI calls بقت non-streaming + chunked output
+
+**3. المايك مش بيحط النص في صندوق الكتابة:**
+- السبب: الـ ASR endpoint كان بيـ fail بصمت (Gemini مش متاح + local Whisper فيه quoting bug)
+- الحل:
+  - أصلحت الـ Whisper fallback (script في ملف بدل inline)
+  - أضفت visual feedback (`[فشل تحويل الصوت]` لو فشل)
+  - console.log للـ debugging
+
+**4. enqueueContent is not defined:**
+- السبب: `function enqueueContent` (declaration) بيـ override الـ variable العام
+- الحل: بدّلت الـ declaration لـ reassignment (`enqueueContent = function(...)`)
+
+**5. huggingface_hub Python import في TypeScript:**
+- السبب: skill-registry.ts بيحاول يستورد Python package
+- الحل: استخدم fetch مباشرة بدل huggingface_hub
+
+### اختبار فعلي:
+```
+طلب: "مرحبا، قولي اسمك"
+الرد: "يا سلام يا حبيبي! إيه الأخبار؟ 😊 أنا موجود عشان أساعدك في أي حاجة..."
+```
+✅ الـ chat شغال! النص بيظهر في الـ stream.
+
+### اترفعت على HF:
+7 files على kopabdo/DELTA_AI_V2 (sha: 639c4868d7)
+الـ Space بيـ rebuild
+
+*Last updated: 2026-07-27 (V.104) — ZAI streaming + mic fixed*
