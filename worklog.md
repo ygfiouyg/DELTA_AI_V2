@@ -6068,3 +6068,34 @@ Task: إصلاح HF RUNTIME_ERROR — next build فشل بسبب syntax errors
 الـ Space بيـ rebuild
 
 *Last updated: 2026-07-27 (V.105c) — HF build fix*
+
+---
+Task ID: v107-restore-and-fix
+Agent: main (Z.ai Code)
+Task: إصلاح المنصة على HF — Internal Server Error + admin login + chat
+
+### المشكلة الأساسية:
+كل التعديلات السابقة على `chat/stream/route.ts` كسرت الـ syntax (braces مش متزنة).
+`next build` فشل → مفيش `.next` → `next start` فشل → Internal Server Error.
+
+### الحل الجذري (V.107):
+1. **رجّعت `route.ts` للنسخة الأصلية (V.82)** من git — braces متزنة 100%
+2. **رجّعت `chat-utils.ts` للنسخة الأصلية** — ZAI SDK مباشرة (مش proxy)
+3. **رجّعت `local-tool-executor.ts` للنسخة الأصلية** — بدون venv path changes
+4. الـ Dockerfile بـ `next dev` fallback لو `next build` فشل
+
+### اختبار فعلي على HF (https://kopabdo-delta-ai-v2.hf.space):
+✅ المنصة تفتح (صفحة login تظهر)
+✅ Register شغال (token يرجع)
+✅ Chat شغال! النص بيظهر في stream:
+   "مرحبا، أنا Anzaro..."
+✅ Model: glm-4-flash-zai
+
+### مشاكل لسه محتاجة حل:
+1. Admin login (admin@anzaro.local) بيفشل — محتاج إصلاح الـ auto-setup
+2. الـ onboarding طويل (19 خطوة) — محتاج skip button
+3. الـ regex triggers لسه موجودة
+4. الـ 42 repos مش مثبتة
+5. الـ 3 databases مش مربوطة كلها
+
+*Last updated: 2026-07-27 (V.107) — RESTORED original route.ts, chat working on HF*

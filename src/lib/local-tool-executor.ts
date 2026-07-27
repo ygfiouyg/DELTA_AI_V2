@@ -106,7 +106,7 @@ print(f"SUCCESS:{output_path}")
     const scriptPath = path.join(DOWNLOAD_DIR, `gen_pptx_${fileId}.py`);
     await fs.writeFile(scriptPath, script, 'utf-8');
 
-    const { stdout, stderr } = await execAsync(`/home/z/.venv/bin/python3 "${scriptPath}"`, { timeout: 30_000 });
+    const { stdout, stderr } = await execAsync(`python3 "${scriptPath}"`, { timeout: 30_000 });
 
     // Cleanup script
     await fs.unlink(scriptPath).catch(() => {});
@@ -215,7 +215,7 @@ print(f"SUCCESS:{output_path}")
     const scriptPath = path.join(DOWNLOAD_DIR, `gen_xlsx_${fileId}.py`);
     await fs.writeFile(scriptPath, script, 'utf-8');
 
-    const { stdout, stderr } = await execAsync(`/home/z/.venv/bin/python3 "${scriptPath}"`, { timeout: 30_000 });
+    const { stdout, stderr } = await execAsync(`python3 "${scriptPath}"`, { timeout: 30_000 });
 
     await fs.unlink(scriptPath).catch(() => {});
 
@@ -374,7 +374,7 @@ print("SUCCESS:${filePath}")
     const scriptPath = path.join(DOWNLOAD_DIR, `gen_qr_${fileId}.py`);
     await fs.writeFile(scriptPath, script, 'utf-8');
 
-    const { stdout, stderr } = await execAsync(`/home/z/.venv/bin/python3 "${scriptPath}"`, { timeout: 15_000 });
+    const { stdout, stderr } = await execAsync(`python3 "${scriptPath}"`, { timeout: 15_000 });
     await fs.unlink(scriptPath).catch(() => {});
 
     if (stdout.includes('SUCCESS:')) {
@@ -452,7 +452,7 @@ export function parseVCardFromMessage(message: string): string | null {
 export async function executePythonCode(
   code: string,
   timeoutMs: number = 30_000
-): Promise<{ success: boolean; output: string; error: string; images?: string[]; files?: Array<{ path: string; url: string; fileName: string; fileType: string; size: number }> }> {
+): Promise<{ success: boolean; output: string; error: string }> {
   try {
     const { exec } = await import('child_process');
     const { promisify } = await import('util');
@@ -463,48 +463,12 @@ export async function executePythonCode(
     const scriptPath = path.join(DOWNLOAD_DIR, `exec_${fileId}.py`);
     await fs.mkdir(DOWNLOAD_DIR, { recursive: true });
 
-    // V.92: سجل الملفات الموجودة قبل التنفيذ عشان نـ detect الجديدة
-    const filesBefore = new Set<string>();
-    try {
-      const existing = await fs.readdir(DOWNLOAD_DIR);
-      for (const f of existing) filesBefore.add(f);
-    } catch {}
-
-    // V.91: استخدم DOWNLOAD_DIR الصحيح (مش hardcoded /app/download)
-    // V.83: Wrap code — auto-save matplotlib figures + capture output
-    // V.91: كل صورة بـ UUID عشان ما تتعارضش
-    const figuresDir = DOWNLOAD_DIR.replace(/\\/g, '\\\\');
+    // Add stdout flush at the end
+    // V.76b: Wrap code to capture the last expression value
+    // If the AI writes 'solutions' without print(), we need to capture it
     const fullCode = `
 import sys
 import io
-import os
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-
-_figures_saved = []
-_original_show = plt.show
-def _save_show(*args, **kwargs):
-    import uuid as _uuid
-    _fname = f'fig_${fileId}_{len(_figures_saved)+1}.png'
-    _fpath = os.path.join('${figuresDir}', _fname)
-    # استخدم الـ original savefig عشان ما نـ triggerش الـ wrapper
-    _original_savefig(_fpath, dpi=100, bbox_inches='tight')
-    _figures_saved.append(_fpath)
-    print(f"[Figure saved: {_fname}]")
-    plt.close()
-plt.show = _save_show
-
-# V.91: كمان اخترق savefig عشان نـ collect أي صورة بـ savefig مباشرة
-# بس نتأكد إننا ما نضيفش نفس الصورة مرتين
-_original_savefig = plt.savefig
-def _wrapped_savefig(fname, *a, **kw):
-    _original_savefig(fname, *a, **kw)
-    if isinstance(fname, str) and fname not in _figures_saved:
-        _figures_saved.append(fname)
-        print(f"[Figure saved: {os.path.basename(fname)}]")
-plt.savefig = _wrapped_savefig
-
 _old_stdout = sys.stdout
 _capture = io.StringIO()
 sys.stdout = _capture
@@ -528,85 +492,28 @@ if _last and not _captured and not _last.startswith(('print', 'import', 'from', 
             print(_result)
     except:
         pass
-# V.91: Print list of saved figures for the executor to pick up
-if _figures_saved:
-    print("[FIGURES_LIST]" + "|".join(_figures_saved) + "[/FIGURES_LIST]")
 sys.stdout.flush()
 `;
     await fs.writeFile(scriptPath, fullCode, 'utf-8');
 
     // Execute with timeout
-    const { stdout, stderr } = await execAsync(`/home/z/.venv/bin/python3 "${scriptPath}"`, {
+    const { stdout, stderr } = await execAsync(`python3 "${scriptPath}"`, {
       timeout: timeoutMs,
       cwd: DOWNLOAD_DIR,
       env: { ...process.env, PYTHONUNBUFFERED: '1' },
     });
 
-    // Cleanup script
+    // Cleanup
     await fs.unlink(scriptPath).catch(() => {});
 
     const output = stdout.trim();
     const error = stderr.trim();
 
-    // V.91: استخرج قائمة الصور المولّدة من الـ output
-    const images: string[] = [];
-    const figListMatch = output.match(/\[FIGURES_LIST\](.*?)\[\/FIGURES_LIST\]/);
-    if (figListMatch) {
-      const figPaths = figListMatch[1].split('|').filter(Boolean);
-      for (const figPath of figPaths) {
-        try {
-          await fs.access(figPath);
-          images.push(figPath);
-        } catch {}
-      }
-    }
-
-    // V.92: اكتشف أي ملفات جديدة اتعملت (PDF, MP3, CSV, TXT, إلخ)
-    const files: Array<{ path: string; url: string; fileName: string; fileType: string; size: number }> = [];
-    try {
-      const filesAfter = await fs.readdir(DOWNLOAD_DIR);
-      for (const f of filesAfter) {
-        if (filesBefore.has(f)) continue; // ملف قديم
-        if (f.startsWith('exec_') && f.endsWith('.py')) continue; // السكريبت نفسه
-        if (f.startsWith('fig_') && f.endsWith('.png')) continue; // الصور (هتتعامل في images)
-
-        const fullPath = path.join(DOWNLOAD_DIR, f);
-        try {
-          const stat = await fs.stat(fullPath);
-          if (!stat.isFile()) continue;
-          if (stat.size > 50 * 1024 * 1024) continue; // تجاهل ملفات أكبر من 50MB
-
-          // حدد نوع الملف
-          const ext = path.extname(f).toLowerCase().slice(1);
-          const fileTypeMap: Record<string, string> = {
-            pdf: 'pdf', mp3: 'audio', wav: 'audio', m4a: 'audio',
-            mp4: 'video', webm: 'video', mov: 'video',
-            csv: 'csv', xlsx: 'spreadsheet', xls: 'spreadsheet',
-            txt: 'text', json: 'json', html: 'html',
-            png: 'image', jpg: 'image', jpeg: 'image', gif: 'image', svg: 'image',
-            docx: 'document', doc: 'document', pptx: 'presentation',
-            zip: 'archive', tar: 'archive', gz: 'archive',
-          };
-          const fileType = fileTypeMap[ext] || 'file';
-
-          files.push({
-            path: fullPath,
-            url: `/api/file/download/${encodeURIComponent(f)}`,
-            fileName: f,
-            fileType,
-            size: stat.size,
-          });
-        } catch {}
-      }
-    } catch {}
-
     if (error && !output) {
-      return { success: false, output: '', error: error.substring(0, 500), images, files };
+      return { success: false, output: '', error: error.substring(0, 500) };
     }
 
-    // V.91: شيل الـ FIGURES_LIST من الـ output قبل ما نرجعه
-    const cleanOutput = output.replace(/\[FIGURES_LIST\].*?\[\/FIGURES_LIST\]/, '').trim();
-    return { success: true, output: cleanOutput.substring(0, 2000), error: error.substring(0, 500), images, files };
+    return { success: true, output: output.substring(0, 2000), error: error.substring(0, 500) };
   } catch (err) {
     const errMsg = err instanceof Error ? err.message : String(err);
     return { success: false, output: '', error: errMsg.substring(0, 500) };
@@ -614,48 +521,17 @@ sys.stdout.flush()
 }
 
 /**
- * V.84: Extract Python code from AI response — multiple formats
+ * V.74: Extract Python code from AI response
  */
 export function extractPythonCode(text: string): string | null {
-  // 1. Look for ```python ... ``` blocks
-  const match1 = text.match(/```python\s*\n([\s\S]*?)```/);
-  if (match1) return match1[1].trim();
+  // Look for ```python ... ``` blocks
+  const match = text.match(/```python\s*\n([\s\S]*?)```/);
+  if (match) return match[1].trim();
 
-  // 2. Look for ``` ... ``` blocks (without language specifier)
+  // Look for ``` ... ``` blocks (without language specifier)
   const match2 = text.match(/```\s*\n([\s\S]*?)```/);
   if (match2 && (match2[1].includes('import ') || match2[1].includes('print('))) {
     return match2[1].trim();
-  }
-
-  // V.84: 3. Look for "python" followed by code (no backticks — GLM sometimes does this)
-  // Pattern: "python\nimport ..." or "python import ..."
-  const match3 = text.match(/(?:^|\n)python\s*\n((?:import |from |print|#|def |class |if |for |while |try |x |y |plt|np|pd|fig|ax|data|df)\n?[\s\S]*?)(?:\n\n(?:⚙️|✅|❌|توصية|$))/);
-  if (match3 && match3[1].length > 20) {
-    return match3[1].trim();
-  }
-
-  // V.84: 4. Find ANY block that starts with "import " and contains Python-like code
-  const lines = text.split('\n');
-  let codeStart = -1;
-  let codeEnd = -1;
-  for (let i = 0; i < lines.length; i++) {
-    if (lines[i].match(/^\s*(import |from |plt\.|np\.|pd\.|fig|ax\.|data\s*=|df\s*=|x\s*=|y\s*=)/)) {
-      if (codeStart === -1) codeStart = i;
-      codeEnd = i;
-    } else if (codeStart !== -1 && lines[i].trim() === '') {
-      // Empty line — might be end of code
-    } else if (codeStart !== -1 && !lines[i].match(/^\s*(import |from |plt\.|np\.|pd\.|fig|ax\.|data\s*=|df\s*=|x\s*=|y\s*=|#|print|plt|np|pd|fig|ax|data|df|if |for |while |def |class |try |except|return|with |assert|raise|lambda|global|nonlocal|yield|break|continue|pass|del|in |not |and |or |is |None|True|False|[0-9\.\+\-\*\/\(\)\[\]\{\}:=<>!,\s\\'"])/)) {
-      // Non-code line after code block — end it
-      break;
-    } else if (codeStart !== -1) {
-      codeEnd = i;
-    }
-  }
-  if (codeStart !== -1 && codeEnd !== -1 && codeEnd > codeStart) {
-    const code = lines.slice(codeStart, codeEnd + 1).join('\n').trim();
-    if (code.length > 20 && code.includes('import ')) {
-      return code;
-    }
   }
 
   return null;

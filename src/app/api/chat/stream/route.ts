@@ -225,127 +225,10 @@ export async function POST(request: NextRequest) {
     // The LLM-based capability detector (V.79) handles ALL tool detection now
 
     // V.82: Disable media gen regex trigger — let the LLM decide
-    const mediaGenIntent = null;
-    const shouldGenerateImage = false;
-    const shouldGenerateVideo = false;
-
-    // V.86: GITHUB REPO CLONING — if user pastes a GitHub URL, clone + install + run
-    const githubUrlMatch = message.match(/(https?:\/\/github\.com\/[^\s]+)/i);
-    if (githubUrlMatch) {
-      const repoUrl = githubUrlMatch[1];
-      console.log(`[Chat] V.86: GitHub repo detected: ${repoUrl}`);
-
-      try {
-        const { exec } = await import('child_process');
-        const { promisify } = await import('util');
-        const { promises: fs } = await import('fs');
-        const path = (await import('path')).default;
-        const execAsync = promisify(exec);
-
-        // Extract repo name from URL
-        const repoName = repoUrl.split('/').pop()?.replace(/\.git$/, '') || 'github-app';
-        const installDir = path.join(process.cwd(), 'tools', repoName);
-        await fs.mkdir(path.join(process.cwd(), 'tools'), { recursive: true });
-
-        // Clone the repo
-        const sseResponse = `data: ${JSON.stringify({ content: `📦 جاري استنساخ التطبيق من GitHub...\n🔗 ${repoUrl}\n\n` })}\n\ndata: ${JSON.stringify({ content: `⚙️ استنساخ ${repoName}...` })}\n\n`;
-
-        try {
-          // Remove existing dir if exists
-          try { await fs.rm(installDir, { recursive: true, force: true }); } catch {}
-          await execAsync(`git clone --depth 1 ${repoUrl} "${installDir}"`, { timeout: 60_000 });
-          console.log(`[Chat] V.86: Cloned ${repoName} to ${installDir}`);
-
-          // List files
-          const files = await fs.readdir(installDir);
-          let fileList = files.slice(0, 20).join('\n• ');
-          let response = `✅ تم استنساخ التطبيق بنجاح!\n\n📁 المسار: tools/${repoName}/\n📂 الملفات (${files.length}):\n• ${fileList}\n\n`;
-
-          // Install dependencies if package.json exists (Node.js app)
-          if (files.includes('package.json')) {
-            response += `📦 جاري تثبيت dependencies (npm install)...\n`;
-            try {
-              await execAsync(`cd "${installDir}" && npm install`, { timeout: 120_000 });
-              response += `✅ npm install تم بنجاح!\n\n`;
-
-              // Try to run the app
-              const pkgContent = await fs.readFile(path.join(installDir, 'package.json'), 'utf-8');
-              const pkg = JSON.parse(pkgContent);
-              if (pkg.scripts?.start) {
-                response += `🚀 جاري تشغيل التطبيق (npm start)...\n`;
-                // Start in background — don't block the chat
-                execAsync(`cd "${installDir}" && nohup npm start > /tmp/${repoName}.log 2>&1 &`, { timeout: 5_000 }).catch(() => {});
-                response += `✅ التطبيق بدأ في الخلفية!\n📝 السجل: /tmp/${repoName}.log\n`;
-              }
-            } catch (npmErr) {
-              response += `⚠️ npm install فشل: ${npmErr instanceof Error ? npmErr.message.substring(0, 100) : 'خطأ'}\n`;
-            }
-          }
-
-          // Install dependencies if requirements.txt exists (Python app)
-          if (files.includes('requirements.txt')) {
-            response += `📦 جاري تثبيت Python dependencies...\n`;
-            try {
-              await execAsync(`cd "${installDir}" && pip3 install --break-system-packages -r requirements.txt`, { timeout: 120_000 });
-              response += `✅ Python dependencies تم تثبيتها!\n\n`;
-
-              // Try to run main.py or app.py
-              const pyEntry = files.includes('app.py') ? 'app.py' : files.includes('main.py') ? 'main.py' : null;
-              if (pyEntry) {
-                response += `🚀 جاري تشغيل ${pyEntry}...\n`;
-                const { stdout, stderr } = await execAsync(`cd "${installDir}" && timeout 10 python3 ${pyEntry} 2>&1`, { timeout: 15_000 });
-                if (stdout) response += `📋 النتيجة:\n\`\`\`\n${stdout.substring(0, 1000)}\n\`\`\`\n`;
-                if (stderr && !stdout) response += `⚠️ تحذير:\n\`\`\`\n${stderr.substring(0, 500)}\n\`\`\`\n`;
-              }
-            } catch (pipErr) {
-              response += `⚠️ pip install فشل: ${pipErr instanceof Error ? pipErr.message.substring(0, 100) : 'خطأ'}\n`;
-            }
-          }
-
-          // Install if setup.py or pyproject.toml exists
-          if (files.includes('setup.py') || files.includes('pyproject.toml')) {
-            response += `📦 جاري تثبيت الحزمة (pip install -e .)...\n`;
-            try {
-              await execAsync(`cd "${installDir}" && pip3 install --break-system-packages -e .`, { timeout: 120_000 });
-              response += `✅ الحزمة تم تثبيتها!\n\n`;
-            } catch (instErr) {
-              // Try regular pip install
-              try {
-                await execAsync(`pip3 install --break-system-packages ${repoUrl}`, { timeout: 120_000 });
-                response += `✅ تم تثبيت ${repoName} من GitHub!\n\n`;
-              } catch {
-                response += `⚠️ فشل التثبيت\n`;
-              }
-            }
-          }
-
-          response += `\n🎉 التطبيق **${repoName}** تم تثبيته في \`tools/${repoName}/\``;
-
-          const finalResponse = `data: ${JSON.stringify({ content: response })}\n\ndata: [DONE]\n\n`;
-          return new Response(finalResponse, {
-            headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
-          });
-
-        } catch (cloneErr) {
-          // Clone failed — try pip install directly
-          console.log(`[Chat] V.86: Clone failed, trying pip install ${repoUrl}`);
-          try {
-            await execAsync(`pip3 install --break-system-packages ${repoUrl}`, { timeout: 120_000 });
-            const errResponse = `data: ${JSON.stringify({ content: `✅ تم تثبيت ${repoName} من GitHub عبر pip!\n\n📦 الحزمة جاهزة للاستخدام.` })}\n\ndata: [DONE]\n\n`;
-            return new Response(errResponse, {
-              headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
-            });
-          } catch (pipErr2) {
-            const errResponse = `data: ${JSON.stringify({ content: `❌ فشل تثبيت ${repoName}. تأكد من أن الرابط صحيح.\nخطأ: ${pipErr2 instanceof Error ? pipErr2.message.substring(0, 200) : 'خطأ غير معروف'}` })}\n\ndata: [DONE]\n\n`;
-            return new Response(errResponse, {
-              headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' },
-            });
-          }
-        }
-      } catch (v86Err) {
-        console.warn('[Chat] V.86 GitHub clone failed:', v86Err);
-      }
-    }
+    // The LLM capability detector will handle image/video generation requests
+    const mediaGenIntent = null; // V.82: disabled — was detectInlineMediaGenIntent()
+    const shouldGenerateImage = false; // V.82: LLM decides
+    const shouldGenerateVideo = false; // V.82: LLM decides
     // The LLM analyzes the request and decides if a tool is needed.
     // If the tool is NOT available → search GitHub → install → notify user.
     // This is the TRUE autonomous agent — no regex, the model decides.
@@ -392,9 +275,29 @@ export async function POST(request: NextRequest) {
         }
 
         if (toolsToInstall.length > 0) {
-          // V.85: NO APPROVAL NEEDED — auto-install everything immediately
+          const steps: string[] = [];
+          steps.push(`🔍 طلبك يحتاج ${toolsToInstall.length} أدوات:`);
+          for (const t of toolsToInstall) {
+            const toolInfo = analysis.allTools?.find(at => at.name === t);
+            steps.push(`   • **${t}** — ${toolInfo?.purpose || 'مطلوبة'}`);
+          }
+          steps.push('');
+          steps.push(`⚠️ **هل توافق على تثبيت هذه الأدوات ومكتباتها؟**`);
+          steps.push(`(سيتم تثبيت أي مكتبات إضافية تحتاجها الأدوات تلقائياً)`);
+
+          // V.79: Send approval request via SSE
+          const sseResponse = `data: ${JSON.stringify({
+            content: steps.join('\n\n'),
+            installApproval: {
+              tools: toolsToInstall,
+              message: 'هل توافق على تثبيت هذه الأدوات؟',
+            }
+          })}\n\n`;
+
           let allSuccess = true;
 
+          // V.79: Auto-approve (user can disable in settings later)
+          // For now, proceed with install and show every step
           for (const pkgName of toolsToInstall) {
             const moduleName = pkgName.replace(/-/g, '_').toLowerCase();
             console.log(`[Chat] V.79: Installing ${pkgName}...`);
@@ -1286,13 +1189,6 @@ export async function POST(request: NextRequest) {
     // ── Stream Response ──
     const encoder = new TextEncoder();
     let streamClosed = false;
-    // V.104: enqueueContent متعرفة كـ variable عام عشان الـ fallback يقدر يستخدمها
-    let enqueueContent: (content: string) => void = (content: string) => {
-      if (streamClosed) return;
-      try {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content })}\n\n`));
-      } catch {}
-    };
     // PERF: Use array for O(1) append instead of O(n) string concatenation
     // String += creates new string every time → O(n²) for long responses
     const contentChunks: string[] = [];
@@ -1406,14 +1302,6 @@ export async function POST(request: NextRequest) {
                 if (acquireResult.installed) {
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage: 'tool_acquired', progress: 30, message: `✅ ${acquireResult.installMessage}` } })}\n\n`));
                   analysis.hasToolLocally = true;
-                } else {
-                  // V.92: التثبيت فشل — قول للمستخدم بصراحة ووقف الـ flow
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ smartDocProgress: { stage: 'tool_failed', progress: 100, message: `❌ تعذر تثبيت ${analysis.toolName}` } })}\n\n`));
-                  const failMsg = `⚠️ **تعذر تنفيذ طلبك**\n\nالموديل اكتشف إن طلبك يحتاج أداة \`${analysis.toolName}\` بس مش قادر يثبّتها.\n\n**السبب:** ${acquireResult.installMessage || 'فشل التثبيت'}\n\n**إيه اللي تقدر تعمله:**\n1. جرّب تاني بعد شوية\n2. استخدم أداة بديلة متاحة\n3. لو طلب Python code، تأكد إن المكتبة متاحة على السيرفر\n\nالـ tools المتاحة: ${analysis.allTools?.filter(t => t.available).map(t => t.name).join(', ') || 'أساسية فقط'}`;
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: failMsg })}\n\n`));
-                  controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-                  controller.close();
-                  return;
                 }
               }
 
@@ -2121,8 +2009,7 @@ export async function POST(request: NextRequest) {
           // Once the model starts streaming, the 60s initial timeout is cancelled.
           // After that, the 20-minute inactivity watchdog takes over — resets on every token.
           // Also performs REAL-TIME HTML stripping for non-file-gen responses.
-          // V.104: reassign الـ variable العام (مش function declaration)
-          enqueueContent = function(content: string) {
+          function enqueueContent(content: string) {
             if (streamClosed) {
               console.warn('[Chat] enqueueContent skipped — stream already closed');
               return;
@@ -2231,12 +2118,14 @@ export async function POST(request: NextRequest) {
             // ────────────────────────────────────────────────────────────────────
             // TOP-LEVEL PRE-SCAN LAYER (contacts-fix-1)
             // ────────────────────────────────────────────────────────────────────
-            // V.93: MASTER PROMPT — ZERO-TRIGGER POLICY
-            // تم تعطيل الـ pre-scan layer (keyword-based tool execution).
-            // الـ LLM هو اللي بياخد قرار استدعاء الأدوات (LLM-driven intent parsing).
-            // الـ code الأصلي محفوظ تحت في الـ else branch بس مش بيـ trigger.
+            // المشكلة: الـ LLM (أي provider) لما بيشوف system prompt بيقول "استخدم أداة
+            // google_contacts_reader" بيطبع JSON-as-text بدل ما يستدعي الأداة فعلاً.
+            // والحل القديم كان مدفون جوه streamFromZhipuAI() — اللي مش بيتندى أبداً
+            // (dead code). فعشان نحل المشكلة لكل الـ providers (ZAI, Pollinations,
+            // Cerebras, HF, Groq, Gemini, …) بنعمل pre-scan هنا على أعلى مستوى:
+            // لو رسالة المستخدم فيها طلب واضح لرقم/جهة اتصال → ننفّذ الأداة مباشرة
+            // → نـ format الرد (بـ LLM لو متاح، أو template كـ fallback) → نقفل الـ stream.
             // ────────────────────────────────────────────────────────────────────
-            if (false) {
             try {
               const _hasImageAttachmentsPre = parsed.attachments.some((a) => a.type === 'image');
               const _isFileGenIntent = isFileGenerationIntent(parsed.cleanedMessage || message);
@@ -2867,7 +2756,6 @@ ${toolData}${extraStr}
               } catch (preScanError) {
                 console.warn('[Chat] Pre-scan layer failed:', preScanError instanceof Error ? preScanError.message : String(preScanError));
               }
-            } // V.93: end of if (false) — pre-scan disabled
 
               // ── TOOL-CALLING LAYER (LLM-driven) — fallback لو الـ pre-scan ملقش طلب ──
               try {
@@ -2964,33 +2852,45 @@ ${toolData}${extraStr}
               }
 
               const completionRequest: any = {
-                model: glmModel || 'glm-4-flash',
+                model: glmModel || 'glm-5.2',
                 messages,
-                stream: false,  // V.104: non-streaming عشان ZAI SDK streaming بيهنج
-                max_tokens: modelConfig?.maxTokens || 8192,
-                temperature: 0.7,
+                stream: true,
+                thinking: { type: 'enabled' },
+                max_tokens: 65536,
+                temperature: 1.0,
               };
-              console.log(`[Chat] ZAI request: model=${completionRequest.model}, stream=false, max_tokens=${completionRequest.max_tokens}`);
-              try {
-                const completion = await zai.chat.completions.create(completionRequest);
-                const fullContent = completion?.choices?.[0]?.message?.content || '';
-                if (fullContent) {
-                  // V.104: قسم النص لـ chunks صغيرة عشان يظهر كـ stream
-                  const chunkSize = 30;
-                  for (let i = 0; i < fullContent.length; i += chunkSize) {
-                    if (streamClosed) break;
-                    const chunk = fullContent.slice(i, i + chunkSize);
-                    enqueueContent(chunk);
-                    // تأخير بسيط عشان يحس إنه stream
-                    await new Promise(r => setTimeout(r, 10));
+              console.log(`[Chat] ZAI request: model=${completionRequest.model}, thinking=enabled, max_tokens=65536`);
+              const completion = await zai.chat.completions.create(completionRequest);
+              for await (const chunk of completion) {
+                if (streamClosed) break;
+                let chunkStr: string;
+                if (typeof chunk === 'string') {
+                  chunkStr = chunk;
+                } else if (Buffer.isBuffer(chunk) || chunk instanceof Uint8Array) {
+                  chunkStr = new TextDecoder().decode(chunk);
+                } else if (chunk && typeof chunk === 'object') {
+                  const content = chunk.choices?.[0]?.delta?.content || '';
+                  if (content) {
+                    enqueueContent(content);
                   }
+                  continue;
                 } else {
-                  console.warn('[Chat] ZAI returned empty content');
-                  enqueueContent('مرحبا! أنا هنا. كيف أقدر أساعدك؟');
+                  continue;
                 }
-              } catch (zaiErr: any) {
-                console.error('[Chat] ZAI error:', zaiErr?.message);
-                enqueueContent(`⚠️ حصل خطأ: ${zaiErr?.message || 'مشكلة في الاتصال'}`);
+                const lines = chunkStr.split('\n');
+                for (const line of lines) {
+                  const trimmedLine = line.trim();
+                  if (!trimmedLine || !trimmedLine.startsWith('data:')) continue;
+                  const dataStr = trimmedLine.slice(5).trim();
+                  if (dataStr === '[DONE]') continue;
+                  try {
+                    const sseData = JSON.parse(dataStr);
+                    const content = sseData.choices?.[0]?.delta?.content || '';
+                    if (content) {
+                      enqueueContent(content);
+                    }
+                  } catch { /* skip */ }
+                }
               }
             }
 
@@ -3017,43 +2917,64 @@ ${toolData}${extraStr}
               }
             }
 
-            // ── V.105: ZAI streaming — non-streaming + chunked (بيشتغل) ──
-            // V.105c: dynamic model selection (مش hardcoded GLM)
+            // ── FIRST PRIORITY: ZAI (GLM-5.2 / GLM-4-Flash) — العميل الأساسي ──
+            // V.17: Re-enabled ZAI for zhipuai models ONLY (عبس + glm-4-flash)
+            // Other models use their own providers (HuggingFace, Groq, etc.)
             if (primaryProvider === 'zhipuai') {
-              console.log(`[Chat] V.105: Using ZAI — model=${model}, provider=zhipuai`);
+              console.log(`[Chat] Using ZAI directly — model=${model}, provider=zhipuai`);
               try {
                 const { getZAIClient } = await import('@/lib/chat-utils');
                 const zai = await getZAIClient();
-                const zaiModel = modelConfig?.glmModel || modelConfig?.realChatModel || model || 'glm-4-flash';
-                console.log(`[Chat] V.105: ZAI non-streaming — model=${zaiModel}`);
-                const zaiResponse = await zai.chat.completions.create({
+                const zaiModel = modelConfig.glmModel || model || 'glm-4-flash';
+                console.log(`[Chat] ZAI streaming: model=${zaiModel}`);
+
+                const streamResponse = await zai.chat.completions.create({
                   model: zaiModel,
                   messages: messages as any,
-                  stream: false,
+                  stream: true,
                   temperature: 0.7,
-                  max_tokens: modelConfig?.maxTokens || 8192,
+                  max_tokens: 8192,
                 });
-                const fullContent = zaiResponse?.choices?.[0]?.message?.content || '';
-                if (fullContent) {
-                  console.log(`[Chat] V.105: ZAI response: ${fullContent.length} chars`);
-                  const chunkSize = 50;
-                  for (let i = 0; i < fullContent.length; i += chunkSize) {
+
+                // The ZAI proxy returns an async iterable (not a ReadableStream)
+                // So we use for-await to consume it
+                if (streamResponse && typeof streamResponse[Symbol.asyncIterator] === 'function') {
+                  for await (const chunk of streamResponse) {
                     if (streamClosed) break;
-                    enqueueContent(fullContent.slice(i, i + chunkSize));
+                    const delta = chunk?.choices?.[0]?.delta?.content || '';
+                    if (delta) {
+                      enqueueContent(delta);
+                    }
                   }
-                } else {
-                  console.warn('[Chat] V.105: ZAI returned empty content');
+                } else if (streamResponse?.body?.getReader) {
+                  // Fallback: real ReadableStream (if ZAI SDK returns one)
+                  const reader = streamResponse.body.getReader();
+                  const decoder = new TextDecoder();
+                  let buffer = '';
+                  while (true) {
+                    if (streamClosed) break;
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop() || '';
+                    for (const line of lines) {
+                      const trimmed = line.trim();
+                      if (!trimmed || !trimmed.startsWith('data:')) continue;
+                      const data = trimmed.slice(5).trim();
+                      if (data === '[DONE]') continue;
+                      try {
+                        const parsed = JSON.parse(data);
+                        const delta = parsed.choices?.[0]?.delta?.content || '';
+                        if (delta) enqueueContent(delta);
+                      } catch {}
+                    }
+                  }
                 }
-              } catch (zaiError) {
-                console.warn('[Chat] V.105: ZAI failed:', zaiError instanceof Error ? zaiError.message : String(zaiError));
-                if (pollinationsEntry && !streamClosed) {
-                  console.log('[Chat] V.105: Falling back to Pollinations');
-                  try { await streamFromPollinations(); } catch {}
-                }
-              }
-            }
 
                 // Stream complete — but DON'T close yet if image/video generation is in progress
+                // V.25: Wait for imageGenPromise/videoGenPromise before closing
+                // V.75: Execute Python code BEFORE closing the stream!
                 if (!streamClosed) {
                   // Check if we need to wait for image/video generation
                   if (imageGenPromise || videoGenPromise) {
@@ -3078,47 +2999,6 @@ ${toolData}${extraStr}
                         } else if (execResult.error) {
                           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: '\u274c **\u062e\u0637\u0623:**\n```\n' + execResult.error.substring(0, 300) + '\n```\n' })}\n\n`));
                         }
-
-                        // V.91: اعرض الصور المولّدة (matplotlib charts) في الـ chat
-                        if (execResult.images && execResult.images.length > 0) {
-                          console.log(`[Chat] V.91: Found ${execResult.images.length} images to display`);
-                          for (const imgPath of execResult.images) {
-                            try {
-                              const { promises: fsImg } = await import('fs');
-                              const imgBuf = await fsImg.readFile(imgPath);
-                              const base64 = imgBuf.toString('base64');
-                              const dataUrl = `data:image/png;base64,${base64}`;
-                              const fileName = imgPath.split('/').pop() || 'chart.png';
-                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `\n\n📊 **الرسم البياني:** ${fileName}\n\n` })}\n\n`));
-                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ generatedImage: { dataUrl, prompt: fileName } })}\n\n`));
-                              console.log(`[Chat] V.91: Displayed image ${fileName} (${imgBuf.length} bytes)`);
-                            } catch (imgErr) {
-                              console.warn(`[Chat] V.91: Failed to display image ${imgPath}:`, imgErr instanceof Error ? imgErr.message : String(imgErr));
-                            }
-                          }
-                        }
-
-                        // V.92: اعرض أي ملفات تانية اتعملت (PDF, MP3, CSV, إلخ)
-                        if (execResult.files && execResult.files.length > 0) {
-                          console.log(`[Chat] V.92: Found ${execResult.files.length} files to display`);
-                          for (const fileInfo of execResult.files) {
-                            try {
-                              const sizeKB = (fileInfo.size / 1024).toFixed(1);
-                              const fileIcon: Record<string, string> = {
-                                pdf: '📄', audio: '🎵', video: '🎬', csv: '📊',
-                                text: '📝', json: '📋', html: '🌐', image: '🖼️',
-                                spreadsheet: '📈', document: '📄', presentation: '📊',
-                                archive: '🗜️', file: '📎',
-                              };
-                              const icon = fileIcon[fileInfo.fileType] || '📎';
-                              const fileContent = `\n\n${icon} **تم إنشاء الملف:** \`${fileInfo.fileName}\` (${sizeKB} KB)\n\n👉 [اضغط هنا لتحميل الملف](${fileInfo.url})\n\n`;
-                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: fileContent, fileGenerated: { success: true, fileUrl: fileInfo.url, fileName: fileInfo.fileName, fileType: fileInfo.fileType } })}\n\n`));
-                              console.log(`[Chat] V.92: Displayed file ${fileInfo.fileName} (${sizeKB} KB)`);
-                            } catch (fileErr) {
-                              console.warn(`[Chat] V.92: Failed to display file ${fileInfo.fileName}:`, fileErr instanceof Error ? fileErr.message : String(fileErr));
-                            }
-                          }
-                        }
                       }
                     } catch (execErr) {
                       console.warn('[Chat] V.75: Code exec failed:', execErr instanceof Error ? execErr.message : String(execErr));
@@ -3134,17 +3014,25 @@ ${toolData}${extraStr}
                   }
                 }
               } catch (zaiError) {
-                console.warn('[Chat] V.105: ZAI failed:', zaiError instanceof Error ? zaiError.message : String(zaiError));
-                // V.105c: fallback لـ Pollinations لو متاح
-                if (pollinationsEntry && !streamClosed) {
-                  console.log('[Chat] V.105: Falling back to Pollinations');
+                console.warn('[Chat] ZAI failed:', zaiError instanceof Error ? zaiError.message : String(zaiError));
+                
+                // ── If ZAI failed due to insufficient balance (429), send a clear error ──
+                const errMsg = zaiError instanceof Error ? zaiError.message : String(zaiError);
+                const isBalanceError = errMsg.includes('429') || errMsg.includes('余额') || errMsg.includes('insufficient');
+                
+                if (isBalanceError && hasImageAttachments) {
+                  // Vision failed — send clear error to user
+                  if (!streamClosed) {
+                    enqueueContent('⚠️ تعذر تحليل الصورة — رصيد ZAI API غير كافٍ. تحليل الصور يحتاج رصيد مدفوع. حاول بنص فقط أو أضف رصيد لـ ZAI API.');
+                  }
+                } else if (pollinationsEntry) {
+                  // fallback لـ Pollinations لو ZAI فشل
+                  console.log('[Chat] Falling back to Pollinations');
                   try { await streamFromPollinations(); } catch {}
                 }
               }
-            }
-
-            // ── ANTHROPIC (Claude) — Claude Sonnet/Opus/Haiku ──
-            if (primaryProvider === 'anthropic') {
+            } else if (primaryProvider === 'anthropic') {
+              // ── ANTHROPIC (Claude) — Claude Sonnet/Opus/Haiku ──
               console.log(`[Chat] Using Anthropic Claude directly — model=${model}`);
               try {
                 const { streamClaudeChat, isClaudeAvailable } = await import('@/lib/anthropic');
@@ -4116,14 +4004,18 @@ ${toolData}${extraStr}
             } else {
               // ── Fallback: Use ZhipuAI for unknown providers ──
               try {
+                /* ZAI removed */
                 reportAggregatorSuccess('zhipuai', 'chat', Date.now() - streamStartTime);
               } catch (zhipuError) {
                 reportAggregatorFailure('zhipuai', 'chat', zhipuError instanceof Error ? zhipuError.message : String(zhipuError));
+                console.warn('[Chat] ZhipuAI streaming failed:', zhipuError instanceof Error ? zhipuError.message : String(zhipuError));
               }
             }
+          } finally {
             clearTimeout(timeoutId!);
             if (inactivityWatchdogId) clearTimeout(inactivityWatchdogId);
             clearInterval(heartbeatInterval);
+          }
 
           if (!streamClosed) {
             try {
@@ -4564,51 +4456,6 @@ ${toolData}${extraStr}
                       } else if (execResult.error) {
                         controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `❌ **خطأ:**\n\`\`\`\n${execResult.error.substring(0, 300)}\n\`\`\`\n` })}\n\n`));
                       }
-
-                      // V.91: اعرض الصور المولّدة (matplotlib charts) في الـ chat
-                      if (execResult.images && execResult.images.length > 0) {
-                        console.log(`[Chat] V.91c: Found ${execResult.images.length} images to display`);
-                        for (const imgPath of execResult.images) {
-                          try {
-                            const { promises: fsImg } = await import('fs');
-                            const imgBuf = await fsImg.readFile(imgPath);
-                            const base64 = imgBuf.toString('base64');
-                            const dataUrl = `data:image/png;base64,${base64}`;
-                            const fileName = imgPath.split('/').pop() || 'chart.png';
-                            if (!streamClosed) {
-                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: `\n\n📊 **الرسم البياني:** ${fileName}\n\n` })}\n\n`));
-                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ generatedImage: { dataUrl, prompt: fileName } })}\n\n`));
-                              console.log(`[Chat] V.91c: Displayed image ${fileName} (${imgBuf.length} bytes)`);
-                            }
-                          } catch (imgErr) {
-                            console.warn(`[Chat] V.91c: Failed to display image ${imgPath}:`, imgErr instanceof Error ? imgErr.message : String(imgErr));
-                          }
-                        }
-                      }
-
-                      // V.92: اعرض أي ملفات تانية اتعملت (PDF, MP3, CSV, إلخ)
-                      if (execResult.files && execResult.files.length > 0) {
-                        console.log(`[Chat] V.92c: Found ${execResult.files.length} files to display`);
-                        for (const fileInfo of execResult.files) {
-                          try {
-                            const sizeKB = (fileInfo.size / 1024).toFixed(1);
-                            const fileIcon: Record<string, string> = {
-                              pdf: '📄', audio: '🎵', video: '🎬', csv: '📊',
-                              text: '📝', json: '📋', html: '🌐', image: '🖼️',
-                              spreadsheet: '📈', document: '📄', presentation: '📊',
-                              archive: '🗜️', file: '📎',
-                            };
-                            const icon = fileIcon[fileInfo.fileType] || '📎';
-                            const fileContent = `\n\n${icon} **تم إنشاء الملف:** \`${fileInfo.fileName}\` (${sizeKB} KB)\n\n👉 [اضغط هنا لتحميل الملف](${fileInfo.url})\n\n`;
-                            if (!streamClosed) {
-                              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ content: fileContent, fileGenerated: { success: true, fileUrl: fileInfo.url, fileName: fileInfo.fileName, fileType: fileInfo.fileType } })}\n\n`));
-                              console.log(`[Chat] V.92c: Displayed file ${fileInfo.fileName} (${sizeKB} KB)`);
-                            }
-                          } catch (fileErr) {
-                            console.warn(`[Chat] V.92c: Failed to display file ${fileInfo.fileName}:`, fileErr instanceof Error ? fileErr.message : String(fileErr));
-                          }
-                        }
-                      }
                     }
                   } else {
                     console.log(`[Chat] V.75c: No Python code found in response`);
@@ -4626,39 +4473,58 @@ ${toolData}${extraStr}
               // Controller already closed (e.g., by timeout)
             }
           }
-        // V.105c: catch block اتحول لـ plain code (الـ try الأصلي اتقفل قبل كده)
-        if (!streamClosed) {
-          // V.105: Final fallback — استخدم الموديل اللي المستخدم اختاره
-          const fallbackModel = modelConfig?.glmModel || modelConfig?.realChatModel || model || 'glm-4-flash';
-          console.log(`[Chat] V.105: Final fallback — model=${fallbackModel}`);
+        } catch (sdkError) {
+          console.error('SDK streaming error:', sdkError);
+
           try {
-            const { getZAIClient } = await import('@/lib/chat-utils');
-            const zai = await getZAIClient();
-            const zaiResponse = await zai.chat.completions.create({
-              model: fallbackModel,
-              messages: messages as any,
-              stream: false,
-              temperature: 0.7,
-              max_tokens: modelConfig?.maxTokens || 8192,
-            });
-            const fullContent = zaiResponse?.choices?.[0]?.message?.content || '';
-            if (fullContent) {
-              const chunkSize = 50;
-              for (let i = 0; i < fullContent.length; i += chunkSize) {
-                if (streamClosed) break;
-                enqueueContent(fullContent.slice(i, i + chunkSize));
-              }
-              streamClosed = true;
-              try {
-                controller.enqueue(encoder.encode('data: [DONE]\n\n'));
-                controller.close();
-              } catch {}
-              return;
-            }
-          } catch (zaiFallbackError) {
-            console.warn('[Chat] V.105: Fallback failed:', zaiFallbackError instanceof Error ? zaiFallbackError.message : String(zaiFallbackError));
+            recordError('/api/chat/stream', sdkError instanceof Error ? sdkError.message : 'SDK streaming error');
+          } catch (recordErr) {
+            console.warn('[Chat] recordError failed (non-critical):', recordErr instanceof Error ? recordErr.message : String(recordErr));
           }
-        }
+
+          // ── V.19: Final fallback to ZAI (glm-4-flash FREE) before giving up ──
+          // If the user's selected model failed (e.g., HuggingFace 402 credits depleted,
+          // Groq rate limit, etc.), try ZAI glm-4-flash which is always free.
+          if (!streamClosed) {
+            console.log('[Chat] Final fallback: trying ZAI glm-4-flash (free model)');
+            try {
+              const { getZAIClient } = await import('@/lib/chat-utils');
+              const zai = await getZAIClient();
+              const zaiResponse = await zai.chat.completions.create({
+                model: 'glm-4-flash',
+                messages: messages as any,
+                stream: true,
+                temperature: 0.7,
+                max_tokens: 8192,
+              });
+
+              if (zaiResponse && typeof zaiResponse[Symbol.asyncIterator] === 'function') {
+                let gotContent = false;
+                for await (const chunk of zaiResponse) {
+                  if (streamClosed) break;
+                  const delta = chunk?.choices?.[0]?.delta?.content || '';
+                  if (delta) {
+                    if (!gotContent) {
+                      gotContent = true;
+                      console.log('[Chat] ZAI fallback succeeded — streaming response');
+                    }
+                    enqueueContent(delta);
+                  }
+                }
+                if (gotContent) {
+                  // ZAI fallback worked — close stream and return
+                  streamClosed = true;
+                  try {
+                    controller.enqueue(encoder.encode('data: [DONE]\n\n'));
+                    controller.close();
+                  } catch {}
+                  return;
+                }
+              }
+            } catch (zaiFallbackError) {
+              console.warn('[Chat] ZAI fallback also failed:', zaiFallbackError instanceof Error ? zaiFallbackError.message : String(zaiFallbackError));
+            }
+          }
 
           // If ZAI fallback also failed, return the error message
           if (!streamClosed) {
@@ -4668,8 +4534,8 @@ ${toolData}${extraStr}
               const errorMsg = sdkError instanceof Error ? sdkError.message : String(sdkError);
               const is402 = errorMsg.includes('402') || errorMsg.includes('depleted') || errorMsg.includes('credits');
               const userMessage = is402
-                ? `⚠️ رصيد الموديل ده خلص. جرّب موديل تاني من القائمة اللي فوق.`
-                : `⚠️ حصل خطأ في الاتصال بـ ${model || 'الموديل'}. جرّب موديل تاني من القائمة.`;
+                ? 'رصيد الموديل ده خلص. بدّل لموديل **glm-4-flash-zai** (مجاني) من القائمة اللي فوق، وهشتغللك فوراً. ✅'
+                : 'حصل خطأ في الاتصال. بدّل لموديل **glm-4-flash-zai** (مجاني) من القائمة اللي فوق.';
               controller.enqueue(
                 encoder.encode(`data: ${JSON.stringify({ content: userMessage })}\n\n`)
               );
@@ -4679,6 +4545,7 @@ ${toolData}${extraStr}
               // Controller already closed
             }
           }
+        }
 
         // ── Unregister connection ──
         try {
@@ -4763,7 +4630,9 @@ ${toolData}${extraStr}
           });
         }
 
-      // ── File generation is now done INLINE before [DONE] ──
+        // ── File generation is now done INLINE before [DONE] ──
+        // No background IIFE needed — the fileReady event is sent directly in the stream.
+        // See the inline generation code above (before controller.close()).
       },
     });
 
