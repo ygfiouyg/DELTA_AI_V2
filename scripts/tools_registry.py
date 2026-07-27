@@ -91,14 +91,38 @@ def text_to_speech_neural(text, voice="ar-EG-SalmaNeural", filename="tts_neural.
         return json.dumps({"success": True, "engine": "Edge TTS Neural", "voice": voice, "file_url": f"/api/file/download/{Path(filename).name}"}, ensure_ascii=False)
     except Exception as e: return json.dumps({"error": str(e)})
 
-def text_to_speech_cloning(text, speaker_wav, language="ar", filename="tts_clone.wav"):
+def text_to_speech_cloning(text, speaker_wav=None, language="ar", filename="tts_clone.wav"):
+    """V.102: Voice cloning بـ Coqui XTTS. لو مفيش speaker_wav، دور على عينة المستخدم."""
     try:
         from TTS.api import TTS
+        from pathlib import Path as PPath
+        import os
+
+        # لو مفيش speaker_wav، دور على أي عينة في voice_samples/
+        if not speaker_wav:
+            vs_dir = PPath.cwd() / "voice_samples"
+            if vs_dir.exists():
+                samples = list(vs_dir.glob("*_voice_sample.*"))
+                if samples:
+                    speaker_wav = str(samples[0])
+                    print(f"[TTS Clone] Using voice sample: {speaker_wav}")
+                else:
+                    return json.dumps({"error": "مفيش عينة صوتية محفوظة. ارفع عينتك عبر /api/voice/clone"})
+            else:
+                return json.dumps({"error": "مفيش عينة صوتية. ارفع عينتك عبر /api/voice/clone"})
+
+        if not os.path.exists(speaker_wav):
+            return json.dumps({"error": f"عينة الصوت مش موجودة: {speaker_wav}"})
+
         fp = EXPORTS_DIR / Path(filename).name
+        print(f"[TTS Clone] Loading XTTS model...")
         tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2")
+        print(f"[TTS Clone] Generating with voice clone...")
         tts.tts_to_file(text=text, speaker_wav=speaker_wav, language=language, file_path=str(fp))
-        return json.dumps({"success": True, "engine": "Coqui XTTS", "file_url": f"/api/file/download/{Path(filename).name}"}, ensure_ascii=False)
-    except Exception as e: return json.dumps({"error": str(e)})
+        return json.dumps({"success": True, "engine": "Coqui XTTS (voice clone)", "file_url": f"/api/file/download/{Path(filename).name}"}, ensure_ascii=False)
+    except Exception as e:
+        import traceback
+        return json.dumps({"error": f"{e}", "traceback": traceback.format_exc()[-300:]})
 
 def speech_to_text(file_path, model_size="base"):
     try:

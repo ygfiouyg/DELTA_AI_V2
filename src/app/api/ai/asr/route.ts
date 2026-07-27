@@ -221,6 +221,46 @@ export async function POST(request: NextRequest) {
       console.warn('[ASR] whisper-large-v3 failed:', err instanceof Error ? err.message : String(err));
     }
 
+    // All external providers failed — V.102: try local Whisper
+    console.log('[ASR] All external providers failed, trying local Whisper...');
+    try {
+      const { promises: fs } = await import('fs');
+      const path = (await import('path')).default;
+      const { exec } = await import('child_process');
+      const { promisify } = await import('util');
+      const execAsync = promisify(exec);
+
+      // احفظ الصوت في ملف مؤقت
+      const tempPath = path.join(process.cwd(), 'exports', `asr_${Date.now()}.webm`);
+      await fs.mkdir(path.dirname(tempPath), { recursive: true });
+      await fs.writeFile(tempPath, audioBuffer);
+
+      // شغل Whisper local
+      const pythonBin = '/home/z/.venv/bin/python3';
+      const script = `
+import whisper, json, sys
+model = whisper.load_model('base')
+result = model.transcribe('${tempPath}', language='${language}')
+print(json.dumps({"text": result["text"]}))
+`;
+      const { stdout } = await execAsync(`${pythonBin} -c '${script.replace(/'/g, "'\\''")}'`, { timeout: 60_000 });
+      
+      // تنظيف
+      await fs.unlink(tempPath).catch(() => {});
+
+      const result = JSON.parse(stdout.trim());
+      if (result.text && result.text.trim()) {
+        traceAPI(`ASR: Local Whisper نجح (${result.text.length} حرف)`);
+        return NextResponse.json({
+          text: result.text.trim(),
+          language,
+          provider: 'local-whisper',
+        });
+      }
+    } catch (localErr) {
+      console.warn('[ASR] Local Whisper failed:', localErr instanceof Error ? localErr.message : String(localErr));
+    }
+
     // All providers failed
     return NextResponse.json(
       { error: 'فشل في تحويل الصوت إلى نص — حاول تاني' },
