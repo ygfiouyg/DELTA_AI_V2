@@ -194,6 +194,8 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
     if [ -f /app/skills_manifest.json ]; then \
       echo "[Startup] Found skills_manifest.json"; \
     fi && \
+    echo "[Startup] V.115: Installing huggingface_hub for DB sync..." && \
+    pip3 install --break-system-packages --quiet huggingface_hub 2>&1 | tail -2 || echo "huggingface_hub install failed"; \
     echo "[Startup] V.115: Sync DB from HF Dataset (AFTER prisma db push — so data isn't wiped)..." && \
     if [ -f /app/scripts/db_sync_manager.py ]; then \
       DB_PATH="/app/db/custom.db" timeout 180 python3 /app/scripts/db_sync_manager.py 2>&1 | tee /app/db_sync.log; \
