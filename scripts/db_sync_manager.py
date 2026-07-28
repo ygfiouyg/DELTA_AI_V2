@@ -20,16 +20,24 @@ def log(msg):
     with open(LOG_FILE, "a") as f: f.write(line + "\n")
 
 def db_has_data():
+    """بيـ check لو الـ DB فيه ToolRegistry data (مش بس أي data)."""
     if not os.path.exists(DB_PATH):
         return False
     try:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
+        # check ToolRegistry table exists + has data
+        cur.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='ToolRegistry'")
+        if not cur.fetchone():
+            conn.close()
+            return False
         cur.execute("SELECT COUNT(*) FROM ToolRegistry")
         count = cur.fetchone()[0]
         conn.close()
+        log(f"   DB check: ToolRegistry has {count:,} rows")
         return count > 1000
-    except:
+    except Exception as e:
+        log(f"   DB check error: {e}")
         return False
 
 def download_db():
