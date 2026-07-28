@@ -197,6 +197,11 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
       (python3 /app/scripts/restore_db.py > /app/db_restore.log 2>&1 &) || true; \
       echo "[Startup] DB restore launched in background"; \
     fi && \
+    echo "[Startup] V.113: Installing tools from wheels (offline, fast)..." && \
+    if [ -f /app/scripts/install_from_wheels.py ]; then \
+      (python3 /app/scripts/install_from_wheels.py > /app/wheels_install.log 2>&1 &) || true; \
+      echo "[Startup] Wheels installer launched in background"; \
+    fi && \
     echo "[Startup] V.96: Starting framework installer in background (if script exists)..." && \
     if [ -f /app/scripts/install_frameworks.py ]; then \
       (nohup python3 /app/scripts/install_frameworks.py > /app/frameworks_install.log 2>&1 &) || true; \

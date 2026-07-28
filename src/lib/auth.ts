@@ -136,7 +136,34 @@ export async function getUserFromToken(token: string | null) {
     include: { user: true },
   });
 
-  if (!session) return null;
+  if (!session) {
+    // V.113: لو الـ session مش موجود (DB reset)، نـ auto-recreate guest session
+    // ده بيحل مشكلة "طلب login تاني بعد كل rebuild"
+    try {
+      const guestUser = await db.user.findUnique({ where: { email: 'guest@anzaro.ai' } });
+      if (!guestUser) {
+        // create guest user if not exists
+        const newGuest = await db.user.create({
+          data: { email: 'guest@anzaro.ai', name: 'زائر', isVerified: true, role: 'user' }
+        });
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + 365);
+        await db.session.create({
+          data: { token, userId: newGuest.id, expiresAt }
+        });
+        return newGuest;
+      }
+      // recreate session for existing guest
+      const expiresAt = new Date();
+      expiresAt.setDate(expiresAt.getDate() + 365);
+      await db.session.create({
+        data: { token, userId: guestUser.id, expiresAt }
+      });
+      return guestUser;
+    } catch {
+      return null;
+    }
+  }
 
   // Check if session has expired
   if (new Date() > session.expiresAt) {
