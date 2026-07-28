@@ -100,3 +100,4 @@ db/tools_lite.db
 skills/design/design-templates/
 db/custom.db.empty.bak
 db/*.bak
+wheels/
