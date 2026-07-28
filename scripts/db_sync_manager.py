@@ -7,11 +7,11 @@ V.115: DB Sync Manager — بيـ sync الـ DB مع HF Dataset.
 import os, sys, sqlite3, shutil, time, threading, subprocess
 from pathlib import Path
 
-DB_PATH = os.environ.get("DB_PATH", "/home/z/my-project/db/custom.db")
+DB_PATH = os.environ.get("DB_PATH", "/app/db/custom.db")
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
 DATASET_REPO = "kopabdo/anzaro-tools-db"
 SYNC_INTERVAL = 300  # 5 minutes
-LOG_FILE = "/home/z/my-project/exports/db_sync.log"
+LOG_FILE = os.environ.get("DB_SYNC_LOG", "/tmp/db_sync.log")
 
 def log(msg):
     line = f"[{time.strftime('%H:%M:%S')}] {msg}"

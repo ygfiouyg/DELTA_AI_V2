@@ -196,7 +196,7 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
     fi && \
     echo "[Startup] V.115: Sync DB from HF Dataset (AFTER prisma db push — so data isn't wiped)..." && \
     if [ -f /app/scripts/db_sync_manager.py ]; then \
-      timeout 180 python3 /app/scripts/db_sync_manager.py > /app/db_sync.log 2>&1 || echo "[Startup] DB sync timeout (will use empty DB)"; \
+      DB_PATH="/app/db/custom.db" timeout 180 python3 /app/scripts/db_sync_manager.py 2>&1 | tee /app/db_sync.log; \
       echo "[Startup] DB sync complete — DB ready with tools data"; \
     fi && \
     echo "[Startup] V.113: Installing tools from wheels (offline, fast)..." && \
