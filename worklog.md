@@ -6447,3 +6447,53 @@ Task: إجابات أسئلة المستخدم + إصلاحات DB restore + log
 - الـ HF Space لسه محتاج HF_TOKEN كـ Secret عشان الـ restore_db.py يشتغل
 
 *Last updated: 2026-07-28 (V.112) — DB restore + persistent guest + 365-day session*
+
+---
+Task ID: v112-hf-token-tools-fix
+Agent: main (Z.ai Code)
+Task: إصلاح الـ 0 tools + إضافة HF_TOKEN + تثبيت أدوات حقيقية
+
+### المشاكل اللي اتحلت:
+
+**1. الـ MassiveToolsPanel بتعرض 0:**
+السبب: الـ DB كان بيتـ reset عند كل rebuild.
+الحل: `scripts/restore_db.py` بيـ download الـ DB من HF Dataset عند الـ startup.
+
+**2. HF_TOKEN مش متاح في الـ Space:**
+الحل: أضفت HF_TOKEN كـ Secret في `kopabdo/DELTA_AI_V2` Space عبر:
+```python
+api.add_space_secret(repo_id="kopabdo/DELTA_AI_V2", key="HF_TOKEN", value="...")
+```
+
+**3. الأدوات مش متثبتة فعلياً:**
+السبب: pip كان بيثبت في python3.13 لكن الـ python اللي بيشتغل هو 3.12.
+الحل: استخدمت `--target=/home/z/.venv/lib/python3.12/site-packages` للتثبيت في الـ path الصح.
+
+### الأدوات المثبتة فعلياً (51 أداة):
+- AI: openai, anthropic, tiktoken
+- Fun: cowsay, pyjokes, qrcode
+- Audio: edge-tts, gTTS
+- Translation: deep-translator
+- NLP: vaderSentiment, textstat
+- Docs: markdown, pdfplumber, pypdf, python-docx, python-pptx, openpyxl, reportlab, fpdf2
+- Web: requests, httpx, beautifulsoup4, lxml, yt-dlp
+- Image: pillow, opencv-python-headless, pytesseract
+- Data: pandas, numpy, scipy, scikit-learn, matplotlib, seaborn, plotly
+- Math: sympy, statsmodels
+- Utils: passlib, bcrypt, schedule, loguru
+
+### 📊 النتائج النهائية:
+- ✅ Tools: **859,145** (metadata في DB)
+- ✅ Installed: **51** (أدوات حقيقية متثبتة فعلياً)
+- ✅ Skills: **90,000** (metadata في DB)
+- ✅ DB مرفوع على HF Dataset (302MB, persistent)
+- ✅ HF_TOKEN مضاف كـ Secret في HF Space
+- ✅ restore_db.py بيشتغل تلقائياً عند الـ startup
+
+### الصراحة الكاملة:
+- الـ 859K "أداة" دي **metadata** (name + summary + install command) — مش متثبتة كلها
+- الـ 90K "مهارة" دي **نفس الـ packages مسجلة كـ skills** — مش skills حقيقية
+- **51 أداة بس** هي اللي متثبتة فعلياً (pip install + verified)
+- الـ HF Dataset (unlimited) موجود فيه الـ DB كامل (302MB)
+
+*Last updated: 2026-07-28 (V.112) — HF_TOKEN added + 51 tools installed + DB restore working*
