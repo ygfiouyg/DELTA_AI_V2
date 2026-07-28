@@ -6551,3 +6551,53 @@ Task: حل دائم لمنع مسح البيانات + إصلاح login + إصل
 | Massive Tool Registry فاضية | بتعرض 859K tools + 55 installed |
 
 *Last updated: 2026-07-28 (V.113) — Offline wheels + auto-recreate session*
+
+---
+Task ID: v114-expand-tools
+Agent: main (Z.ai Code)
+Task: تحميل أدوات حقيقية إضافية + توسيع الـ callable tools
+
+### اللي اتعمل:
+
+**1. تحميل 253 wheel file (686MB):**
+- استخدمت `scripts/expand_tools.py` لتحميل wheels لـ 119 أداة إضافية
+- الـ wheels اترفعت على HF Dataset `kopabdo/anzaro-python-wheels`
+
+**2. تثبيت 89 أداة فعلية:**
+- 83 أداة importable + 6 إضافية
+- تشمل: transformers, nltk, albumentations, pymupdf, pydub, faker, scikit-image, arrow, rapidfuzz, etc.
+
+**3. 11 callable tools جديدة:**
+- `scrape_with_trafilatura` — استخراج نص من مقال
+- `tokenize_text` — تقسيم نص لكلمات (NLTK)
+- `augment_image` — augmentation للصور
+- `extract_pdf_images` — استخراج صور من PDF
+- `convert_audio` — تحويل صوت بين formats
+- `create_excel_chart` — Excel مع رسم بياني
+- `generate_fake_data` — توليد بيانات وهمية
+- `image_info` — معلومات عن صورة
+- `timezones_info` — الوقت في مدن مختلفة
+- `classify_text_ai` — تصنيف نص بالـ AI
+- `fuzzy_match` — مطابقة نصوص تقريبية
+
+**4. إصلاح syntax error:**
+- في `convert_audio` tool — `Unexpected token mp3`
+- الحل: استخراج `outPath` variable بره الـ template literal
+
+### 📊 النتائج النهائية:
+- ✅ Tools: **859,145** (metadata)
+- ✅ Installed: **89** (أدوات حقيقية متثبتة)
+- ✅ Skills: **90,000**
+- ✅ Callable tools: **35+** (الموديل يقدر يستدعيها فعلياً)
+- ✅ Wheels: 253 file (686MB) على HF Dataset
+- ✅ DB: 302MB على HF Dataset
+- ✅ exec API شغال (cowsay, generate_fake_data, etc.)
+
+### اختبار فعلي:
+```
+POST /api/massive-tools/exec {tool:"cowsay", args:{text:"V114"}}
+→ success: true
+→ بقرة بتقول "V114"
+```
+
+*Last updated: 2026-07-28 (V.114) — 89 tools + 35 callable + wheels on HF*
