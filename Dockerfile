@@ -192,10 +192,10 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
     if [ -f /app/skills_manifest.json ]; then \
       echo "[Startup] Found skills_manifest.json"; \
     fi && \
-    echo "[Startup] V.112: Restoring tools DB from HF Dataset (if empty)..." && \
-    if [ -f /app/scripts/restore_db.py ]; then \
-      (python3 /app/scripts/restore_db.py > /app/db_restore.log 2>&1 &) || true; \
-      echo "[Startup] DB restore launched in background"; \
+    echo "[Startup] V.115: Sync DB from HF Dataset (BLOCKING — must finish before Next.js)..." && \
+    if [ -f /app/scripts/db_sync_manager.py ]; then \
+      timeout 120 python3 /app/scripts/db_sync_manager.py > /app/db_sync.log 2>&1 || echo "[Startup] DB sync timeout (will use empty DB)"; \
+      echo "[Startup] DB sync complete"; \
     fi && \
     echo "[Startup] V.113: Installing tools from wheels (offline, fast)..." && \
     if [ -f /app/scripts/install_from_wheels.py ]; then \
