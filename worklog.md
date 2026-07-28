@@ -6651,3 +6651,69 @@ Task: حل دائم لمشكلة مسح البيانات عند rebuild
 - الـ sync manager بيـ guarantee إن الـ DB جاهز قبل الـ Next.js
 
 *Last updated: 2026-07-28 (V.115) — DB Sync Manager + 89 tools + 35 callable*
+
+---
+Task ID: v118-hf-space-working
+Agent: main (Z.ai Code)
+Task: إصلاح الـ HF Space — الأدوات مش بتظهر
+
+### 🎯 المشكلة الأساسية:
+الـ HF Space كان بيعرض 0 tools رغم إن الكود مرفوع.
+
+### 🔍 الـ Root Cause:
+1. `huggingface_hub` مش متثبت في الـ Docker image (الـ build كان فاشل صامت)
+2. الـ `db_sync_manager.py` كان بيـ fail بسبب `No module named 'huggingface_hub'`
+3. الـ DB_PATH default كان بيـ refer للـ sandbox مش الـ Space
+
+### 🔧 الإصلاحات:
+
+**V.116:**
+- أضفت `huggingface_hub` للـ pip install في Dockerfile
+- عدلت `db_sync_manager.py` يتأكد من ToolRegistry data تحديداً
+
+**V.117:**
+- عدلت `DB_PATH` default لـ `/app/db/custom.db` (HF Space path)
+- استخدمت `tee` عشان أعرض الـ sync logs في real-time
+
+**V.118 (الحل النهائي):**
+- ثبتت `huggingface_hub` في الـ runtime CMD (لأن الـ build كان فاشل)
+- `pip3 install --break-system-packages --quiet huggingface_hub` قبل الـ db_sync_manager
+
+### 📊 النتائج النهائية (متحققة منها على HF Space):
+
+```
+=== Test stats ===
+✅ Tools: 859,145
+✅ Installed: 89
+✅ Skills: 90,000
+
+=== Test search ===
+✅ count: 3
+  ✅ LangChainAgentFactory
+  ✅ LangChainKaltura
+  ✅ LangChainUtility
+
+=== Test exec ===
+success: True
+  _______________
+| HF Space Works! |
+  ===============
+```
+
+### 🔍 اللوج اللي بيـ confirm نجاح الـ sync:
+```
+[Startup] V.115: Installing huggingface_hub for DB sync...
+[Startup] V.115: Sync DB from HF Dataset (AFTER prisma db push)...
+[23:41:06] 🚀 V.115 DB Sync Manager — START
+[23:41:06]    DB check: ToolRegistry has 0 rows
+[23:41:06] 📥 Downloading DB from HF Dataset (blocking)...
+[23:41:09] ✅ DB downloaded (287.8MB) | Tools: 859,145 | Skills: 90,000
+[23:41:09] 🔄 Starting sync loop (every 5 min)...
+[23:41:09] 🏁 DB Sync Manager — DONE (DB ready for Next.js)
+[Startup] DB sync complete — DB ready with tools data
+```
+
+### 🎉 الخلاصة:
+الـ HF Space دلوقتي بيـ download الـ DB (287.8MB) من HF Dataset في **3 ثواني** قبل ما الـ Next.js يبدأ. الـ Massive Tool Registry بتعمل display 859,145 أداة + 89 مثبتة + 90,000 مهارة.
+
+*Last updated: 2026-07-28 (V.118) — HF Space WORKING with 859K tools*
