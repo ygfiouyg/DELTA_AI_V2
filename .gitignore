@@ -98,3 +98,5 @@ voice_samples/
 db/tools_mini.db
 db/tools_lite.db
 skills/design/design-templates/
+db/custom.db.empty.bak
+db/*.bak
