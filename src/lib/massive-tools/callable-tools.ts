@@ -546,6 +546,313 @@ cowsay.cow("""${(args.text || "Hello").replace(/"/g, '\\"')}""")
       return runPython(code);
     },
   },
+
+  // ── V.114: New callable tools (using newly installed packages) ──
+
+  // Web scraping
+  {
+    name: "scrape_with_trafilatura",
+    description: "استخراج النص الأساسي من مقال ويب (better than BeautifulSoup)",
+    category: "web",
+    package: "trafilatura",
+    parameters: { url: { type: "string" } },
+    execute: async (args) => {
+      const code = `
+import trafilatura, json
+downloaded = trafilatura.fetch_url("${args.url}")
+text = trafilatura.extract(downloaded) or ""
+print(json.dumps({"text": text[:5000], "length": len(text)}, ensure_ascii=False))
+`;
+      return runPython(code);
+    },
+  },
+
+  // NLP: NLTK
+  {
+    name: "tokenize_text",
+    description: "تقسيم نص إلى كلمات (tokenization) باستخدام NLTK",
+    category: "nlp",
+    package: "nltk",
+    parameters: { text: { type: "string" } },
+    execute: async (args) => {
+      const code = `
+import nltk, json
+nltk.download('punkt', quiet=True)
+nltk.download('punkt_tab', quiet=True)
+from nltk.tokenize import word_tokenize, sent_tokenize
+text = """${(args.text || "").replace(/"/g, '\\"')}"""
+words = word_tokenize(text)
+sentences = sent_tokenize(text)
+print(json.dumps({"words": words[:100], "word_count": len(words), "sentence_count": len(sentences)}, ensure_ascii=False))
+`;
+      return runPython(code);
+    },
+  },
+
+  // Image: Albumentations (augmentation)
+  {
+    name: "augment_image",
+    description: "تطبيق augmentation على صورة (flip, rotate, blur)",
+    category: "image",
+    package: "albumentations",
+    parameters: {
+      input_path: { type: "string" },
+      output_path: { type: "string" },
+      transform: { type: "string", enum: ["flip", "rotate", "blur", "brightness"] },
+    },
+    execute: async (args) => {
+      const code = `
+import albumentations as A
+import cv2
+import json
+img = cv2.imread('${args.input_path}')
+t = '${args.transform || "flip"}'
+if t == "flip": aug = A.HorizontalFlip(p=1)
+elif t == "rotate": aug = A.Rotate(p=1, limit=45)
+elif t == "blur": aug = A.GaussianBlur(p=1, blur_limit=(3, 7))
+elif t == "brightness": aug = A.RandomBrightnessContrast(p=1)
+else: aug = A.HorizontalFlip(p=1)
+transformed = aug(image=img)["image"]
+out = '${args.output_path || "augmented.png"}'
+cv2.imwrite(out, transformed)
+print(json.dumps({"file": out, "transform": t}))
+`;
+      return runPython(code);
+    },
+  },
+
+  // PyMuDF: advanced PDF
+  {
+    name: "extract_pdf_images",
+    description: "استخراج الصور من ملف PDF",
+    category: "pdf",
+    package: "pymupdf",
+    parameters: { file_path: { type: "string" } },
+    execute: async (args) => {
+      const code = `
+import fitz, json, os
+doc = fitz.open('${args.file_path}')
+images = []
+for page_num in range(min(len(doc), 20)):
+    page = doc[page_num]
+    imgs = page.get_images(full=True)
+    for img_idx, img in enumerate(imgs):
+        xref = img[0]
+        pix = fitz.Pixmap(doc, xref)
+        if pix.n - pix.alpha < 4:
+            fname = f"pdf_img_p{page_num}_i{img_idx}.png"
+            pix.save(fname)
+            images.append(fname)
+        pix = None
+doc.close()
+print(json.dumps({"images": images, "count": len(images)}))
+`;
+      return runPython(code);
+    },
+  },
+
+  // Audio: pydub
+  {
+    name: "convert_audio",
+    description: "تحويل صوت من format لـ format آخر",
+    category: "audio",
+    package: "pydub",
+    parameters: {
+      input_path: { type: "string" },
+      output_path: { type: "string" },
+      format: { type: "string", enum: ["mp3", "wav", "ogg", "flac"] },
+    },
+    execute: async (args) => {
+      const outPath = args.output_path || `converted.${args.format || "mp3"}`;
+      const code = `
+from pydub import AudioSegment
+import json
+audio = AudioSegment.from_file('${args.input_path}')
+out = '${outPath}'
+audio.export(out, format='${args.format || "mp3"}')
+print(json.dumps({"file": out, "duration_sec": len(audio) / 1000}))
+`;
+      return runPython(code);
+    },
+  },
+
+  // Data: xlsxwriter (advanced Excel)
+  {
+    name: "create_excel_chart",
+    description: "إنشاء ملف Excel مع رسم بياني",
+    category: "document",
+    package: "xlsxwriter",
+    parameters: {
+      data: { type: "array" },
+      filename: { type: "string" },
+    },
+    execute: async (args) => {
+      const code = `
+import xlsxwriter, json
+wb = xlsxwriter.Workbook('${args.filename || "chart.xlsx"}')
+ws = wb.add_worksheet()
+data = ${JSON.stringify(args.data || [["Month", "Sales"], ["Jan", 100], ["Feb", 200]])}
+for r, row in enumerate(data):
+    for c, val in enumerate(row):
+        ws.write(r, c, val)
+chart = wb.add_chart({"type": "column"})
+chart.add_series({
+    "name": "=Sheet1!$B$1",
+    "categories": "=Sheet1!$A$2:$A$" + str(len(data)),
+    "values": "=Sheet1!$B$2:$B$" + str(len(data)),
+})
+ws.insert_chart("D2", chart)
+wb.close()
+print(json.dumps({"file": "${args.filename || "chart.xlsx"}"}))
+`;
+      return runPython(code);
+    },
+  },
+
+  // Faker: generate fake data
+  {
+    name: "generate_fake_data",
+    description: "توليد بيانات وهمية (أسماء، إيميلات، أرقام)",
+    category: "data",
+    package: "faker",
+    parameters: {
+      count: { type: "integer", default: 10 },
+      type: { type: "string", enum: ["name", "email", "phone", "address", "company"] },
+    },
+    execute: async (args) => {
+      const code = `
+from faker import Faker
+import json
+fake = Faker()
+t = '${args.type || "name"}'
+n = ${args.count || 10}
+results = []
+for _ in range(n):
+    if t == "name": results.append(fake.name())
+    elif t == "email": results.append(fake.email())
+    elif t == "phone": results.append(fake.phone_number())
+    elif t == "address": results.append(fake.address())
+    elif t == "company": results.append(fake.company())
+print(json.dumps({"type": t, "count": n, "data": results}, ensure_ascii=False))
+`;
+      return runPython(code);
+    },
+  },
+
+  // Image: scikit-image
+  {
+    name: "image_info",
+    description: "معلومات عن صورة (dimensions, format, mode)",
+    category: "image",
+    package: "scikit-image",
+    parameters: { image_path: { type: "string" } },
+    execute: async (args) => {
+      const code = `
+from skimage import io
+import json
+img = io.imread('${args.image_path}')
+print(json.dumps({
+    "shape": list(img.shape),
+    "dtype": str(img.dtype),
+    "size_mb": img.nbytes / 1024 / 1024,
+    "min": float(img.min()),
+    "max": float(img.max()),
+    "mean": float(img.mean()),
+}))
+`;
+      return runPython(code);
+    },
+  },
+
+  // Arrow: date/time
+  {
+    name: "timezones_info",
+    description: "عرض الوقت الحالي في مدن مختلفة",
+    category: "utility",
+    package: "arrow",
+    parameters: {},
+    execute: async () => {
+      const code = `
+import arrow, json
+cities = {
+    "Cairo": "Africa/Cairo",
+    "Riyadh": "Asia/Riyadh",
+    "Dubai": "Asia/Dubai",
+    "London": "Europe/London",
+    "New York": "America/New_York",
+    "Tokyo": "Asia/Tokyo",
+}
+result = {city: arrow.now(tz).format("YYYY-MM-DD HH:mm:ss") for city, tz in cities.items()}
+print(json.dumps(result, ensure_ascii=False))
+`;
+      return runPython(code);
+    },
+  },
+
+  // Transformers: text classification
+  {
+    name: "classify_text_ai",
+    description: "تصنيف نص باستخدام AI (transformers)",
+    category: "ai",
+    package: "transformers",
+    parameters: { text: { type: "string" } },
+    execute: async (args) => {
+      const code = `
+from transformers import pipeline
+import json
+try:
+    classifier = pipeline("text-classification", model="distilbert-base-uncased-finetuned-sst-2-english")
+    result = classifier("""${(args.text || "").replace(/"/g, '\\"')}""")
+    print(json.dumps(result, default=str))
+except Exception as e:
+    print(json.dumps({"error": str(e), "fallback": "transformers needs model download"}))
+`;
+      return runPython(code, 60000);
+    },
+  },
+
+  // Structlog: structured logging
+  {
+    name: "format_json",
+    description: "تنسيق JSON من نص",
+    category: "utility",
+    package: "orjson",
+    parameters: { json_string: { type: "string" } },
+    execute: async (args) => {
+      const code = `
+import orjson, json
+try:
+    data = orjson.loads('''${(args.json_string || "{}").replace(/'/g, "\\'")}''')
+    print(json.dumps(data, indent=2, ensure_ascii=False))
+except Exception as e:
+    print(f"Error: {e}")
+`;
+      return runPython(code);
+    },
+  },
+
+  // RapidFuzz: fuzzy string matching
+  {
+    name: "fuzzy_match",
+    description: "مطابقة نصوص تقريبية (fuzzy matching)",
+    category: "nlp",
+    package: "rapidfuzz",
+    parameters: {
+      query: { type: "string" },
+      choices: { type: "array" },
+    },
+    execute: async (args) => {
+      const code = `
+from rapidfuzz import process, fuzz
+import json
+query = "${(args.query || "").replace(/"/g, '\\"')}"
+choices = ${JSON.stringify(args.choices || [])}
+results = process.extract(query, choices, limit=5, scorer=fuzz.WRatio)
+print(json.dumps({"query": query, "matches": [{"choice": r[0], "score": r[1]} for r in results]}, ensure_ascii=False))
+`;
+      return runPython(code);
+    },
+  },
 ];
 
 // ─────────────────────────────────────────────────────────────
