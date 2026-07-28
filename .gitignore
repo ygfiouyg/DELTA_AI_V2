@@ -62,7 +62,8 @@ server.log
 # Large binary/media files (HF Space rejects >10MB)
 /upload/
 /download/
-/db/*.db
+# V.110: Allow DB to be uploaded to HF (752K — under 10MB limit)
+!/db/custom.db
 /db/*.db-journal
 /mobile-app/dist/
 /mobile-app/.expo/
@@ -75,6 +76,7 @@ filter-branch-backup/
 upload-temp/
 upload/
 *.db
+!custom.db
 mobile-app/dist/
 skills/design/
 skills/*/scripts/
