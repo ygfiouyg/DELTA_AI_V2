@@ -169,6 +169,21 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
         await db.\$disconnect(); \
       })().catch(e => { console.error('[Startup] Admin setup failed:', e.message); process.exit(0); }); \
     " && \
+    echo "[Startup] V.112: Creating persistent guest user (no re-login after rebuild)..." && \
+    node -e " \
+      const { PrismaClient } = require('@prisma/client'); \
+      (async () => { \
+        const db = new PrismaClient(); \
+        const guest = await db.user.findUnique({ where: { email: 'guest@anzaro.ai' } }); \
+        if (!guest) { \
+          const u = await db.user.create({ data: { email: 'guest@anzaro.ai', name: 'زائر', isVerified: true, role: 'user' } }); \
+          console.log('[Startup] Guest user created:', u.id); \
+        } else { \
+          console.log('[Startup] Guest user exists:', guest.id); \
+        } \
+        await db.\$disconnect(); \
+      })().catch(e => { console.error('[Startup] Guest setup failed:', e.message); process.exit(0); }); \
+    " && \
     echo "[Startup] Installing runtime requirements (if any)..." && \
     if [ -f /app/requirements-runtime.txt ]; then \
       pip3 install --break-system-packages -r /app/requirements-runtime.txt 2>&1 | tail -5 || echo "Runtime requirements install partial"; \
@@ -176,6 +191,11 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
     echo "[Startup] V.94: Syncing Global Skill Registry (if manifest exists)..." && \
     if [ -f /app/skills_manifest.json ]; then \
       echo "[Startup] Found skills_manifest.json"; \
+    fi && \
+    echo "[Startup] V.112: Restoring tools DB from HF Dataset (if empty)..." && \
+    if [ -f /app/scripts/restore_db.py ]; then \
+      (python3 /app/scripts/restore_db.py > /app/db_restore.log 2>&1 &) || true; \
+      echo "[Startup] DB restore launched in background"; \
     fi && \
     echo "[Startup] V.96: Starting framework installer in background (if script exists)..." && \
     if [ -f /app/scripts/install_frameworks.py ]; then \
