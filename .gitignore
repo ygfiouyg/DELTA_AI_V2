@@ -92,3 +92,9 @@ skills/*/*.png
 db/custom.db
 db/custom.db-wal
 db/custom.db-shm
+
+# V.110: Large files — too big for HF (10MB limit)
+voice_samples/
+db/tools_mini.db
+db/tools_lite.db
+skills/design/design-templates/
