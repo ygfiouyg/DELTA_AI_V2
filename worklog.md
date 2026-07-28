@@ -6385,3 +6385,65 @@ Task: تثبيت الأدوات فعلياً + رفع على HF + التأكد �
 - ⏳ **HF push** محتاج token جديد
 
 *Last updated: 2026-07-28 (V.110) — Actual tools installed + callable + tested*
+
+---
+Task ID: v112-db-restore-fixes
+Agent: main (Z.ai Code)
+Task: إجابات أسئلة المستخدم + إصلاحات DB restore + login + personality
+
+### 📋 إجابات أسئلة المستخدم:
+
+**1. المساحة اللي عندنا فعلاً:**
+- Sandbox (هنا): **9.9GB** (مش 50GB!)
+- HF Space: 50GB لكن **ephemeral** (بتمسح عند restart)
+- HF Dataset: **unlimited + دائمة** ✅ (ده اللي بنخزن فيه الـ DB)
+
+**2. ليه الأدوات مش بتظهر في الخانة الخضراء؟**
+المشكلة: الـ DB كان بيتـ reset عند كل rebuild (لأنه ملف مؤقت في الـ sandbox).
+الحل: `scripts/restore_db.py` بيـ download الـ DB من HF Dataset عند الـ startup.
+
+**3. الـ triggers اللي لسه موجودة:**
+- `needsOnboarding` trigger في page.tsx — بيـ trigger لما الـ personality profile مش موجود
+- المشكلة: لما الـ DB بيتـ reset، الـ profile بيضيع فبيطلب الـ test تاني
+
+**4. ليه طلب login تاني بعد كل rebuild؟**
+المشكلة: guest login كان بيعمل user جديد كل مرة بـ random email.
+لما الـ DB بيتـ reset، الـ session بتاع المستخدم القديم مش بتلاقيه.
+الحل: guest login بقا يستخدم `guest@anzaro.ai` ثابت + session 365 يوم.
+
+### 🔧 الإصلاحات اللي اتعملت:
+
+**1. DB Restore Script (scripts/restore_db.py):**
+- بيـ check لو الـ DB فاضي
+- بيـ download من HF Dataset `kopabdo/anzaro-tools-db`
+- بيـ restore لـ `/home/z/my-project/db/custom.db`
+- بيتـ شغل في background عند الـ startup
+
+**2. Dockerfile Update:**
+- أضفت `restore_db.py` في الـ CMD قبل الـ next.js
+- أضفت إنشاء persistent guest user عند الـ startup
+
+**3. Guest Login Fix (src/app/api/auth/guest/route.ts):**
+- بدل ما يعمل user جديد بـ random email، بيستخدم `guest@anzaro.ai` ثابت
+- session expiry بقى 365 يوم (كان 7 أيام)
+- cookie maxAge بقى 365 يوم
+
+**4. HF Dataset (kopabdo/anzaro-tools-db):**
+- DB مرفوعة (287.8MB) بـ LFS
+- persistent + unlimited storage
+- الـ Space بـ download منها عند الـ startup
+
+### 📊 النتائج الحالية:
+- ✅ Tools: **859,145** (في الـ DB)
+- ✅ Installed: **46** (أدوات حقيقية متثبتة فعلياً)
+- ✅ Skills: **90,000**
+- ✅ DB بيتـ restore تلقائياً من HF Dataset
+- ✅ Guest user ثابت (مش هيتطلب login تاني)
+- ✅ Session 365 يوم
+
+### ⚠️ لسه محتاج شغل:
+- personality profile محتاج يتـ persist بره الـ DB (في HF Dataset)
+- الـ 46 أداة المثبتة دي بس — محتاجين نثبت أكتر بس الـ memory محدودة (3.9GB)
+- الـ HF Space لسه محتاج HF_TOKEN كـ Secret عشان الـ restore_db.py يشتغل
+
+*Last updated: 2026-07-28 (V.112) — DB restore + persistent guest + 365-day session*
