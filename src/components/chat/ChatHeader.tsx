@@ -82,6 +82,7 @@ import { ToolsHub } from '@/components/tools/ToolsHub';
 import { SkillsHub } from '@/components/skills/SkillsHub';
 import { GitHubSkillHub } from './GitHubSkillHub';
 import { GitHubToolHub } from './GitHubToolHub';
+import { MassiveToolsPanel } from './MassiveToolsPanel';
 import { AnzaroAppLauncher } from './AnzaroAppLauncher';
 import { AIToolsHub } from '@/components/ai-tools/AIToolsHub';
 import { MCPHub } from '@/components/ai-tools/MCPHub';
@@ -91,7 +92,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Package, Wrench, Bell, Youtube, BookOpen } from 'lucide-react';
+import { Package, Wrench, Bell, Youtube, BookOpen, Boxes } from 'lucide-react';
 import { IOSThemeToggle } from '@/components/ui/ios-theme-toggle';
 import { RemindersPanel } from './RemindersPanel';
 import { YouTubeAnalyzer } from './YouTubeAnalyzer';
@@ -114,6 +115,7 @@ export function ChatHeader({ onToggleSidebar, onToggleFilesPanel, onToggleSkills
   const [skillsHubOpen, setSkillsHubOpen] = useState(false);
   const [gitHubHubOpen, setGitHubHubOpen] = useState(false);
   const [gitHubToolOpen, setGitHubToolOpen] = useState(false);
+  const [massiveToolsOpen, setMassiveToolsOpen] = useState(false);
   const [appLauncherOpen, setAppLauncherOpen] = useState(false);
   const [aiToolsOpen, setAiToolsOpen] = useState(false);
   const [mcpHubOpen, setMcpHubOpen] = useState(false);
@@ -566,6 +568,20 @@ export function ChatHeader({ onToggleSidebar, onToggleFilesPanel, onToggleSkills
           <Wrench className="size-5" />
         </button>
 
+        {/* V.108: Massive Tools Registry Toggle — 100,000+ tools */}
+        <button
+          onClick={() => setMassiveToolsOpen(true)}
+          className={cn(
+            'flex items-center justify-center size-10 rounded-full transition-all ios-pressable relative',
+            'hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-600 dark:text-emerald-400'
+          )}
+          aria-label="مكتبة الأدوات الضخمة"
+          title="100,000+ أداة (JIT install)"
+        >
+          <Boxes className="size-5" />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+        </button>
+
         {/* User Avatar — Gemini circular */}
         <button
           onClick={() => setProfileOpen(true)}
@@ -752,6 +768,7 @@ export function ChatHeader({ onToggleSidebar, onToggleFilesPanel, onToggleSkills
       <YouTubeAnalyzer open={youtubeAnalyzerOpen} onOpenChange={setYoutubeAnalyzerOpen} />
       <KnowledgeBasePanel open={knowledgeBaseOpen} onOpenChange={setKnowledgeBaseOpen} />
       <VoiceChatOverlay isOpen={voiceChatOpen} onClose={() => setVoiceChatOpen(false)} />
+      <MassiveToolsPanel open={massiveToolsOpen} onClose={() => setMassiveToolsOpen(false)} />
     </>
   );
 }

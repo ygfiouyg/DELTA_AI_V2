@@ -931,3 +931,57 @@ model AudioRecord {
   @@index([userId])
   @@index([status])
 }
+
+// V.108: Massive Tool Registry — 100,000+ tools (metadata-only, JIT install)
+model ToolRegistry {
+  id            String   @id @default(cuid())
+  name          String
+  source        String   // "pypi" | "npm" | "github" | "mcp" | "local"
+  summary       String   @default("")
+  description   String   @default("")
+  category      String   @default("general") // ai | data | media | web | utility | dev | science | ml | nlp | vision | audio
+  installCmd    String   @default("")        // e.g. "pip install X" or "npm install X"
+  homepage      String   @default("")
+  repository    String   @default("")
+  keywords      String   @default("")        // comma-separated
+  author        String   @default("")
+  license       String   @default("")
+  version       String   @default("")
+  stars         Int      @default(0)
+  isVerified    Boolean  @default(false)
+  isInstalled   Boolean  @default(false)
+  installPath   String   @default("")
+  usageExample  String   @default("")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([name, source])
+  @@index([category])
+  @@index([source])
+  @@index([isInstalled])
+}
+
+// V.108: Skill Registry — 30,000+ skills (metadata-only)
+model SkillRegistry {
+  id            String   @id @default(cuid())
+  name          String
+  source        String   // "local" | "github" | "awesome-list" | "pypi" | "npm"
+  summary       String   @default("")
+  description   String   @default("")
+  category      String   @default("general") // communication | productivity | dev | data | media | research | writing | coding | analysis | design
+  skillType     String   @default("tool")    // tool | workflow | agent | prompt | template
+  installCmd    String   @default("")
+  repository    String   @default("")
+  keywords      String   @default("")
+  author        String   @default("")
+  usageExample  String   @default("")
+  stars         Int      @default(0)
+  isVerified    Boolean  @default(false)
+  isInstalled   Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([name, source])
+  @@index([category])
+  @@index([source])
+}

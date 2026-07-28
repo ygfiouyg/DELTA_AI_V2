@@ -770,6 +770,76 @@ export async function detectAndRunMCP(message: string): Promise<MCPIntentResult>
     }
   }
 
+  // ═══════════════════════════════════════════
+  // V.108: Massive Tool Registry — JIT install trigger
+  // لما المستخدم يكتب: "ثبّت أداة: X" أو "install tool: X" أو "استخدم أداة X"
+  // ═══════════════════════════════════════════
+  const jitPatterns = [
+    /(?:ثبّت|ثبت|تثبيت|install)\s+(?:أداة|اداة|tool|package|حزمة)?\s*[:：]?\s*([a-zA-Z0-9_\-\.]+)/i,
+    /(?:استخدم|use|run|شغّل|شغل)\s+(?:أداة|اداة|tool|package)?\s*[:：]?\s*([a-zA-Z0-9_\-\.]+)/i,
+    /(?:حمّل|حمل|download|get)\s+(?:أداة|اداة|tool|package)?\s*[:：]?\s*([a-zA-Z0-9_\-\.]+)/i,
+  ];
+  for (const pattern of jitPatterns) {
+    const match = message.match(pattern);
+    if (match) {
+      const toolName = match[1].trim();
+      try {
+        const { searchAndInstall } = await import('@/lib/massive-tools/jit-installer');
+        const result = await searchAndInstall(toolName);
+        if (result.success) {
+          const t = result.tool;
+          return {
+            matched: true,
+            tool: 'jit-install',
+            input: toolName,
+            result: `✅ **تم تثبيت الأداة بنجاح!**\n\n📦 **${t?.name}** (${t?.source})\n📝 ${t?.summary || 'لا يوجد وصف'}\n🔗 ${t?.homepage || t?.repository || ''}\n⏱️ ${result.durationMs}ms\n\n💡 الأداة جاهزة للاستخدام الآن.`,
+          };
+        } else {
+          return {
+            matched: true,
+            tool: 'jit-install',
+            input: toolName,
+            error: `فشل التثبيت: ${result.error || 'غير معروف'}. ${result.output ? `\n📋 ${result.output.slice(0, 500)}` : ''}`,
+          };
+        }
+      } catch (e: any) {
+        return { matched: true, tool: 'jit-install', input: toolName, error: `خطأ: ${e.message}` };
+      }
+    }
+  }
+
+  // ═══════════════════════════════════════════
+  // V.108: Tool search trigger — "دور على أداة لـ X"
+  // ═══════════════════════════════════════════
+  const toolSearchPatterns = [
+    /(?:دور|ابحث|search|find)\s+(?:على|عن|for)?\s*(?:أداة|اداة|tool|package)\s*(?:لـ|ل|for|to)?\s*(.+)/i,
+    /(?:ايه|what|which)\s+(?:الأدوات|tools|packages)\s*(?:لـ|ل|for|to)?\s*(.+)/i,
+  ];
+  for (const pattern of toolSearchPatterns) {
+    const match = message.match(pattern);
+    if (match) {
+      const query = match[1].trim().slice(0, 80);
+      try {
+        const { searchTools } = await import('@/lib/massive-tools/registry');
+        const results = await searchTools(query, 15);
+        if (results.length > 0) {
+          const formatted = results.map((t, i) =>
+            `${i + 1}. **${t.name}** (${t.source}) ${t.isInstalled ? '✅' : (t.isVerified ? '⭐' : '📋')}\n   ${t.summary || 'no description'}`
+          ).join('\n\n');
+          return {
+            matched: true,
+            tool: 'tool-search',
+            input: query,
+            result: `🔍 **لقيت ${results.length} أداة لـ "${query}":**\n\n${formatted}\n\n💡 اكتب "ثبّت أداة: <الاسم>" لتثبيت أي منها.`,
+          };
+        }
+        return { matched: true, tool: 'tool-search', input: query, error: `مفيش أدوات لـ "${query}"` };
+      } catch (e: any) {
+        return { matched: true, tool: 'tool-search', input: query, error: `خطأ: ${e.message}` };
+      }
+    }
+  }
+
   return { matched: false };
 }
 

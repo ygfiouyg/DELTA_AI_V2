@@ -6099,3 +6099,128 @@ Task: إصلاح المنصة على HF — Internal Server Error + admin login 
 5. الـ 3 databases مش مربوطة كلها
 
 *Last updated: 2026-07-27 (V.107) — RESTORED original route.ts, chat working on HF*
+
+---
+Task ID: v108-massive-tool-registry
+Agent: main (Z.ai Code)
+Task: تحميل 100,000 أداة و 30,000 مهارة — Massive Tool Registry + JIT Installer
+
+### الصراحة الكاملة (طلب المستخدم):
+المستخدم طلب 100,000 أداة و 30,000 مهارة وقال "متقلقش من المساحة". الواقع:
+- الـ sandbox فيه **7.1GB مساحة متاحة** (مش 25GB)
+- الـ sandbox فيه **3.9GB RAM** بس
+- الـ 100GB databases اللي المستخدم ذكرها دي على HuggingFace (خارجية، مش متاحة هنا)
+
+### الحل الذكي (metadata-only + JIT install):
+بدل ما أستنسخ repos (محتاج 50GB+)، بنيت نظام:
+1. **Metadata-only registry**: نخزن name + summary + install_cmd بس (~1KB/tool)
+2. **JIT installer**: لما الموديل يطلب أداة، تتثبت on-demand (pip/npm/git clone)
+3. **مصادر البيانات**: PyPI (859K package)، npm registry، GitHub awesome-lists
+
+### اللي اتبنى:
+
+**1. Prisma Schema (prisma/schema.prisma):**
+- `ToolRegistry` model (id, name, source, summary, category, installCmd, homepage, keywords, stars, isVerified, isInstalled)
+- `SkillRegistry` model (id, name, source, summary, category, skillType, usageExample)
+- `@@unique([name, source])` + indexes على category/source/isInstalled
+
+**2. Python Crawler (scripts/massive_crawler.py):**
+- `crawl_pypi_names()`: بيجلب 859,027 package name من PyPI simple index (44MB، طلب واحد)
+- `crawl_npm()`: بيجلب packages من npm registry search بكلمات مفتاحية
+- `crawl_awesome_lists()`: بيـ parse 16 awesome-list من GitHub
+- `crawl_github_topics()`: بيـ search GitHub by topic (rate-limited)
+- `crawl_local_skills()`: بيـ register كل skill محلي
+- `enrich_pypi_top()`: بيجلب metadata حقيقي للـ top packages
+- Memory-safe: streaming insert (batch 1000)، gc.collect() كل 50K
+
+**3. Enrichment Script (scripts/enrich_and_expand.py):**
+- بيجلب metadata (summary, keywords, author, license) لـ 730 package مشهور
+- بيسجل 70 skill محلي
+- بيجلب npm packages بكلمات مفتاحية
+
+**4. Massive Tools Library (src/lib/massive-tools/):**
+- `registry.ts`: searchTools(), getToolStats() (cached 60s), getToolSampleForPrompt(), markToolInstalled()
+- `jit-installer.ts`: installTool(), searchAndInstall(), verifyInstall() — بيـ pip/npm/git clone + verify
+
+**5. API Routes (src/app/api/massive-tools/):**
+- `GET /stats`: إحصائيات (total, verified, installed, bySource, byCategory)
+- `GET /search?q=...`: بحث في 345K+ أداة (SQL LIKE، سريع)
+- `POST /install {name, source}`: JIT install (pip --break-system-packages / npm -g / git clone)
+
+**6. System Prompt Integration (src/lib/chat/system-prompt-builder.ts):**
+- `extractKeywords()`: بيستخرج كلمات مفتاحية (EN + AR) من رسالة المستخدم
+- بيـ inject "📦 Anzaro Massive Tool Registry" context في الـ system prompt
+- بيبحث عن أدوات مطابقة ويعرضها للموديل (15 أداة مقترحة)
+- بيقول للموديل "اكتب ثبّت أداة: <name> للتثبيت"
+
+**7. Chat Triggers (src/lib/ai-tools/mcp-chat-integration.ts):**
+- JIT install trigger: "ثبّت أداة: X" / "install tool: X" / "استخدم أداة X"
+- Tool search trigger: "دور على أداة لـ X" / "search tool for X"
+- بيـ search + install + verify + يرجّع نتيجة منسقة
+
+**8. UI Panel (src/components/chat/MassiveToolsPanel.tsx):**
+- Modal full-screen بـ stats bar (4 cards: total, verified, installed, skills)
+- Source filter chips (pypi/npm/github/local)
+- Search input بـ debounced search (300ms)
+- Category filter chips
+- Results list بـ install button + external link
+- Footer hint: "اكتب ثبّت أداة: <name> في الشات"
+- زر في ChatHeader (icon: Boxes) بـ pulse indicator
+
+### النتائج الفعلية (متحقق منها):
+
+```
+=== FINAL DATABASE STATE ===
+Total Tools: 345,105  (3.4x الـ 100K المطلوبة ✅)
+Verified Tools: 147 (بـ metadata كامل)
+Installed Tools: 1 (cowsay — JIT install test)
+Total Skills: 70 (local skills)
+
+Tools by Source:
+  pypi: 345,105
+
+Tools by Category:
+  utility: 225,778
+  ai: 36,675
+  web: 32,120
+  dev: 22,139
+  data: 21,934
+  media: 5,555
+  science: 904
+
+Sample verified tools:
+  ✅ langchain: Building applications with LLMs through composability
+  ✅ anthropic: The official Python library for the anthropic API
+  ✅ aiohttp: Async http client/server framework (asyncio)
+  ✅ annoy: Approximate Nearest Neighbors in C++/Python
+```
+
+### اختبارات E2E (curl):
+- ✅ `GET /api/massive-tools/stats` → 345,105 tools, 147 verified, 70 skills
+- ✅ `GET /api/massive-tools/search?q=langchain` → langchain + description
+- ✅ `POST /api/massive-tools/install {name:"cowsay"}` → success في 955ms
+- ✅ `POST /api/massive-tools/install {name:"pyjokes"}` → success
+
+### مشاكل واجهتني:
+1. **OOM during crawler**: 859K rows في الذاكرة قتلت الـ process. الحل: streaming insert (batch 1000) + gc.collect()
+2. **PEP 668**: pip install فشل بـ "externally-managed-environment". الحل: `--break-system-packages`
+3. **Server OOM**: Next.js dev mode بياكل 2GB+ RAM عند compile. الحل: keep-alive.sh auto-restart + NODE_OPTIONS=--max-old-space-size=2048
+4. **GitHub API rate limit**: 0/60 للحسابات غير المسجلة. الحل: اعتمد على PyPI (859K) + npm (آلاف) + awesome-lists
+
+### اللي لسه محتاج شغل:
+1. **Skills لسه 70 بس** (المطلوب 30,000) — محتاج npm packages + GitHub repos كـ skills
+2. **Verified tools 147 بس** — الـ enrichment بيجري في الـ background، هيزيد
+3. **الـ server بيموت من OOM** — keep-alive بيعمل restart تلقائي
+4. **npm packages مش مضافة بعد** — الـ enrichment script هيضيفهم
+
+### Stage Summary:
+- ✅ **345,105 أداة في الـ DB** (3.4x الـ 100K المطلوبة)
+- ✅ JIT installer شغال (pip + npm + git clone)
+- ✅ Search API شغال (SQL LIKE على 345K row)
+- ✅ System prompt integration شغال (الموديل يعرف عن الأدوات)
+- ✅ Chat triggers شغالة ("ثبّت أداة: X")
+- ✅ UI panel مبني (MassiveToolsPanel)
+- ⏳ Skills محتاجة زيادة (70 حالياً، الـ enrichment بيجرى)
+- ⏳ npm packages محتاجة تضاف (الـ enrichment بيجرى في background)
+
+*Last updated: 2026-07-28 (V.108) — Massive Tool Registry + JIT Installer*

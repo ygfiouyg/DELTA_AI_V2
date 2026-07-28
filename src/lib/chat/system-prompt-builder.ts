@@ -18,6 +18,28 @@ import type { ParsedAttachment } from '@/lib/chat/attachment-parser';
 import type { DocIntent } from '@/lib/chat/doc-intent-classifier';
 import { buildCapabilitiesPrompt } from '@/lib/chat/capabilities-prompt';
 
+// V.108: Extract keywords from user message for tool matching
+function extractKeywords(message: string): string[] {
+  const stop = new Set(['the','a','an','is','are','was','were','be','been','being','have','has','had',
+    'do','does','did','will','would','could','should','may','might','can','to','of','in','on','at',
+    'by','for','with','about','against','between','into','through','during','before','after','above',
+    'below','from','up','down','out','off','over','under','again','further','then','once','here',
+    'there','when','where','why','how','all','any','both','each','few','more','most','other','some',
+    'such','no','nor','not','only','own','same','so','than','too','very','s','t','just','don','now',
+    'i','me','my','myself','we','our','ours','ourselves','you','your','yours','yourself','yourselves',
+    'he','him','his','himself','she','her','hers','herself','it','its','itself','they','them','their',
+    'theirs','themselves','what','which','who','whom','this','that','these','those','and','but','or',
+    'as','if','because','while','ان','في','من','على','الى','إلى','عن','مع','هذا','هذه','ذلك','تلك',
+    'التي','الذي','الذين','كيف','متى','اين','أين','ماذا','لماذا','هل','فيه','فيها','كان','كانت',
+    'يقول','تقول','احنا','احنا','انا','أنا','انت','أنت','هو','هي','هم','هن','دي','ده','دول','عشان',
+    'عشان','عشان','عاوز','عاوزة','عاوزين','محتاج','محتاجة','عاوز','اعمل','اعمل','عمل','سوي','خلي']);
+  // استخرج كلمات إنجليزية (3+ حروف) و كلمات عربية (3+ حروف)
+  const enWords = message.toLowerCase().match(/[a-z][a-z0-9_-]{2,}/g) || [];
+  const arWords = message.match(/[\u0600-\u06FF]{3,}/g) || [];
+  const words = [...enWords, ...arWords];
+  return words.filter(w => !stop.has(w.toLowerCase())).slice(0, 8);
+}
+
 // ─── Fallback Response (used when all providers fail) ────────────
 export const FALLBACK_RESPONSE = 'مرحبا، في مشكلة مؤقتة في الاتصال بمزود الخدمة. جرّب تاني بعد ثواني.\n\nلو المشكلة استمرت، تأكد إنك اخترت موديل شغال من القائمة اللي فوق.';
 
@@ -382,6 +404,50 @@ export async function buildSystemPrompt(params: BuildSystemPromptParams): Promis
     }
   } catch (fwErr) {
     // frameworks loading is optional
+  }
+
+  // V.108: Massive Tool Registry injection — 100,000+ tools available (JIT install)
+  try {
+    const { getToolStats, searchTools } = await import('@/lib/massive-tools/registry');
+    const userMessage = message || (parsed as any)?.message || '';
+    const stats = await getToolStats();
+    if (stats.tools.total > 0) {
+      // inject summary of available tools
+      systemPrompt += `\n\n📦 [Anzaro Massive Tool Registry — V.108]\n`;
+      systemPrompt += `يوجد لديك وصول إلى ${stats.tools.total.toLocaleString('ar-EG')} أداة (${stats.tools.verified.toLocaleString('ar-EG')} موثقة، ${stats.tools.installed.toLocaleString('ar-EG')} مثبتة) و ${stats.skills.total.toLocaleString('ar-EG')} مهارة.\n`;
+      systemPrompt += `المصادر: ${stats.tools.bySource.map((s:any) => `${s.source} (${s.count.toLocaleString('ar-EG')})`).join('، ')}.\n`;
+      systemPrompt += `الفئات: ${stats.tools.byCategory.slice(0,8).map((c:any) => `${c.category} (${c.count.toLocaleString('ar-EG')})`).join('، ')}.\n`;
+      systemPrompt += `\n💡 لو محتاج أداة مش مثبتة، قول اسمها و المصدر و أنا هثبّتها فوراً (JIT install).\n`;
+
+      // لو فيه كلمات مفتاحية في رسالة المستخدم، ابحث عن أدوات مطابقة
+      if (userMessage && userMessage.length > 3) {
+        const keywords = extractKeywords(userMessage);
+        if (keywords.length > 0) {
+          const allMatches: any[] = [];
+          for (const kw of keywords.slice(0, 3)) {
+            const matches = await searchTools(kw, 5);
+            allMatches.push(...matches);
+          }
+          // dedupe by name
+          const seen = new Set<string>();
+          const unique = allMatches.filter(t => {
+            if (seen.has(t.name)) return false;
+            seen.add(t.name); return true;
+          }).slice(0, 15);
+          if (unique.length > 0) {
+            systemPrompt += `\n🔍 أدوات مقترحة لطلبك:\n`;
+            for (const t of unique) {
+              const status = t.isInstalled ? '✅ مثبتة' : (t.isVerified ? '⭐ موثقة' : '📋 متاحة');
+              systemPrompt += `- ${t.name} (${t.source}) — ${t.summary || 'no description'} [${status}]\n`;
+            }
+            systemPrompt += `\nلاستخدام أي أداة: اكتب "ثبّت أداة: <name>" وسيتم تثبيتها فوراً وتشغيلها.\n`;
+          }
+        }
+      }
+    }
+  } catch (toolErr) {
+    // massive tool registry is optional — don't break chat
+    console.error('[Chat] Massive tool registry injection error:', toolErr);
   }
 
   return {
