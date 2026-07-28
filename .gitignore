@@ -87,3 +87,8 @@ skills/*/*.html
 skills/*/*.webp
 skills/*/*.jpg
 skills/*/*.png
+
+# V.110: Never track full DB (use tools_mini.db instead)
+db/custom.db
+db/custom.db-wal
+db/custom.db-shm
