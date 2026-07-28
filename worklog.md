@@ -6601,3 +6601,53 @@ POST /api/massive-tools/exec {tool:"cowsay", args:{text:"V114"}}
 ```
 
 *Last updated: 2026-07-28 (V.114) — 89 tools + 35 callable + wheels on HF*
+
+---
+Task ID: v115-db-sync-manager
+Agent: main (Z.ai Code)
+Task: حل دائم لمشكلة مسح البيانات عند rebuild
+
+### 🎯 الحل المُطبق (الحل التالت من اقتراح المستخدم):
+**HF Dataset كـ persistent storage** — لكن بإصلاحات جذرية:
+
+### المشكلة الأساسية:
+الـ HF Space بيـ reset كل حاجة عند rebuild (ephemeral container).
+الـ implementation القديم كان بيـ download الـ DB في background — الـ Next.js بيبدأ قبل ما الـ DB يخلص.
+
+### 🔧 الحل (V.115):
+
+**1. DB Sync Manager (scripts/db_sync_manager.py):**
+- **Blocking download**: بيـ download الـ DB من HF Dataset **قبل** ما الـ Next.js يبدأ
+- **Auto-upload**: بيـ upload الـ DB لـ HF Dataset كل 5 دقايق تلقائياً
+- **Sync loop**: في background thread
+
+**2. Dockerfile Update:**
+- الـ CMD بيـ run `db_sync_manager.py` بـ timeout 120s **قبل** الـ Next.js
+- لو الـ download فشل، الـ Next.js يبدأ بـ DB فاضي (fallback)
+
+### 📊 النتائج (متحققة منها):
+
+**API Stats:**
+- ✅ Tools: **859,145**
+- ✅ Installed: **89** (أدوات حقيقية)
+- ✅ Skills: **90,000**
+
+**Callable Tools (كلها شغالة فعلياً):**
+- ✅ `cowsay` → بقرة بتقول "V115"
+- ✅ `timezones_info` → الوقت في 6 مدن (Cairo, Riyadh, Dubai, London, NY, Tokyo)
+- ✅ `tell_joke` → "Hardware: The part of a computer that you can kick."
+- ✅ `fuzzy_match` → apple=100%, apples=90.9%, aple=88.9%
+- ✅ `generate_fake_data` → ["Mark Hughes", "Sally Payne", "Erica Smith"]
+
+### 🚀 اترفع على HF:
+- ✅ `kopabdo/DELTA_AI_V2` (Space) — الكود + Dockerfile
+- ✅ `kopabdo/anzaro-tools-db` (Dataset) — الـ DB (302MB, persistent)
+- ✅ `kopabdo/anzaro-python-wheels` (Dataset) — الـ wheels (686MB)
+- ✅ HF_TOKEN مضاف كـ Secret
+
+### 💡 ليه ما استخدمتش Supabase؟
+- محتاج account + setup خارجي
+- الـ HF Dataset حل أبسط ومجاني تماماً
+- الـ sync manager بيـ guarantee إن الـ DB جاهز قبل الـ Next.js
+
+*Last updated: 2026-07-28 (V.115) — DB Sync Manager + 89 tools + 35 callable*
