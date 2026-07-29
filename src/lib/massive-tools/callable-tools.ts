@@ -300,13 +300,25 @@ opts = {
     'format': '${args.format === "audio" ? "bestaudio" : "best"}' if '${args.format}' else 'best',
     'outtmpl': '/home/z/my-project/exports/%(title)s.%(ext)s',
     'quiet': True,
+    'socket_timeout': 30,
+    'retries': 2,
+    'no_warnings': True,
 }
-with yt_dlp.YoutubeDL(opts) as ydl:
-    info = ydl.extract_info("${args.url}", download=True)
-    filename = ydl.prepare_filename(info)
-print(json.dumps({"file": filename, "title": info.get("title",""), "duration": info.get("duration",0)}, ensure_ascii=False))
+try:
+    with yt_dlp.YoutubeDL(opts) as ydl:
+        info = ydl.extract_info("${args.url}", download=True)
+        filename = ydl.prepare_filename(info)
+    print(json.dumps({"file": filename, "title": info.get("title",""), "duration": info.get("duration",0)}, ensure_ascii=False))
+except Exception as e:
+    # Fallback: just get info without downloading
+    try:
+        with yt_dlp.YoutubeDL({'quiet': True, 'no_warnings': True, 'skip_download': True}) as ydl:
+            info = ydl.extract_info("${args.url}", download=False)
+        print(json.dumps({"title": info.get("title",""), "duration": info.get("duration",0), "url": "${args.url}", "note": "info only (download failed)"}, ensure_ascii=False))
+    except Exception as e2:
+        print(json.dumps({"error": str(e), "fallback_error": str(e2)}, ensure_ascii=False))
 `;
-      return runPython(code, 120000);
+      return runPython(code, 180000);
     },
   },
 
