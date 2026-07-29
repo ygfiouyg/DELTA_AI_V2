@@ -32,8 +32,17 @@ const SITE_PACKAGES = [
 ];
 
 async function runPython(code: string, timeoutMs = 60000): Promise<string> {
-  const tmpDir = "/tmp";
-  const tmpFile = path.join(tmpDir, `anzaro_dyn_${Date.now()}_${Math.random().toString(36).slice(2,6)}.py`);
+  // V.131c: Use /app/exports or /home/z/my-project/exports (writable in HF Space)
+  const tmpDirs = ["/app/exports", "/home/z/my-project/exports", "/tmp"];
+  let tmpDir = "/tmp";
+  for (const d of tmpDirs) {
+    try {
+      await fsPromises.mkdir(d, { recursive: true });
+      tmpDir = d;
+      break;
+    } catch {}
+  }
+  const tmpFile = path.join(tmpDir, `dyn_${Date.now()}.py`);
   try {
     await fsPromises.writeFile(tmpFile, code, "utf-8");
     const pythonPath = PYTHON_PATHS.find(p => existsSync(p)) || "python3";
@@ -42,7 +51,7 @@ async function runPython(code: string, timeoutMs = 60000): Promise<string> {
     return new Promise((resolve) => {
       const proc = spawn(pythonPath, [tmpFile], {
         cwd: tmpDir,
-        env: { ...process.env, PYTHONUNBUFFERED: "1", PYTHONPATH: pythonpath, TMPDIR: tmpDir },
+        env: { ...process.env, PYTHONUNBUFFERED: "1", PYTHONPATH: pythonpath },
       });
       let stdout = "";
       let stderr = "";
