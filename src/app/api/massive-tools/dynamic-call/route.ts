@@ -32,7 +32,8 @@ const SITE_PACKAGES = [
 ];
 
 async function runPython(code: string, timeoutMs = 60000): Promise<string> {
-  const tmpFile = path.join(os.tmpdir(), `anzaro_dyn_${Date.now()}.py`);
+  const tmpDir = "/tmp";
+  const tmpFile = path.join(tmpDir, `anzaro_dyn_${Date.now()}_${Math.random().toString(36).slice(2,6)}.py`);
   try {
     await fsPromises.writeFile(tmpFile, code, "utf-8");
     const pythonPath = PYTHON_PATHS.find(p => existsSync(p)) || "python3";
@@ -40,8 +41,8 @@ async function runPython(code: string, timeoutMs = 60000): Promise<string> {
 
     return new Promise((resolve) => {
       const proc = spawn(pythonPath, [tmpFile], {
-        cwd: "/home/z/my-project/exports",
-        env: { ...process.env, PYTHONUNBUFFERED: "1", PYTHONPATH: pythonpath },
+        cwd: tmpDir,
+        env: { ...process.env, PYTHONUNBUFFERED: "1", PYTHONPATH: pythonpath, TMPDIR: tmpDir },
       });
       let stdout = "";
       let stderr = "";
