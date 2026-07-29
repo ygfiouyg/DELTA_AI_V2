@@ -102,7 +102,19 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     sympy \
     pyfiglet \
     wikipedia \
+    # V.127: Fix missing AI/ML packages
+    trafilatura \
+    PyMuPDF \
+    sentence-transformers \
+    guardrails-ai \
+    ragas \
+    langfuse \
+    celery \
+    passlib \
     2>/dev/null || echo "Python packages install partial (some may have failed)"
+
+# V.127: Install PyTorch CPU (separate command for index URL)
+RUN pip3 install --no-cache-dir --break-system-packages torch --index-url https://download.pytorch.org/whl/cpu 2>/dev/null || echo "torch install failed"
 
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate

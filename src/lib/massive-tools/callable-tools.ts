@@ -630,15 +630,15 @@ print(json.dumps({"file": out, "transform": t}))
     parameters: { file_path: { type: "string" } },
     execute: async (args) => {
       const code = `
-import fitz, json, os
-doc = fitz.open('${args.file_path}')
+import pymupdf, json, os
+doc = pymupdf.open('${args.file_path}')
 images = []
 for page_num in range(min(len(doc), 20)):
     page = doc[page_num]
     imgs = page.get_images(full=True)
     for img_idx, img in enumerate(imgs):
         xref = img[0]
-        pix = fitz.Pixmap(doc, xref)
+        pix = pymupdf.Pixmap(doc, xref)
         if pix.n - pix.alpha < 4:
             fname = f"pdf_img_p{page_num}_i{img_idx}.png"
             pix.save(fname)
