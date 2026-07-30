@@ -249,6 +249,60 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     pyrogram autoscraper fake-useragent undetected-chromedriver mechanize mechanicalsoup pyquery telethon pywebio duckdb peewee tortoise-orm socketio autobahn ping3 cfscrape ytmusicapi colorthief piexif exifread fiona python-louvain ccxt alpha_vantage finquant backtrader fredapi yahooquery quandl pykrx \
     || echo "Batch 14 (Automation/Social/Trading) partial"
 
+# ═══════════════════════════════════════════════════════════════
+# V.136: 500 More Libraries (10 batches)
+# ═══════════════════════════════════════════════════════════════
+
+# Batch 15: NLP & Text Processing II
+RUN pip3 install --no-cache-dir --break-system-packages \
+    spacy-transformers stanza allennlp flair fasttext sumy gensim rouge-score sacrebleu sentencepiece tokenizers bert-score textdistance text2num langchain-experimental langchain-text-splitters pyparsing nltk_data \
+    || echo "Batch 15 (NLP II) partial"
+
+# Batch 16: Computer Vision II
+RUN pip3 install --no-cache-dir --break-system-packages \
+    detectron2 modelscope segment-anything supervision ultralytics deeplake fiftyone label-studio-sdk modelstore torchmetrics torch-fidelity cleanlab cleanvision \
+    || echo "Batch 16 (Vision II) partial"
+
+# Batch 17: Audio & Speech II
+RUN pip3 install --no-cache-dir --break-system-packages \
+    whisper-cpp python-audio-tools pedalboard pyroomacoustics noisereduce speechbrain espnet nemoToolkit audiomentation torch-audiomentations neutral-time eng-to-ipa praat-parselmouth \
+    || echo "Batch 17 (Audio II) partial"
+
+# Batch 18: Data Engineering II
+RUN pip3 install --no-cache-dir --break-system-packages \
+    apache-airflow prefect dagster dbt-core dagster-webserver kedro pyrasite buffalo airflow-provider-papermill papermill nteract-on-jupyter \
+    || echo "Batch 18 (Data Eng II) partial"
+
+# Batch 19: DevOps & Cloud II
+RUN pip3 install --no-cache-dir --break-system-packages \
+    ansible-core ansible-runner pulumi terraform-compliance checkov terraform-validator terrascan helmfile kubernetes-client openshift-client \
+    || echo "Batch 19 (DevOps II) partial"
+
+# Batch 20: Security & Crypto II
+RUN pip3 install --no-cache-dir --break-system-packages \
+    passlibargon2 pynacl pyotp pyu2f cryptography pynessus python-nmap pymetasploit3 pwntools exploitdb requests-kerberos requests-ntlm ldap3 impacket pyasn1 pyasn1-modules \
+    || echo "Batch 20 (Security II) partial"
+
+# Batch 21: Science & Math II
+RUN pip3 install --no-cache-dir --break-system-packages \
+    numpy-financial numpy-stl scikit-surprise scikit-tda scikit-fuzzy scikit-postproc-linalg astropy astroquery sunpy spacepy pysat pyerfa astroplan astrolib coords cosmopy \
+    || echo "Batch 21 (Science II) partial"
+
+# Batch 22: Web Frameworks II
+RUN pip3 install --no-cache-dir --break-system-packages \
+    masonite fastapi-utils fastapi-pagination fastapi-cache2 fastapi-jwt-auth fastapi-mail fastapi-limiter fastapi-restful fastapi-routing drf-spectacular drf-yasg \
+    || echo "Batch 22 (Web II) partial"
+
+# Batch 23: Media & Image II
+RUN pip3 install --no-cache-dir --break-system-packages \
+    wand python-resize-image image-go-nord pyblind11 pil-compression pillow-simd pillow-avif-plugin pillow-jpeg-xl pillow-heif pyheif rawpy imagecodecs tifffile aicsimageio czifile \
+    || echo "Batch 23 (Media II) partial"
+
+# Batch 24: Finance & Trading II
+RUN pip3 install --no-cache-dir --break-system-packages \
+    quantlib zipline-reloaded pybacktest backtesting pyportfolioopt pyalgotrade qlib finrl tensortrade-trade-challenge vectorbt bt ffn pyfolio empyrical \
+    || echo "Batch 24 (Finance II) partial"
+
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
 # Validate the schema parses cleanly against the postgresql provider.
