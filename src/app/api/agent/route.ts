@@ -1,122 +1,87 @@
 /**
  * POST /api/agent
- * ===============
- * DeltaAI Agent endpoint — ReAct loop with GLM-5.2 function calling.
+ * body: { message: string, system_prompt?: string, history?: [] }
  *
- * الـ response بيرجع SSE stream من الأحداث:
- *   iteration_start | assistant_chunk | thinking | tool_call | tool_result
- *   final_answer | error | done
- *
- * Body:
- *   {
- *     "message":  string,           // required — user message
- *     "history"?: AgentMessage[],   // optional — prior conversation
- *     "tools"?:   string[],         // optional — restrict tool names
- *     "maxIterations"?: number,     // optional — default 8
- *     "model"?:   string,           // optional — default glm-5.2
- *     "temperature"?: number        // optional — default 0.7
- *   }
- *
- * Headers:
- *   Authorization: Bearer <token>   // required
+ * بيستقبل طلب المستخدم، يمرره للـ Agent، ينفذ الـ tool calls، ويرجع النتيجة.
  */
 
-import { NextRequest, NextResponse } from "next/server";
-import { withAuth } from "@/lib/with-auth";
-import { runAgent, type AgentMessage } from "@/lib/mcp/agent-engine";
+import { NextResponse } from "next/server";
+import { runAgent, runAudioWorkflow, type AgentMessage } from "@/lib/agent/agent-engine";
+import { getToolsSchema, ALL_AGENT_TOOLS } from "@/lib/agent/custom-tools";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
 
-interface AgentRequestBody {
-  message?: string;
-  history?: AgentMessage[];
-  tools?: string[];
-  maxIterations?: number;
-  model?: string;
-  temperature?: number;
-  systemPrompt?: string;
+/** GET — بيـ رجّع كل الأدوات المتاحة */
+export async function GET() {
+  const tools = ALL_AGENT_TOOLS.map(t => ({
+    name: t.name,
+    description: t.description,
+    parameters: t.parameters,
+  }));
+  return NextResponse.json({
+    success: true,
+    tools_count: tools.length,
+    tools,
+  });
 }
 
-export const POST = withAuth(async (request: NextRequest) => {
-  // ── Parse body ──
-  let body: AgentRequestBody;
+/** POST — بيـ run الـ agent */
+export async function POST(req: Request) {
   try {
-    body = (await request.json()) as AgentRequestBody;
-  } catch {
+    const body = await req.json();
+    const { message, system_prompt, history, workflow } = body;
+
+    // ── Audio Workflow ──
+    if (workflow === "audio" && body.audio_path) {
+      const result = await runAudioWorkflow(body.audio_path);
+      return NextResponse.json({
+        success: true,
+        workflow: "audio_processing",
+        result,
+      });
+    }
+
+    // ── Agent Loop ──
+    if (!message) {
+      return NextResponse.json(
+        { success: false, error: "message required" },
+        { status: 400 }
+      );
+    }
+
+    const defaultSystemPrompt = `أنت Anzaro AI — مساعد ذكي قادر على اتخاذ إجراءات.
+لديك أدوات متاحة. استخدمها عند الحاجة لتنفيذ طلبات المستخدم.
+لا تقل "لا أستطيع" — استخدم الأدوات المتاحة لتنفيذ الطلب.
+
+الأدوات المتاحة:
+${ALL_AGENT_TOOLS.map(t => `- ${t.name}: ${t.description}`).join("\n")}
+
+قواعد:
+1. فكر أولاً: هل يحتاج الطلب لأداة؟
+2. لو نعم: استدعي الأداة المناسبة
+3. لو لا: أجب مباشرة
+4. اشرح ما فعلته بإيجاز بعد تنفيذ الأداة`;
+
+    const result = await runAgent(
+      message,
+      system_prompt || defaultSystemPrompt,
+      (history || []) as AgentMessage[]
+    );
+
+    return NextResponse.json({
+      success: true,
+      response: result.response,
+      tool_calls: result.tool_calls_made,
+      iterations: result.iterations,
+      tools_used: result.tool_calls_made.map(tc => tc.name),
+    });
+  } catch (e: any) {
+    console.error("[Agent API] Error:", e);
     return NextResponse.json(
-      { error: "invalid_json", message: "الـ body لازم يكون JSON صالح" },
-      { status: 400 },
+      { success: false, error: e.message },
+      { status: 500 }
     );
   }
-
-  const message = (body.message || "").trim();
-  if (!message) {
-    return NextResponse.json(
-      { error: "missing_message", message: "message مطلوبة" },
-      { status: 400 },
-    );
-  }
-
-  // Cap iterations to a safe upper bound
-  const maxIterations = Math.max(1, Math.min(15, Number(body.maxIterations) || 8));
-
-  // Sanitize history
-  const history: AgentMessage[] = Array.isArray(body.history)
-    ? body.history
-        .filter((m) => m && typeof m.role === "string" && typeof m.content === "string")
-        .slice(-30)
-        .map((m) => ({
-          role: m.role,
-          content: String(m.content).slice(0, 8000),
-          ...(m.tool_call_id ? { tool_call_id: String(m.tool_call_id) } : {}),
-          ...(Array.isArray(m.tool_calls) ? { tool_calls: m.tool_calls } : {}),
-        }))
-    : [];
-
-  // ── Build SSE stream ──
-  const encoder = new TextEncoder();
-
-  const stream = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const send = (event: Record<string, unknown>) => {
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
-      };
-
-      try {
-        // استخدم الموديل المختار، ولو مش متاح → fallback لـ glm-4-flash (ZAI)
-        const { getSelectedModel } = await import("@/lib/model-selection");
-        const modelSelection = getSelectedModel({ model: body.model });
-        const agentModel = body.model || modelSelection.model;
-        const maxTokens = modelSelection.maxTokens;
-
-        for await (const event of runAgent({
-          message,
-          history,
-          toolNames: Array.isArray(body.tools) ? body.tools : undefined,
-          maxIterations,
-          model: agentModel,
-          maxTokens,
-          temperature: typeof body.temperature === "number" ? body.temperature : 0.7,
-          systemPrompt: body.systemPrompt,
-        })) {
-          send(event);
-        }
-      } catch (e: any) {
-        send({ type: "error", message: e?.message || "agent_run_failed" });
-      } finally {
-        controller.enqueue(encoder.encode("data: [DONE]\n\n"));
-        controller.close();
-      }
-    },
-  });
-
-  return new NextResponse(stream, {
-    headers: {
-      "Content-Type": "text/event-stream; charset=utf-8",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-      "X-Accel-Buffering": "no",
-    },
-  });
-});
+}
