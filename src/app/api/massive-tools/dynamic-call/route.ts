@@ -32,47 +32,33 @@ const SITE_PACKAGES = [
 ];
 
 async function runPython(code: string, timeoutMs = 60000): Promise<string> {
-  // V.131c: Use /app/exports or /home/z/my-project/exports (writable in HF Space)
-  const tmpDirs = ["/app/exports", "/home/z/my-project/exports", "/tmp"];
-  let tmpDir = "/tmp";
-  for (const d of tmpDirs) {
-    try {
-      await fsPromises.mkdir(d, { recursive: true });
-      tmpDir = d;
-      break;
-    } catch {}
-  }
-  const tmpFile = path.join(tmpDir, `dyn_${Date.now()}.py`);
-  try {
-    await fsPromises.writeFile(tmpFile, code, "utf-8");
-    const pythonPath = PYTHON_PATHS.find(p => existsSync(p)) || "python3";
-    const pythonpath = SITE_PACKAGES.join(":");
+  // V.131d: Use inline -c flag instead of tmpfile (avoids filesystem issues)
+  const pythonPath = PYTHON_PATHS.find(p => existsSync(p)) || "python3";
+  const pythonpath = SITE_PACKAGES.join(":");
 
-    return new Promise((resolve) => {
-      const proc = spawn(pythonPath, [tmpFile], {
-        cwd: tmpDir,
-        env: { ...process.env, PYTHONUNBUFFERED: "1", PYTHONPATH: pythonpath },
-      });
-      let stdout = "";
-      let stderr = "";
-      proc.stdout.on("data", (d) => { stdout += d.toString(); });
-      proc.stderr.on("data", (d) => { stderr += d.toString(); });
-      const timer = setTimeout(() => {
-        proc.kill("SIGKILL");
-        resolve(JSON.stringify({ error: `Timeout after ${timeoutMs}ms` }));
-      }, timeoutMs);
-      proc.on("close", () => {
-        clearTimeout(timer);
-        resolve(stdout + (stderr ? `\n[STDERR]\n${stderr}` : ""));
-      });
-      proc.on("error", (e) => {
-        clearTimeout(timer);
-        resolve(JSON.stringify({ error: e.message }));
-      });
+  return new Promise((resolve) => {
+    // Use -c flag to pass code directly (no temp file needed)
+    const proc = spawn(pythonPath, ["-c", code], {
+      cwd: "/tmp",
+      env: { ...process.env, PYTHONUNBUFFERED: "1", PYTHONPATH: pythonpath },
     });
-  } finally {
-    try { await fsPromises.unlink(tmpFile); } catch {}
-  }
+    let stdout = "";
+    let stderr = "";
+    proc.stdout.on("data", (d) => { stdout += d.toString(); });
+    proc.stderr.on("data", (d) => { stderr += d.toString(); });
+    const timer = setTimeout(() => {
+      proc.kill("SIGKILL");
+      resolve(JSON.stringify({ error: `Timeout after ${timeoutMs}ms` }));
+    }, timeoutMs);
+    proc.on("close", () => {
+      clearTimeout(timer);
+      resolve(stdout + (stderr ? `\n[STDERR]\n${stderr}` : ""));
+    });
+    proc.on("error", (e) => {
+      clearTimeout(timer);
+      resolve(JSON.stringify({ error: e.message }));
+    });
+  });
 }
 
 function getImportName(pkg: string): string {
