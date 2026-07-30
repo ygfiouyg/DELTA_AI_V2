@@ -175,6 +175,80 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     celery sqlalchemy fastapi \
     || echo "Infrastructure packages partial install"
 
+# ═══════════════════════════════════════════════════════════════
+# V.135: The 300 Library Mega-Install (14 batches)
+# ═══════════════════════════════════════════════════════════════
+
+# Batch 1: Science & Medical
+RUN pip3 install --no-cache-dir --break-system-packages \
+    pubchempy biopython mendeleev pydicom pyarrow h5py tabula-py xmltodict ijson marshmallow ruamel.yaml \
+    || echo "Batch 1 (Science/Medical) partial"
+
+# Batch 2: AI & ML Advanced
+RUN pip3 install --no-cache-dir --break-system-packages \
+    sentence-transformers onnxruntime einops xgboost umap-learn tenacity websockets gql pyngrok fabric boto3 \
+    || echo "Batch 2 (AI/ML) partial"
+
+# Batch 3: Infrastructure & Hardware
+RUN pip3 install --no-cache-dir --break-system-packages \
+    cachetools pycryptodome soundfile graphviz psycopg2-binary alembic esptool smbus2 pyusb webrtcvad sounddevice mutagen vobject \
+    || echo "Batch 3 (Infra/Hardware) partial"
+
+# Batch 4: OSINT & Cyber
+RUN pip3 install --no-cache-dir --break-system-packages \
+    cloudscraper scapy dpkt praw instaloader spotipy googlesearch-python pytrends feedgen \
+    || echo "Batch 4 (OSINT/Cyber) partial"
+
+# Batch 5: Academic AI
+RUN pip3 install --no-cache-dir --break-system-packages \
+    py3dmol periodictable coolprop statsmodels lightgbm dask shap optuna timm diffusers peft \
+    || echo "Batch 5 (Academic AI) partial"
+
+# Batch 6: System Tools
+RUN pip3 install --no-cache-dir --break-system-packages \
+    pynput pyperclip icecream memory_profiler transitions pypika prometheus_client typing_extensions \
+    || echo "Batch 6 (System) partial"
+
+# Batch 7: Secretary & Communication
+RUN pip3 install --no-cache-dir --break-system-packages \
+    pywhatkit yagmail plyer mouse gspread twilio \
+    || echo "Batch 7 (Secretary) partial"
+
+# Batch 8: Media & Files
+RUN pip3 install --no-cache-dir --break-system-packages \
+    rembg docx2pdf pikepdf send2trash patool pyzipper pyscreenshot python-barcode \
+    || echo "Batch 8 (Media/Files) partial"
+
+# Batch 9: Human Language
+RUN pip3 install --no-cache-dir --break-system-packages \
+    humanize parsedatetime pyspellchecker emoji phonenumbers validators langdetect \
+    || echo "Batch 9 (Language) partial"
+
+# Batch 10: Real Life & Finance
+RUN pip3 install --no-cache-dir --break-system-packages \
+    forex-python pint holidays geopy speedtest-cli pyotp mimesis alive-progress termcolor howdoi pyowm croniter vidgear \
+    || echo "Batch 10 (Real Life) partial"
+
+# Batch 11: Content Creation & Audio
+RUN pip3 install --no-cache-dir --break-system-packages \
+    pyannote.audio spleeter chat-downloader pytube \
+    || echo "Batch 11 (Content) partial"
+
+# Batch 12: Hardware & Mobile
+RUN pip3 install --no-cache-dir --break-system-packages \
+    ppadb wakeonlan \
+    || echo "Batch 12 (Hardware/Mobile) partial"
+
+# Batch 13: Medical/Chemical
+RUN pip3 install --no-cache-dir --break-system-packages \
+    chemlib chemspipy \
+    || echo "Batch 13 (Medical/Chem) partial"
+
+# Batch 14: Automation, Social & Trading
+RUN pip3 install --no-cache-dir --break-system-packages \
+    pyrogram autoscraper fake-useragent undetected-chromedriver mechanize mechanicalsoup pyquery telethon pywebio duckdb peewee tortoise-orm socketio autobahn ping3 cfscrape ytmusicapi colorthief piexif exifread fiona python-louvain ccxt alpha_vantage finquant backtrader fredapi yahooquery quandl pykrx \
+    || echo "Batch 14 (Automation/Social/Trading) partial"
+
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
 # Validate the schema parses cleanly against the postgresql provider.

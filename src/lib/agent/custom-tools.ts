@@ -769,6 +769,298 @@ except Exception as e:
   },
 };
 
+// ═══════════════════════════════════════════
+// V.135: Mega-Install — 15 new action-oriented tools
+// ═══════════════════════════════════════════
+
+// ── rembg: Remove Image Background ──
+export const removeImageBackground: AgentTool = {
+  name: "remove_image_background",
+  description: "إزالة خلفية أي صورة بالذكاء الاصطناعي في ثانية. استخدمها لصناعة ثامبنيلز أو فصل العناصر.",
+  parameters: { input_path: { type: "string", description: "مسار الصورة" }, output_path: { type: "string", description: "مسار الناتج" } },
+  execute: async (args) => {
+    const code = `
+import rembg, json
+from PIL import Image
+inp = Image.open("${args.input_path}")
+out = rembg.remove(inp)
+out.save("${args.output_path || 'no_bg.png'}")
+print(json.dumps({"file": "${args.output_path || 'no_bg.png'}"}))
+`;
+    return runPython(code, 30000);
+  },
+};
+
+// ── yagmail: Send Email ──
+export const sendEmail: AgentTool = {
+  name: "send_email",
+  description: "إرسال إيميل مع مرفقات. استخدمها لتبليغ المستخدم أو إرسال تقارير.",
+  parameters: { to: { type: "string" }, subject: { type: "string" }, body: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+import json
+try:
+    import yagmail
+    yag = yagmail.SMTP("anzaro@ai")
+    yag.send(to="${args.to}", subject="${args.subject}", contents="${args.body}")
+    print(json.dumps({"sent": True}))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200], "note": "yagmail needs config"}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── pywhatkit: Send WhatsApp ──
+export const sendWhatsapp: AgentTool = {
+  name: "send_whatsapp",
+  description: "إرسال رسالة واتساب. استخدمها للتواصل المباشر مع المستخدم.",
+  parameters: { phone: { type: "string" }, message: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+import pywhatkit, json
+try:
+    pywhatkit.sendwhatmsg_instantly("${args.phone}", "${args.message}", wait_time=5)
+    print(json.dumps({"sent": True}))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200]}))
+`;
+    return runPython(code, 30000);
+  },
+};
+
+// ── forex-python: Currency Converter ──
+export const convertCurrency: AgentTool = {
+  name: "convert_currency",
+  description: "تحويل بين العملات بأسعار حية. استخدمها لمعرفة سعر الدولار أو أي عملة.",
+  parameters: { amount: { type: "number" }, from_currency: { type: "string" }, to_currency: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+from forex_python.converter import CurrencyRates
+import json
+c = CurrencyRates()
+rate = c.get_rate("${args.from_currency || 'USD'}", "${args.to_currency || 'EGP'}")
+result = ${args.amount || 1} * rate
+print(json.dumps({"rate": rate, "result": result, "from": "${args.from_currency}", "to": "${args.to_currency}"}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── pyowm: Weather ──
+export const getWeather: AgentTool = {
+  name: "get_weather",
+  description: "جلب حالة الطقس لأي مدينة. استخدمها لما المستخدم يسأل عن الطقس.",
+  parameters: { city: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+import json
+try:
+    from pyowm import OWM
+    owm = OWM('default')
+    mgr = owm.weather_manager()
+    obs = mgr.weather_at_place("${args.city}")
+    w = obs.weather
+    print(json.dumps({"temp": w.temperature('celsius')['temp'], "status": w.detailed_status, "humidity": w.humidity}))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200], "fallback": "weather needs API key"}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── googlesearch: Search Google ──
+export const searchGoogle: AgentTool = {
+  name: "search_google",
+  description: "البحث المباشر على جوجل وسحب الروابط. استخدمها للبحث السريع.",
+  parameters: { query: { type: "string" }, num_results: { type: "integer", default: 5 } },
+  execute: async (args) => {
+    const code = `
+import json
+try:
+    from googlesearch import search
+    results = list(search("${args.query}", num_results=${args.num_results || 5}))
+    print(json.dumps({"results": results}))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200]}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── pytrends: Google Trends ──
+export const getGoogleTrends: AgentTool = {
+  name: "get_google_trends",
+  description: "سحب بيانات جوجل تريندز لتحليل السوق. استخدمها لمعرفة التريندات.",
+  parameters: { keyword: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+from pytrends.request import TrendReq
+import json
+pytrends = TrendReq()
+pytrends.build_payload(kw_list=["${args.keyword}"])
+df = pytrends.interest_by_region()
+print(json.dumps(df.head(10).to_dict(), default=str))
+`;
+    return runPython(code);
+  },
+};
+
+// ── pubchempy: Molecule Analysis ──
+export const analyzeMolecule: AgentTool = {
+  name: "analyze_molecule",
+  description: "البحث عن مركب كيميائي ودواء في قاعدة PubChem. استخدمها للتحليل الصيدلاني.",
+  parameters: { name: { type: "string", description: "اسم المركب أو الدواء" } },
+  execute: async (args) => {
+    const code = `
+from pubchempy import get_compounds, Compound
+import json
+compounds = get_compounds("${args.name}", "name")
+if compounds:
+    c = compounds[0]
+    print(json.dumps({"name": c.iupac_name, "formula": c.molecular_formula, "weight": c.molecular_weight, "cid": c.cid}))
+else:
+    print(json.dumps({"error": "not found"}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── mendeleev: Periodic Table ──
+export const getPeriodicTable: AgentTool = {
+  name: "get_periodic_table",
+  description: "جلب بيانات عنصر من الجدول الدوري. استخدمها للمعلومات الكيميائية.",
+  parameters: { element: { type: "string", description: "رمز العنصر (مثل Fe, O, H)" } },
+  execute: async (args) => {
+    const code = `
+from mendeleev import element
+import json
+e = element("${args.element}")
+print(json.dumps({"name": e.name, "symbol": e.symbol, "atomic_number": e.atomic_number, "atomic_weight": e.atomic_weight, "group": str(e.group), "period": e.period}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── pydicom: Read DICOM Medical Images ──
+export const readDicom: AgentTool = {
+  name: "read_dicom",
+  description: "قراءة ملفات الأشعة الطبية (DICOM). استخدمها لتحليل صور الرنين المغناطيسي والمقطعية.",
+  parameters: { file_path: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+import pydicom, json
+ds = pydicom.dcmread("${args.file_path}")
+print(json.dumps({"patient": str(ds.get('PatientName','')), "modality": str(ds.get('Modality','')), "rows": ds.Rows, "cols": ds.Columns}, default=str))
+`;
+    return runPython(code);
+  },
+};
+
+// ── ppadb: Control Android ──
+export const controlAndroid: AgentTool = {
+  name: "control_android",
+  description: "التحكم في موبايل أندرويد متوصل بالـ ADB. استخدمها لفتح تطبيقات أو سحب ملفات.",
+  parameters: { action: { type: "string", description: "الإجراء (screenshot, open_app, tap)" }, package: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+import json
+try:
+    from ppadb.client import Client as AdbClient
+    client = AdbClient(host="127.0.0.1", port=5037)
+    device = client.devices()[0]
+    action = "${args.action || 'screenshot'}"
+    if action == "screenshot":
+        result = device.screencap()
+        with open("android_screen.png", "wb") as f: f.write(result)
+        print(json.dumps({"file": "android_screen.png"}))
+    elif action == "open_app":
+        device.shell(f"monkey -p ${args.package} -c android.intent.category.LAUNCHER 1")
+        print(json.dumps({"opened": "${args.package}"}))
+    else:
+        print(json.dumps({"error": "unknown action"}))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200], "note": "ADB not connected"}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── instaloader: Download Instagram ──
+export const downloadInstagram: AgentTool = {
+  name: "download_instagram",
+  description: "سحب صور وفيديوهات من إنستجرام. استخدمها لتحليل الحسابات أو حفظ المحتوى.",
+  parameters: { profile: { type: "string" }, max_posts: { type: "integer", default: 5 } },
+  execute: async (args) => {
+    const code = `
+import instaloader, json
+L = instaloader.Instaloader(download_videos=False, save_metadata=False, post_metadata_txt_pattern="")
+profile = instaloader.Profile.from_username(L.context, "${args.profile}")
+posts = []
+for i, post in enumerate(profile.get_posts()):
+    if i >= ${args.max_posts || 5}: break
+    posts.append({"url": post.url, "likes": post.likes, "date": str(post.date)})
+print(json.dumps({"profile": "${args.profile}", "posts": posts}, default=str))
+`;
+    return runPython(code, 60000);
+  },
+};
+
+// ── pyrogram: Telegram Bot ──
+export const controlTelegram: AgentTool = {
+  name: "control_telegram",
+  description: "إرسال رسالة عبر تليجرام. استخدمها للتنبيهات أو إدارة قنوات.",
+  parameters: { chat_id: { type: "string" }, message: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+import json
+try:
+    from pyrogram import Client
+    app = Client("anzaro_bot")
+    with app:
+        app.send_message("${args.chat_id}", "${args.message}")
+    print(json.dumps({"sent": True}))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200], "note": "pyrogram needs API config"}))
+`;
+    return runPython(code, 30000);
+  },
+};
+
+// ── yfinance: Stock Data ──
+export const getStockData: AgentTool = {
+  name: "get_stock_data",
+  description: "جلب بيانات الأسهم والأسعار الحية. استخدمها للتحليل المالي.",
+  parameters: { symbol: { type: "string", description: "رمز السهم (AAPL, TSLA, BTC-USD)" } },
+  execute: async (args) => {
+    const code = `
+import yfinance as yf, json
+ticker = yf.Ticker("${args.symbol}")
+info = ticker.info
+print(json.dumps({"symbol": "${args.symbol}", "price": info.get('currentPrice'), "currency": info.get('currency'), "name": info.get('shortName')}, default=str))
+`;
+    return runPython(code);
+  },
+};
+
+// ── autoscraper: Smart Scraper ──
+export const scrapeAuto: AgentTool = {
+  name: "scrape_auto",
+  description: "سحب بيانات من أي موقع تلقائياً بذكاء. استخدمها لما لا تعرف CSS selectors.",
+  parameters: { url: { type: "string" }, wanted_list: { type: "string", description: "JSON array of items you want" } },
+  execute: async (args) => {
+    const code = `
+from autoscraper import AutoScraper
+import json
+scraper = AutoScraper()
+wanted = json.loads('''${args.wanted_list || '["example"]}''')
+result = scraper.build("${args.url}", wanted)
+print(json.dumps({"results": result[:20]}, ensure_ascii=False))
+`;
+    return runPython(code, 30000);
+  },
+};
+
 export const ALL_AGENT_TOOLS: AgentTool[] = [
   // V.133: Original 14 tools
   textToSpeech,
@@ -785,7 +1077,7 @@ export const ALL_AGENT_TOOLS: AgentTool[] = [
   translateText,
   solveMath,
   executePython,
-  // V.134: Titanium Operation — 13 new heavy tools
+  // V.134: Titanium Operation — 13 heavy tools
   runCrewAgents,
   storeInMemory,
   searchMemory,
@@ -799,6 +1091,22 @@ export const ALL_AGENT_TOOLS: AgentTool[] = [
   createVideo,
   automateDesktop,
   mineData,
+  // V.135: Mega-Install — 15 new action-oriented tools
+  removeImageBackground,
+  sendEmail,
+  sendWhatsapp,
+  convertCurrency,
+  getWeather,
+  searchGoogle,
+  getGoogleTrends,
+  analyzeMolecule,
+  getPeriodicTable,
+  readDicom,
+  controlAndroid,
+  downloadInstagram,
+  controlTelegram,
+  getStockData,
+  scrapeAuto,
 ];
 
 /** بيـ رجّع tools schema بصيغة OpenAI function calling */
