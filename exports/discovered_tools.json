@@ -1,8 +1,8 @@
 {
-  "total": 61056,
-  "functions": 8385,
-  "classes": 5133,
-  "methods": 52671,
+  "total": 58137,
+  "functions": 8343,
+  "classes": 4909,
+  "methods": 49794,
   "tools": [
     {
       "name": "cloudpathlib.patch_all_builtins",
