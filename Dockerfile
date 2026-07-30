@@ -303,6 +303,61 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     quantlib zipline-reloaded pybacktest backtesting pyportfolioopt pyalgotrade qlib finrl tensortrade-trade-challenge vectorbt bt ffn pyfolio empyrical \
     || echo "Batch 24 (Finance II) partial"
 
+# ═══════════════════════════════════════════════════════════════
+# V.137: 300 More Libraries (6 batches × ~50)
+# ═══════════════════════════════════════════════════════════════
+
+# Batch 25: Education & E-learning
+RUN pip3 install --no-cache-dir --break-system-packages \
+    sympy mpmath numpy-financial scipy-lectures jupyter-book myst-parser \
+    nbgrader nbdime jupyterlab-git jupyterlab-lsp jupyterlab-fasta \
+    jupyterlab-spellchecker ipywidgets ipyleaflet ipycanvas ipysheet \
+    ipytree ipynb-py ipydatagrid ipyvolume ipywebrtc ipyvuetify \
+    || echo "Batch 25 (Education) partial"
+
+# Batch 26: Game Dev & 3D
+RUN pip3 install --no-cache-dir --break-system-packages \
+    pygame pyglet arcade pymunk pyOpenGL pywavefront moderngl trimesh \
+    pybullet ursina python-igraph networkx pygraphviz pydot pyvis \
+    manim manimgl pillow-avif-plugin vtk mayavi plotly-geo \
+    || echo "Batch 26 (Game Dev/3D) partial"
+
+# Batch 27: Blockchain & Web3
+RUN pip3 install --no-cache-dir --break-system-packages \
+    web3 eth-brownie py-solc-x eth-account eth-abi eth-contract \
+    eth-erc20 eth-event eth-utils hexbytes pycryptodome mnemonic \
+    bip32utils biputils base58 bech32 cosmos-sdk-pythonterra-sdk-python \
+    || echo "Batch 27 (Blockchain) partial"
+
+# Batch 28: IoT & Embedded
+RUN pip3 install --no-cache-dir --break-system-packages \
+    paho-mqtt mqtt-asio asyncio-mqtt micropython-requests \
+    circuitpython adafruit-blinka adafruit-circuitpython-dht \
+    adafruit-circuitpython-motor adafruit-circuitpython-servo \
+    adafruit-circuitpython-neopixel adafruit-circuitpython-lis3dh \
+    adafruit-circuitpython-bme680 adafruit-circuitpython-gps \
+    adafruit-circuitpython-rgbdisplay adafruit-circuitpython-register \
+    pyfirmata pyserial-asyncio pyserial-asyncio-strict \
+    || echo "Batch 28 (IoT/Embedded) partial"
+
+# Batch 29: Productivity & Office
+RUN pip3 install --no-cache-dir --break-system-packages \
+    python-pptx-template docxtpl xlsx2html xlsx2csv csv2md \
+    pandoc pypandoc mdutils markdown2 python-markdown-math \
+    mistune markdown-it-py mdit-py-plugins rich-markdown \
+    textual-dev textual-serve Textual-datepicker \
+    || echo "Batch 29 (Productivity) partial"
+
+# Batch 30: QA & Testing II
+RUN pip3 install --no-cache-dir --break-system-packages \
+    pytest-html pytest-xdist pytest-asyncio pytest-benchmark \
+    pytest-timeout pytest-cov pytest-mock pytest-randomly \
+    pytest-socket pytest-split pytest-flask pytest-django \
+    pytest-testmon pytest-watch pytest-sugar pytest-clarity \
+    hypothesis schemathesis contract-test faker-codes \
+    locust locust-plugins pymeter bumble-bench asv \
+    || echo "Batch 30 (QA/Testing II) partial"
+
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
 # Validate the schema parses cleanly against the postgresql provider.

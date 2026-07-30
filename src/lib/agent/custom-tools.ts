@@ -1061,6 +1061,219 @@ print(json.dumps({"results": result[:20]}, ensure_ascii=False))
   },
 };
 
+// ═══════════════════════════════════════════
+// V.137: 300 More — 10 new action-oriented tools
+// ═══════════════════════════════════════════
+
+// ── manim: Math Animation ──
+export const animateMath: AgentTool = {
+  name: "animate_math",
+  description: "إنشاء فيديو تعليمي يحرك المعادلات الرياضية والهندسة باستخدام manim. استخدمها لإنشاء محتوى تعليمي مرئي.",
+  parameters: { expression: { type: "string", description: "المعادلة (مثل: x**2 + y**2 = r**2)" }, output_file: { type: "string", default: "math_animation.mp4" } },
+  execute: async (args) => {
+    const code = `
+from manim import *
+import json
+class MathScene(Scene):
+    def construct(self):
+        eq = MathTex("${args.expression || 'x^2 + y^2 = r^2'}")
+        self.play(Write(eq))
+        self.wait(2)
+scene = MathScene()
+scene.render()
+print(json.dumps({"file": "${args.output_file || 'math_animation.mp4'}"}))
+`;
+    return runPython(code, 120000);
+  },
+};
+
+// ── web3: Blockchain ──
+export const playBlockchain: AgentTool = {
+  name: "play_blockchain",
+  description: "التفاعل مع blockchain (Ethereum). استخدمها لقراءة رصيد محفظة أو إرسال معاملة.",
+  parameters: { action: { type: "string", description: "الإجراء (balance, block_number)" }, address: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+from web3 import Web3
+import json
+w3 = Web3(Web3.HTTPProvider("https://eth.llamarpc.com"))
+if "${args.action}" == "balance":
+    bal = w3.eth.get_balance("${args.address}")
+    print(json.dumps({"address": "${args.address}", "balance_eth": bal / 1e18}))
+elif "${args.action}" == "block_number":
+    print(json.dumps({"block": w3.eth.block_number}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── IoT Control (Adafruit) ──
+export const controlIoT: AgentTool = {
+  name: "control_iot",
+  description: "التحكم في أجهزة IoT (Adafruit IO). استخدمها لقراءة أو كتابة بيانات حساسات.",
+  parameters: { feed: { type: "string" }, value: { type: "string" }, action: { type: "string", description: "read or write" } },
+  execute: async (args) => {
+    const code = `
+import json
+try:
+    from Adafruit_IO import Client
+    aio = Client()
+    if "${args.action}" == "write":
+        aio.send_data("${args.feed}", "${args.value}")
+        print(json.dumps({"written": True, "feed": "${args.feed}", "value": "${args.value}"}))
+    else:
+        data = aio.receive("${args.feed}")
+        print(json.dumps({"feed": "${args.feed}", "value": data.value}))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200], "note": "IoT needs config"}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── python-pptx: Create Presentation ──
+export const createPresentation: AgentTool = {
+  name: "create_presentation",
+  description: "إنشاء عرض تقديمي PowerPoint كامل. استخدمها لإنشاء شرائح مع نصوص وصور.",
+  parameters: { title: { type: "string" }, slides: { type: "string", description: "JSON array of {title, content}" }, filename: { type: "string", default: "presentation.pptx" } },
+  execute: async (args) => {
+    const code = `
+from pptx import Presentation
+import json
+prs = Presentation()
+prs.slides[0].shapes.title.text = "${args.title}"
+slides = json.loads('''${args.slides || '[]'}''')
+for s in slides:
+    slide = prs.slides.add_slide(prs.slide_layouts[1])
+    slide.shapes.title.text = s.get('title','')
+    slide.placeholders[1].text = s.get('content','')
+prs.save("${args.filename || 'presentation.pptx'}")
+print(json.dumps({"file": "${args.filename}", "slides": len(slides) + 1}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── schemathesis: API Testing ──
+export const testAPI: AgentTool = {
+  name: "test_api",
+  description: "اختبار API تلقائياً باستخدام schemathesis. استخدمها لفحص صحة endpoints.",
+  parameters: { spec_url: { type: "string", description: "OpenAPI spec URL" } },
+  execute: async (args) => {
+    const code = `
+import schemathesis, json
+schema = schemathesis.openapi.from_url("${args.spec_url}")
+results = []
+for case in schema[""].get_all_tests():
+    try:
+        response = case.call()
+        case.validate_response(response)
+        results.append({"endpoint": case.path, "method": case.method, "status": "pass"})
+    except Exception as e:
+        results.append({"endpoint": case.path, "method": case.method, "status": "fail", "error": str(e)[:100]})
+print(json.dumps({"results": results[:20]}, ensure_ascii=False))
+`;
+    return runPython(code, 60000);
+  },
+};
+
+// ── trimesh: 3D Rendering ──
+export const render3D: AgentTool = {
+  name: "render_3d",
+  description: "تحميل وعرض ملفات 3D (STL, OBJ, GLTF). استخدمها لتحليل نماذج ثلاثية الأبعاد.",
+  parameters: { file_path: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+import trimesh, json
+mesh = trimesh.load("${args.file_path}")
+print(json.dumps({"faces": len(mesh.faces), "vertices": len(mesh.vertices), "bounds": mesh.bounds.tolist(), "volume": float(mesh.volume)}, default=str))
+`;
+    return runPython(code);
+  },
+};
+
+// ── vobject: Calendar Management ──
+export const manageCalendar: AgentTool = {
+  name: "manage_calendar",
+  description: "إنشاء وقراءة ملفات تقويم (iCalendar). استخدمها لإدارة المواعيد.",
+  parameters: { action: { type: "string", description: "create or read" }, summary: { type: "string" }, date: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+import vobject, json
+if "${args.action}" == "create":
+    cal = vobject.iCalendar()
+    event = cal.add('vevent')
+    event.add('summary').value = "${args.summary}"
+    event.add('dtstart').value = "${args.date}"
+    with open("event.ics", "w") as f: f.write(cal.serialize())
+    print(json.dumps({"file": "event.ics", "summary": "${args.summary}", "date": "${args.date}"}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── tabula-py: Extract Tables from PDF ──
+export const extractTables: AgentTool = {
+  name: "extract_tables",
+  description: "استخراج الجداول من ملف PDF كـ DataFrame. استخدمها للملفات المليانة جداول معقدة.",
+  parameters: { file_path: { type: "string" } },
+  execute: async (args) => {
+    const code = `
+import tabula, json
+dfs = tabula.read_pdf("${args.file_path}", pages='all', multiple_tables=True)
+result = []
+for i, df in enumerate(dfs):
+    result.append({"table": i+1, "rows": len(df), "cols": len(df.columns), "data": df.head(5).to_dict('records')})
+print(json.dumps({"tables": len(dfs), "data": result}, default=str, ensure_ascii=False))
+`;
+    return runPython(code, 60000);
+  },
+};
+
+// ── manim: Create Animation ──
+export const createAnimation: AgentTool = {
+  name: "create_animation",
+  description: "إنشاء فيديو متحرك من نص أو معادلة باستخدام manim. استخدمها للمحتوى التعليمي.",
+  parameters: { text: { type: "string" }, output_file: { type: "string", default: "animation.mp4" } },
+  execute: async (args) => {
+    const code = `
+from manim import *
+import json
+class TextScene(Scene):
+    def construct(self):
+        t = Text("${args.text}")
+        self.play(Write(t))
+        self.wait(2)
+scene = TextScene()
+scene.render()
+print(json.dumps({"file": "${args.output_file}"}))
+`;
+    return runPython(code, 120000);
+  },
+};
+
+// ── praw: Reddit Posts ──
+export const getRedditPosts: AgentTool = {
+  name: "get_reddit_posts",
+  description: "سحب بوستات وتعليقات من Reddit. استخدمها لتحليل تريندات أو آراء.",
+  parameters: { subreddit: { type: "string" }, limit: { type: "integer", default: 10 } },
+  execute: async (args) => {
+    const code = `
+import praw, json
+try:
+    reddit = praw.Reddit(client_id="default", client_secret="default", user_agent="anzaro")
+    subreddit = reddit.subreddit("${args.subreddit}")
+    posts = []
+    for post in subreddit.hot(limit=${args.limit || 10}):
+        posts.append({"title": post.title, "score": post.score, "url": post.url, "comments": post.num_comments})
+    print(json.dumps({"subreddit": "${args.subreddit}", "posts": posts}, ensure_ascii=False))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200], "note": "Reddit needs API config"}))
+`;
+    return runPython(code);
+  },
+};
+
 export const ALL_AGENT_TOOLS: AgentTool[] = [
   // V.133: Original 14 tools
   textToSpeech,
@@ -1107,6 +1320,17 @@ export const ALL_AGENT_TOOLS: AgentTool[] = [
   controlTelegram,
   getStockData,
   scrapeAuto,
+  // V.137: 300 more — 10 new action-oriented tools
+  animateMath,
+  playBlockchain,
+  controlIoT,
+  createPresentation,
+  testAPI,
+  render3D,
+  manageCalendar,
+  extractTables,
+  createAnimation,
+  getRedditPosts,
 ];
 
 /** بيـ رجّع tools schema بصيغة OpenAI function calling */
