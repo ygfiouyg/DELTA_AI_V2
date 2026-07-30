@@ -102,10 +102,12 @@ export async function POST(req: Request) {
 imp = "${imp}"
 try:
     mod = importlib.import_module(imp)
-    ver = getattr(mod, '__version__', getattr(mod, 'VERSION', 'unknown'))
-    fns = [x for x in dir(mod) if not x.startswith('_') and callable(getattr(mod,x,None))][:50]
-    cls = [x for x in dir(mod) if not x.startswith('_') and isinstance(getattr(mod,x,None), type)][:20]
-    print(json.dumps({"package":"${pkg}","import":imp,"version":str(ver),"functions":fns,"classes":cls}, default=str, ensure_ascii=False))
+    ver = getattr(mod, '__version__', getattr(mod, 'VERSION', getattr(mod, '__name__', 'unknown')))
+    all_items = [x for x in dir(mod) if not x.startswith('_')]
+    fns = [x for x in all_items if callable(getattr(mod, x, None))][:50]
+    cls = [x for x in all_items if isinstance(getattr(mod, x, None), type)][:20]
+    others = [x for x in all_items if x not in fns and x not in cls][:10]
+    print(json.dumps({"package":"${pkg}","import":imp,"version":str(ver),"functions_count":len(fns),"functions":fns,"classes":cls,"others":others}, default=str, ensure_ascii=False))
 except Exception as e:
     print(json.dumps({"error": str(e)[:200]}))`;
     } else if (action === "list_functions") {
