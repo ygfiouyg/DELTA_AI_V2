@@ -403,7 +403,374 @@ export const executePython: AgentTool = {
 // REGISTRY — كل الأدوات
 // ═══════════════════════════════════════════
 
+// ═══════════════════════════════════════════
+// V.134: "عملية تيتانيوم" — Heavy Library Tools
+// ═══════════════════════════════════════════
+
+// ── CrewAI: Multi-Agent Orchestration ──
+export const runCrewAgents: AgentTool = {
+  name: "run_crew_agents",
+  description: "تشغيل مجموعة Agents متخصصة باستخدام CrewAI. كل Agent ليه دور (كاتب، مراجع، باحث). استخدمها للمهام المعقدة اللي محتاجة تعاون بين agents.",
+  parameters: {
+    task: { type: "string", description: "وصف المهمة الكاملة" },
+    agents: { type: "string", description: "JSON array of agent roles (e.g. [{role:'writer',goal:'write article'}])" },
+  },
+  execute: async (args) => {
+    const code = `
+import json
+try:
+    from crewai import Agent, Task, Crew
+    agents_data = json.loads('''${(args.agents || '[]').replace(/'/g, "\\'")}''')
+    task_desc = """${(args.task || '').replace(/"/g, '\\"')}"""
+    # Build agents
+    agents = []
+    for a in agents_data:
+        agents.append(Agent(role=a.get('role','assistant'), goal=a.get('goal','help'), backstory=a.get('backstory',''), verbose=True))
+    # Build task
+    tasks = [Task(description=task_desc, agent=agents[0] if agents else None, expected_output="completed task")]
+    # Run crew
+    crew = Crew(agents=agents, tasks=tasks, verbose=True)
+    result = crew.kickoff()
+    print(json.dumps({"result": str(result)[:2000]}, ensure_ascii=False))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200], "fallback": "CrewAI needs configuration"}))
+`;
+    return runPython(code, 120000);
+  },
+};
+
+// ── ChromaDB: Long-term Memory ──
+export const storeInMemory: AgentTool = {
+  name: "store_in_memory",
+  description: "تخزين معلومات في ذاكرة طويلة الأمد باستخدام ChromaDB (Vector DB). استخدمها لتخزين نصوص، محاضرات، أو أي معلومات للاسترجاع لاحقاً.",
+  parameters: {
+    text: { type: "string", description: "النص المطلوب تخزينه" },
+    metadata: { type: "string", description: "JSON metadata (optional)" },
+  },
+  execute: async (args) => {
+    const code = `
+import chromadb, json
+client = chromadb.Client()
+collection = client.get_or_create_collection("anzaro_memory")
+collection.add(
+    documents=["""${(args.text || '').replace(/"/g, '\\"')}"""],
+    metadatas=[${args.metadata ? `json.loads('${args.metadata}')` : '{}'}],
+    ids=[f"doc_{collection.count()}"]
+)
+print(json.dumps({"stored": True, "total_docs": collection.count()}))
+`;
+    return runPython(code);
+  },
+};
+
+export const searchMemory: AgentTool = {
+  name: "search_memory",
+  description: "البحث في الذاكرة طويلة الأمد (ChromaDB) عن معلومات مخزنة. استخدمها لاسترجاع معلومات من المحاضرات أو النصوص المخزنة.",
+  parameters: {
+    query: { type: "string", description: "نص البحث" },
+    n_results: { type: "integer", description: "عدد النتائج", default: 5 },
+  },
+  execute: async (args) => {
+    const code = `
+import chromadb, json
+client = chromadb.Client()
+collection = client.get_or_create_collection("anzaro_memory")
+results = collection.query(query_texts=["${(args.query || '').replace(/"/g, '\\"')}"], n_results=${args.n_results || 5})
+docs = results.get('documents', [[]])[0]
+print(json.dumps({"results": docs[:5], "count": len(docs)}, ensure_ascii=False))
+`;
+    return runPython(code);
+  },
+};
+
+// ── Playwright: Ghost Browser ──
+export const browseWebsite: AgentTool = {
+  name: "browse_website",
+  description: "تصفح موقع ويب كأنه إنسان حقيقي باستخدام Playwright (متصفح مخفي). يقدر يعمل scroll، يدوس على أزرار، ويسحب بيانات. استخدمها للمواقع المعقدة.",
+  parameters: {
+    url: { type: "string", description: "رابط الموقع" },
+    action: { type: "string", description: "الإجراء (screenshot, text, click)" },
+    selector: { type: "string", description: "CSS selector (for click)" },
+  },
+  execute: async (args) => {
+    const code = `
+import json
+try:
+    from playwright.sync_api import sync_playwright
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        page.goto("${args.url}", timeout=15000)
+        action = "${args.action || 'text'}"
+        if action == "screenshot":
+            page.screenshot(path="browse_screenshot.png")
+            result = {"file": "browse_screenshot.png"}
+        elif action == "click" and "${args.selector || ''}":
+            page.click("${args.selector}")
+            page.wait_for_timeout(2000)
+            result = {"clicked": True, "text": page.inner_text('body')[:2000]}
+        else:
+            result = {"title": page.title(), "text": page.inner_text('body')[:3000]}
+        browser.close()
+    print(json.dumps(result, ensure_ascii=False))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200]}))
+`;
+    return runPython(code, 30000);
+  },
+};
+
+// ── Polars: Fast Data Analysis ──
+export const fastAnalyzeData: AgentTool = {
+  name: "fast_analyze_data",
+  description: "تحليل بيانات ضخمة بسرعة 10x أسرع من pandas باستخدام Polars. استخدمها للبيانات الكبيرة جداً.",
+  parameters: {
+    file_path: { type: "string", description: "مسار ملف CSV/JSON" },
+    operation: { type: "string", description: "العملية (describe, head, columns, count)" },
+  },
+  execute: async (args) => {
+    const code = `
+import polars as pl, json
+df = pl.read_csv("${args.file_path}") if "${args.file_path}".endswith('.csv') else pl.read_json("${args.file_path}")
+op = "${args.operation || 'describe'}"
+if op == "describe": result = df.describe().to_dicts()
+elif op == "head": result = df.head(10).to_dicts()
+elif op == "columns": result = {"columns": df.columns, "shape": df.shape}
+elif op == "count": result = {"rows": df.height, "cols": df.width}
+else: result = df.head(5).to_dicts()
+print(json.dumps(result, default=str, ensure_ascii=False))
+`;
+    return runPython(code);
+  },
+};
+
+// ── Voice Cloning (TTS Coqui) ──
+export const cloneVoice: AgentTool = {
+  name: "clone_voice",
+  description: "استنساخ صوت من عينة صوتية وتوليد صوت جديد بنفس النبرة باستخدام Coqui TTS. استخدمها لإنشاء بودكاست أو رد صوتي بنبرة مخصصة.",
+  parameters: {
+    text: { type: "string", description: "النص المطلوب نطقه" },
+    speaker_wav: { type: "string", description: "مسار عينة الصوت المراد استنساخها" },
+    language: { type: "string", description: "اللغة (ar, en)", default: "ar" },
+    filename: { type: "string", description: "اسم الملف الناتج", default: "cloned_voice.wav" },
+  },
+  execute: async (args) => {
+    const code = `
+import json
+try:
+    from TTS.api import TTS
+    tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2")
+    tts.tts_to_file(
+        text="""${(args.text || '').replace(/"/g, '\\"')}""",
+        speaker_wav="${args.speaker_wav}",
+        language="${args.language || 'ar'}",
+        file_path="${args.filename || 'cloned_voice.wav'}"
+    )
+    print(json.dumps({"file": "${args.filename}", "engine": "Coqui XTTS"}))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200], "fallback": "Use text_to_speech instead"}))
+`;
+    return runPython(code, 120000);
+  },
+};
+
+// ── librosa: Audio Analysis ──
+export const analyzeAudio: AgentTool = {
+  name: "analyze_audio",
+  description: "تحليل موجات الصوت وتردداته باستخدام librosa. استخدمها لفصل، تنقيح، أو تحليل المكونات الصوتية.",
+  parameters: {
+    file_path: { type: "string", description: "مسار ملف الصوت" },
+  },
+  execute: async (args) => {
+    const code = `
+import librosa, json, numpy as np
+y, sr = librosa.load("${args.file_path}", sr=None)
+tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
+result = {
+    "duration_sec": len(y) / sr,
+    "sample_rate": sr,
+    "tempo": float(tempo),
+    "rms_energy": float(np.sqrt(np.mean(y**2))),
+    "zero_crossings": int(np.sum(librosa.zero_crossings(y))),
+    "spectral_centroid": float(np.mean(librosa.feature.spectral_centroid(y=y, sr=sr))),
+}
+print(json.dumps(result, ensure_ascii=False))
+`;
+    return runPython(code);
+  },
+};
+
+// ── ffmpeg: Media Engine ──
+export const processMedia: AgentTool = {
+  name: "process_media",
+  description: "تحويل، تقطيع، أو دمج ملفات ميديا (صوت/فيديو) باستخدام ffmpeg. استخدمها لمعالجة الميديا بأي صيغة.",
+  parameters: {
+    input_path: { type: "string", description: "مسار الملف الأصلي" },
+    operation: { type: "string", description: "العملية (convert, trim, merge)" },
+    output_path: { type: "string", description: "مسار الملف الناتج" },
+    start_time: { type: "string", description: "وقت البداية (للـ trim) e.g. 00:01:00" },
+    duration: { type: "string", description: "المدة (للـ trim) e.g. 30" },
+  },
+  execute: async (args) => {
+    const code = `
+import ffmpeg, json
+inp = ffmpeg.input("${args.input_path}")
+op = "${args.operation || 'convert'}"
+out = "${args.output_path || 'output.mp4'}"
+if op == "trim":
+    inp = ffmpeg.input("${args.input_path}", ss="${args.start_time || '0'}", t="${args.duration || '10'}")
+    inp.output(out).overwrite_output().run()
+elif op == "convert":
+    inp.output(out).overwrite_output().run()
+result = {"file": out, "operation": op}
+print(json.dumps(result))
+`;
+    return runPython(code, 60000);
+  },
+};
+
+// ── MQTT: Hardware Control ──
+export const sendMqttCommand: AgentTool = {
+  name: "send_mqtt_command",
+  description: "إرسال أمر لجهاز إلكتروني عبر MQTT (إضاءة، مايك، سينسور). استخدمها للتحكم في الأجهزة الذكية.",
+  parameters: {
+    broker: { type: "string", description: "MQTT broker address" },
+    topic: { type: "string", description: "MQTT topic" },
+    message: { type: "string", description: "الأمر المطلوب إرساله" },
+  },
+  execute: async (args) => {
+    const code = `
+import paho.mqtt.client as mqtt, json
+client = mqtt.Client()
+client.connect("${args.broker || 'localhost'}", 1883, 60)
+client.publish("${args.topic}", "${args.message}")
+client.disconnect()
+print(json.dumps({"sent": True, "topic": "${args.topic}", "message": "${args.message}"}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── pyserial: Serial Hardware ──
+export const serialCommand: AgentTool = {
+  name: "serial_command",
+  description: "إرسال أومر لمتحكم دقيق (Arduino, ESP32) عبر منفذ سيريال USB. استخدمها للتحكم في الهاردوير مباشرة.",
+  parameters: {
+    port: { type: "string", description: "منفذ السيريال (e.g. /dev/ttyUSB0)" },
+    command: { type: "string", description: "الأمر" },
+    baudrate: { type: "integer", description: "سرعة الاتصال", default: 9600 },
+  },
+  execute: async (args) => {
+    const code = `
+import serial, json, time
+ser = serial.Serial("${args.port}", ${args.baudrate || 9600}, timeout=5)
+time.sleep(2)
+ser.write(b"${args.command}\\n")
+response = ser.readline().decode().strip()
+ser.close()
+print(json.dumps({"sent": "${args.command}", "response": response}))
+`;
+    return runPython(code);
+  },
+};
+
+// ── moviepy: Auto Video Editor ──
+export const createVideo: AgentTool = {
+  name: "create_video",
+  description: "إنشاء فيديو من صور وصوت تلقائياً باستخدام moviepy. استخدمها لإنتاج محتوى فيديو من مواد خام.",
+  parameters: {
+    images: { type: "string", description: "JSON array of image paths" },
+    audio_path: { type: "string", description: "مسار ملف الصوت" },
+    output_path: { type: "string", description: "اسم ملف الفيديو", default: "output.mp4" },
+  },
+  execute: async (args) => {
+    const code = `
+import json
+try:
+    from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
+    images = json.loads('''${args.images || '[]'}''')
+    audio = AudioFileClip("${args.audio_path}")
+    clips = []
+    dur = audio.duration / max(len(images), 1)
+    for img in images:
+        clip = ImageClip(img).set_duration(dur)
+        clips.append(clip)
+    video = concatenate_videoclips(clips).set_audio(audio)
+    video.write_videofile("${args.output_path || 'output.mp4'}", fps=24, codec='libx264')
+    print(json.dumps({"file": "${args.output_path}", "duration": audio.duration}))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200]}))
+`;
+    return runPython(code, 120000);
+  },
+};
+
+// ── pyautogui: Desktop Automation ──
+export const automateDesktop: AgentTool = {
+  name: "automate_desktop",
+  description: "التحكم في الماوس والكيبورد تلقائياً باستخدام pyautogui. استخدمها لفتح برامج، الضغط على أزرار، أو كتابة نص.",
+  parameters: {
+    action: { type: "string", description: "الإجراء (click, type, screenshot, hotkey)" },
+    x: { type: "integer", description: "إحداثي X (for click)" },
+    y: { type: "integer", description: "إحداثي Y (for click)" },
+    text: { type: "string", description: "النص (for type)" },
+    keys: { type: "string", description: "المفاتيح (for hotkey, e.g. ctrl+c)" },
+  },
+  execute: async (args) => {
+    const code = `
+import pyautogui, json
+action = "${args.action || 'screenshot'}"
+if action == "click":
+    pyautogui.click(${args.x || 0}, ${args.y || 0})
+    result = {"clicked": [${args.x || 0}, ${args.y || 0}]}
+elif action == "type":
+    pyautogui.typewrite("""${(args.text || '').replace(/"/g, '\\"')}""")
+    result = {"typed": True}
+elif action == "hotkey":
+    keys = "${args.keys || ''}".split("+")
+    pyautogui.hotkey(*keys)
+    result = {"hotkey": "${args.keys}"}
+elif action == "screenshot":
+    img = pyautogui.screenshot()
+    img.save("desktop_screenshot.png")
+    result = {"file": "desktop_screenshot.png"}
+else:
+    result = {"error": "unknown action"}
+print(json.dumps(result))
+`;
+    return runPython(code);
+  },
+};
+
+// ── Scrapy: Heavy Data Mining ──
+export const mineData: AgentTool = {
+  name: "mine_data",
+  description: "سحب بيانات ضخمة من مواقع باستخدام Scrapy. استخدمها لسحب آلاف المقالات أو المنتجات في دقائق.",
+  parameters: {
+    url: { type: "string", description: "رابط الموقع" },
+    selector: { type: "string", description: "CSS selector للعناصر المطلوبة" },
+    max_items: { type: "integer", description: "أقصى عدد عناصر", default: 50 },
+  },
+  execute: async (args) => {
+    const code = `
+import json
+try:
+    import scrapy
+    from scrapy.http import HtmlResponse
+    import requests
+    resp = requests.get("${args.url}", timeout=15, headers={"User-Agent":"Mozilla/5.0"})
+    response = HtmlResponse(url="${args.url}", body=resp.content)
+    items = response.css("${args.selector || 'p'}::text").getall()[:${args.max_items || 50}]
+    print(json.dumps({"count": len(items), "items": items[:20]}, ensure_ascii=False))
+except Exception as e:
+    print(json.dumps({"error": str(e)[:200]}))
+`;
+    return runPython(code);
+  },
+};
+
 export const ALL_AGENT_TOOLS: AgentTool[] = [
+  // V.133: Original 14 tools
   textToSpeech,
   transcribeAudio,
   cleanAudio,
@@ -418,6 +785,20 @@ export const ALL_AGENT_TOOLS: AgentTool[] = [
   translateText,
   solveMath,
   executePython,
+  // V.134: Titanium Operation — 13 new heavy tools
+  runCrewAgents,
+  storeInMemory,
+  searchMemory,
+  browseWebsite,
+  fastAnalyzeData,
+  cloneVoice,
+  analyzeAudio,
+  processMedia,
+  sendMqttCommand,
+  serialCommand,
+  createVideo,
+  automateDesktop,
+  mineData,
 ];
 
 /** بيـ رجّع tools schema بصيغة OpenAI function calling */

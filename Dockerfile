@@ -126,6 +126,55 @@ RUN pip3 install --no-cache-dir --break-system-packages \
     yfinance ta \
     || echo "Utils packages partial install"
 
+# ═══════════════════════════════════════════════════════════════
+# V.134: "عملية تيتانيوم" — The 20 Heavy Libraries
+# ═══════════════════════════════════════════════════════════════
+
+# Layer 10: Agent Orchestration & Memory
+RUN pip3 install --no-cache-dir --break-system-packages \
+    crewai chromadb \
+    || echo "Agent/Memory packages partial install"
+
+# Layer 11: Web Ghosts (playwright needs browser install)
+RUN pip3 install --no-cache-dir --break-system-packages \
+    playwright scrapy beautifulsoup4 \
+    && playwright install chromium 2>/dev/null || echo "Playwright browsers partial"
+
+# Layer 12: Data Engine (polars — 10x faster than pandas)
+RUN pip3 install --no-cache-dir --break-system-packages \
+    polars \
+    || echo "Polars install failed"
+
+# Layer 13: Audio Arsenal
+RUN pip3 install --no-cache-dir --break-system-packages \
+    faster-whisper librosa ffmpeg-python \
+    || echo "Audio packages partial install"
+
+# Layer 14: Voice Cloning (TTS Coqui — large, optional)
+RUN pip3 install --no-cache-dir --break-system-packages \
+    TTS \
+    || echo "TTS Coqui install failed (large package)"
+
+# Layer 15: Hardware Control
+RUN pip3 install --no-cache-dir --break-system-packages \
+    paho-mqtt pyserial \
+    || echo "Hardware packages partial install"
+
+# Layer 16: Media Production
+RUN pip3 install --no-cache-dir --break-system-packages \
+    moviepy opencv-python-headless pyautogui \
+    || echo "Media packages partial install"
+
+# Layer 17: PyTorch CPU (the neural engine)
+RUN pip3 install --no-cache-dir --break-system-packages \
+    torch --index-url https://download.pytorch.org/whl/cpu \
+    || echo "PyTorch CPU install failed (large)"
+
+# Layer 18: Infrastructure (celery already installed, add sqlalchemy if missing)
+RUN pip3 install --no-cache-dir --break-system-packages \
+    celery sqlalchemy fastapi \
+    || echo "Infrastructure packages partial install"
+
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
 # Validate the schema parses cleanly against the postgresql provider.
