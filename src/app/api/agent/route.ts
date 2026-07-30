@@ -51,12 +51,13 @@ export async function POST(req: Request) {
       );
     }
 
+    const toolList = ALL_AGENT_TOOLS.map(t => `- ${t.name}: ${t.description}`).join("\n");
     const defaultSystemPrompt = `أنت Anzaro AI — مساعد ذكي قادر على اتخاذ إجراءات.
 لديك أدوات متاحة. استخدمها عند الحاجة لتنفيذ طلبات المستخدم.
 لا تقل "لا أستطيع" — استخدم الأدوات المتاحة لتنفيذ الطلب.
 
 الأدوات المتاحة:
-${ALL_AGENT_TOOLS.map(t => `- ${t.name}: ${t.description}`).join("\n")}
+${toolList}
 
 قواعد:
 1. فكر أولاً: هل يحتاج الطلب لأداة؟
