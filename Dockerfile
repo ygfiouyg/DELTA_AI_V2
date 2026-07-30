@@ -69,52 +69,62 @@ RUN npx playwright install chromium 2>/dev/null || echo "Playwright Chromium ins
 # V.93: MASTER PROMPT — pre-install ALL data science, document generation,
 #        and media processing libraries so runtime auto-install is rarely needed.
 #        These persist across container restarts (baked into the image).
+# V.132: Install packages in separate layers (avoids timeout + shows errors)
+# Layer 1: Core data science (most important)
 RUN pip3 install --no-cache-dir --break-system-packages \
-    # ── HF Integration (for DB sync) ──
-    huggingface_hub \
-    # ── Document Generation ──
-    python-pptx \
-    openpyxl \
-    fpdf2 \
-    weasyprint \
-    reportlab \
-    python-docx \
-    # ── Data Science & Analysis ──
-    pandas \
-    numpy \
-    scipy \
-    matplotlib \
-    seaborn \
-    yfinance \
-    ta \
-    pandas-ta \
-    scikit-learn \
-    # ── Media Processing ──
-    gTTS \
-    pydub \
-    Pillow \
-    PyMuPDF \
-    # ── Utilities ──
-    qrcode \
-    requests \
-    beautifulsoup4 \
-    lxml \
-    sympy \
-    pyfiglet \
-    wikipedia \
-    # V.127: Fix missing AI/ML packages
-    trafilatura \
-    PyMuPDF \
-    sentence-transformers \
-    guardrails-ai \
-    ragas \
-    langfuse \
-    celery \
-    passlib \
-    2>/dev/null || echo "Python packages install partial (some may have failed)"
+    pandas numpy scipy matplotlib seaborn scikit-learn \
+    || echo "Data science packages partial install"
 
-# V.127: Install PyTorch CPU (separate command for index URL)
-RUN pip3 install --no-cache-dir --break-system-packages torch --index-url https://download.pytorch.org/whl/cpu 2>/dev/null || echo "torch install failed"
+# Layer 2: AI/ML
+RUN pip3 install --no-cache-dir --break-system-packages \
+    openai anthropic tiktoken transformers tokenizers safetensors huggingface-hub \
+    || echo "AI packages partial install"
+
+# Layer 3: NLP
+RUN pip3 install --no-cache-dir --break-system-packages \
+    nltk spacy gensim textblob vaderSentiment textstat wordcloud \
+    rapidfuzz jellyfish language-tool-python \
+    || echo "NLP packages partial install"
+
+# Layer 4: Web & API
+RUN pip3 install --no-cache-dir --break-system-packages \
+    requests httpx aiohttp urllib3 beautifulsoup4 lxml parsel selectolax \
+    fastapi flask django starlette uvicorn gunicorn \
+    yt-dlp trafilatura newspaper3k scrapy \
+    || echo "Web packages partial install"
+
+# Layer 5: Documents
+RUN pip3 install --no-cache-dir --break-system-packages \
+    python-pptx openpyxl fpdf2 weasyprint reportlab python-docx \
+    pdfplumber pypdf PyMuPDF pdf2image img2pdf \
+    markdown jinja2 xlsxwriter \
+    || echo "Document packages partial install"
+
+# Layer 6: Media
+RUN pip3 install --no-cache-dir --break-system-packages \
+    Pillow opencv-python-headless scikit-image imageio pydub \
+    gTTS edge-tts pytesseract qrcode \
+    || echo "Media packages partial install"
+
+# Layer 7: Security & Dev
+RUN pip3 install --no-cache-dir --break-system-packages \
+    cryptography pyjwt passlib bcrypt paramiko \
+    pydantic rich click typer tqdm loguru psutil \
+    pytest black ruff \
+    || echo "Security/Dev packages partial install"
+
+# Layer 8: LangChain + Vector DBs
+RUN pip3 install --no-cache-dir --break-system-packages \
+    langchain langchain-core langchain-community langchain-openai \
+    langgraph chromadb faiss-cpu \
+    || echo "LangChain packages partial install"
+
+# Layer 9: Utils
+RUN pip3 install --no-cache-dir --break-system-packages \
+    pyyaml toml python-dotenv schedule celery redis sqlalchemy \
+    faker cowsay pyjokes art pyfiglet wikipedia \
+    yfinance ta \
+    || echo "Utils packages partial install"
 
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
