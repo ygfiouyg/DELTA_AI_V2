@@ -27,9 +27,6 @@ export interface AgentResult {
 }
 
 const MAX_ITERATIONS = 5;
-const MODEL = "glm-4-flash-zai";
-const API_KEY = process.env.ZAI_API_KEY || process.env.OPENAI_API_KEY || "";
-const API_BASE = process.env.ZAI_API_BASE || "https://api.z.ai/api/paas/v4";
 
 /** بيـ run agent loop */
 export async function runAgent(
@@ -38,6 +35,8 @@ export async function runAgent(
   conversationHistory: AgentMessage[] = []
 ): Promise<AgentResult> {
   const tools = getToolsSchema();
+  const toolDescriptions = ALL_AGENT_TOOLS.map(t => `- ${t.name}: ${t.description}`).join("\n");
+
   const messages: AgentMessage[] = [
     ...(systemPrompt ? [{ role: "system" as const, content: systemPrompt }] : []),
     ...conversationHistory,
@@ -51,22 +50,21 @@ export async function runAgent(
   while (iterations < MAX_ITERATIONS) {
     iterations++;
 
-    // Call model with tools
-    const modelResponse = await callModel(messages, tools);
+    // Call model via the existing chat API (internal)
+    const modelResponse = await callModelInternal(messages, tools, toolDescriptions);
 
     if (!modelResponse) {
       finalResponse = "عذراً، حدث خطأ في الاتصال بالنموذج.";
       break;
     }
 
-    const assistantMessage: AgentMessage = {
-      role: "assistant",
-      content: modelResponse.content || "",
-    };
-
     // If model wants to call tools
     if (modelResponse.tool_calls && modelResponse.tool_calls.length > 0) {
-      assistantMessage.tool_calls = modelResponse.tool_calls;
+      const assistantMessage: AgentMessage = {
+        role: "assistant",
+        content: modelResponse.content || "",
+        tool_calls: modelResponse.tool_calls,
+      };
       messages.push(assistantMessage);
 
       // Execute each tool call
@@ -83,7 +81,6 @@ export async function runAgent(
 
         toolCallsMade.push({ name: toolName, args: toolArgs, result });
 
-        // Add tool result to messages
         messages.push({
           role: "tool",
           content: result,
@@ -91,12 +88,24 @@ export async function runAgent(
           name: toolName,
         });
       }
-
-      // Continue loop — model will process tool results
       continue;
     }
 
-    // No tool calls — model gave final answer
+    // Check if model response contains a tool name to call (fallback for models without native function calling)
+    const toolMatch = matchToolFromText(modelResponse.content || "", toolDescriptions);
+    if (toolMatch) {
+      const result = await executeTool(toolMatch.name, toolMatch.args);
+      toolCallsMade.push({ name: toolMatch.name, args: toolMatch.args, result });
+
+      // Feed result back to model
+      messages.push({ role: "assistant", content: modelResponse.content || "" });
+      messages.push({
+        role: "user",
+        content: `نتيجة تنفيذ الأداة ${toolMatch.name}:\n${result}\n\nاكتب للمستخدم ملخص النتيجة بالعربية.`,
+      });
+      continue;
+    }
+
     finalResponse = modelResponse.content || "";
     break;
   }
@@ -113,53 +122,83 @@ export async function runAgent(
   };
 }
 
-/** بيـ call الـ model عبر OpenAI-compatible API (ZAI/GLM) */
-async function callModel(messages: AgentMessage[], tools: any[]): Promise<any> {
+/** بيـ call الـ model عبر الـ internal chat API */
+async function callModelInternal(messages: AgentMessage[], tools: any[], toolDescriptions: string): Promise<any> {
   try {
-    const body: any = {
-      model: MODEL,
-      messages: messages.map(m => ({
-        role: m.role,
-        content: m.content,
-        ...(m.tool_calls ? { tool_calls: m.tool_calls } : {}),
-        ...(m.tool_call_id ? { tool_call_id: m.tool_call_id } : {}),
-        ...(m.name ? { name: m.name } : {}),
-      })),
-      temperature: 0.7,
-      max_tokens: 4000,
-    };
+    // Build the prompt with tool descriptions injected
+    const systemContent = `أنت Anzaro AI — مساعد ذكي قادر على تنفيذ إجراءات.
 
-    if (tools && tools.length > 0) {
-      body.tools = tools;
-      body.tool_choice = "auto";
-    }
+لديك الأدوات التالية. إذا احتجت أي منها، اكتب:
+TOOL_CALL: {"name": "<tool_name>", "args": {...}}
 
-    const response = await fetch(`${API_BASE}/chat/completions`, {
+الأدوات المتاحة:
+${toolDescriptions}
+
+قواعد:
+1. إذا كان الطلب يحتاج أداة، اكتب TOOL_CALL في أول سطر
+2. إذا لم يحتج أداة، أجب مباشرة
+3. لا تقل "لا أستطيع" — استخدم الأدوات`;
+
+    // Call the internal chat API
+    const response = await fetch("http://localhost:3000/api/chat/send", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${API_KEY}`,
-      },
-      body: JSON.stringify(body),
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        message: messages[messages.length - 1]?.content || "",
+        model: "glm-4-flash-zai",
+        systemPrompt: systemContent,
+        conversationHistory: messages.slice(0, -1).map(m => ({
+          role: m.role,
+          content: m.content,
+        })),
+      }),
     });
 
     if (!response.ok) {
-      console.error(`[Agent] Model API error: ${response.status}`);
+      console.error(`[Agent] Internal API error: ${response.status}`);
       return null;
     }
 
     const data = await response.json();
-    const choice = data.choices?.[0];
-    if (!choice) return null;
+    const content = data.content || data.response || data.message || "";
 
-    return {
-      content: choice.message?.content || "",
-      tool_calls: choice.message?.tool_calls || [],
-    };
+    // Check if content contains TOOL_CALL
+    const toolCallMatch = content.match(/TOOL_CALL:\s*({[^}]+})/);
+    if (toolCallMatch) {
+      try {
+        const tc = JSON.parse(toolCallMatch[1]);
+        return {
+          content: content.replace(/TOOL_CALL:\s*{[^}]+}/, "").trim(),
+          tool_calls: [{
+            id: `call_${Date.now()}`,
+            function: {
+              name: tc.name,
+              arguments: JSON.stringify(tc.args || {}),
+            },
+          }],
+        };
+      } catch {}
+    }
+
+    return { content, tool_calls: [] };
   } catch (e) {
     console.error("[Agent] Model call error:", e);
     return null;
   }
+}
+
+/** Fallback: بيـ match tool from text (للنماذج بدون function calling) */
+function matchToolFromText(content: string, toolDescriptions: string): { name: string; args: any } | null {
+  const match = content.match(/TOOL_CALL:\s*({[^}]+})/);
+  if (match) {
+    try {
+      const tc = JSON.parse(match[1]);
+      if (tc.name && ALL_AGENT_TOOLS.find(t => t.name === tc.name)) {
+        return { name: tc.name, args: tc.args || {} };
+      }
+    } catch {}
+  }
+  return null;
 }
 
 /** بيـ run audio workflow (transcribe → clean → analyze) */
