@@ -180,14 +180,26 @@ except Exception as e:
 }
 
 export async function GET() {
-  const code = `import os, json
-site = "/app/.venv/lib/python3.12/site-packages"
-if not os.path.exists(site):
-    site = "/home/z/.venv/lib/python3.12/site-packages"
+  const code = `import os, json, sys
 pkgs = []
-for d in os.listdir(site):
-    if d.startswith('_') or d.endswith('.dist-info') or d.endswith('.egg-info'): continue
-    if os.path.isdir(os.path.join(site, d)): pkgs.append(d)
+# check all possible site-packages locations
+paths = [
+    "/app/.venv/lib/python3.12/site-packages",
+    "/home/z/.venv/lib/python3.12/site-packages",
+    "/usr/lib/python3/dist-packages",
+    "/usr/local/lib/python3.11/dist-packages",
+    "/usr/local/lib/python3.12/dist-packages",
+    "/usr/lib/python3.11/dist-packages",
+]
+for site in paths:
+    if not os.path.exists(site):
+        continue
+    for d in os.listdir(site):
+        if d.startswith('_') or d.endswith('.dist-info') or d.endswith('.egg-info') or d.endswith('.so'):
+            continue
+        full = os.path.join(site, d)
+        if os.path.isdir(full) or (os.path.isfile(full) and d.endswith('.py')):
+            pkgs.append(d.replace('.py',''))
 pkgs = sorted(set(pkgs))
 print(json.dumps({"count": len(pkgs), "packages": pkgs}))`;
   const output = await runPython(code, 10000);
