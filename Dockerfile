@@ -157,8 +157,44 @@ EXPOSE 3000
 # Admin credentials: ADMIN_EMAIL / ADMIN_PASSWORD env vars (set as HF Secrets)
 # Default fallback: admin@anzaro.local / admin123456
 CMD export DATABASE_URL="file:/app/db/custom.db" && \
-    echo "[Startup] V.140: Download DB from HF Dataset FIRST (before prisma)..." && \
-    pip3 install --break-system-packages --quiet huggingface_hub 2>&1 | tail -1; \
+    echo "[Startup] V.141: Install Python packages at runtime (Docker build pip fails)..." && \
+    pip3 install --break-system-packages --quiet \
+      huggingface_hub pandas numpy scipy matplotlib seaborn scikit-learn sympy \
+      openai anthropic tiktoken transformers \
+      nltk spacy gensim textblob vaderSentiment textstat wordcloud rapidfuzz \
+      requests httpx aiohttp beautifulsoup4 lxml \
+      fastapi flask django uvicorn gunicorn \
+      pillow opencv-python-headless pydub \
+      pdfplumber pypdf PyMuPDF reportlab fpdf2 \
+      python-docx python-pptx openpyxl xlsxwriter \
+      cryptography pyjwt passlib bcrypt \
+      pydantic rich click typer tqdm loguru psutil \
+      pytest black ruff \
+      langchain langchain-core langchain-community langchain-openai langgraph \
+      chromadb faiss-cpu \
+      pyyaml toml python-dotenv schedule celery redis sqlalchemy \
+      faker cowsay pyjokes art pyfiglet qrcode \
+      edge-tts gTTS deep-translator \
+      yfinance ta arrow pendulum \
+      networkx orjson ujson msgpack jsonschema \
+      yt-dlp trafilatura \
+      crewai pubchempy mendeleev \
+      paho-mqtt pyserial ffmpeg-python moviepy \
+      pywhatkit yagmail plyer \
+      rembg docx2pdf pikepdf send2trash \
+      humanize parsedatetime emoji phonenumbers validators langdetect \
+      forex-python pint holidays geopy \
+      praw instaloader spotipy googlesearch-python pytrends \
+      cloudscraper scapy dpkt \
+      pyrogram telethon duckdb peewee \
+      ccxt backtrader \
+      ppadb wakeonlan chemlib chemspipy \
+      autoscraper fake-useragent \
+      xgboost lightgbm statsmodels shap optuna \
+      safetensors tokenizers sentence-transformers \
+      2>&1 | tail -3; \
+    echo "[Startup] Python packages installed" && \
+    echo "[Startup] V.140: Download DB from HF Dataset..." && \
     DB_PATH="/app/db/custom.db" timeout 120 python3 /app/scripts/db_sync_manager.py 2>&1 | tail -5; \
     echo "[Startup] DB downloaded. Running prisma (will add missing tables, not wipe data)..." && \
     npx prisma db push --skip-generate --accept-data-loss 2>&1 | tail -5 && \
