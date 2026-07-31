@@ -127,7 +127,11 @@ RUN pip3 install --no-cache-dir --target=/app/python-packages \
     ytmusicapi colorthief piexif exifread fiona python-louvain \
     ccxt alpha_vantage finquant backtrader fredapi yahooquery quandl pykrx \
     paho-mqtt pyserial ffmpeg-python moviepy pyautogui \
-    2>/dev/null; echo "Consolidated install done (some may have failed)"
+    || echo "Consolidated install partial"
+# Verify key packages installed
+RUN python3 -c "import sys; sys.path.insert(0, '/app/python-packages'); import pandas; print('pandas OK:', pandas.__version__)" || echo "pandas NOT installed"
+RUN python3 -c "import sys; sys.path.insert(0, '/app/python-packages'); import requests; print('requests OK:', requests.__version__)" || echo "requests NOT installed"
+RUN ls /app/python-packages/ | head -20 || echo "No packages dir"
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
 # Validate the schema parses cleanly against the postgresql provider.
