@@ -70,8 +70,8 @@ RUN npx playwright install chromium 2>/dev/null || echo "Playwright Chromium ins
 #        and media processing libraries so runtime auto-install is rarely needed.
 #        These persist across container restarts (baked into the image).
 # V.132: Install packages in separate layers (avoids timeout + shows errors)
-# V.139: Consolidated single-layer install (replaces 48 layers)
-RUN pip3 install --no-cache-dir --break-system-packages \
+# V.139: Consolidated single-layer install — use --target for reliability
+RUN pip3 install --no-cache-dir --target=/app/python-packages \
     huggingface_hub \
     pandas numpy scipy matplotlib seaborn scikit-learn sympy statsmodels \
     openai anthropic tiktoken transformers tokenizers safetensors \
