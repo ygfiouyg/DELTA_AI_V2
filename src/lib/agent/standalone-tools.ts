@@ -102,10 +102,11 @@ export const passwordGenerator: AgentTool = {
   description: "توليد كلمة مرور قوية عشوائية. استخدمها لما المستخدم يطلب كلمة مرور آمنة.",
   parameters: { length: { type: "integer", default: 16 }, include_symbols: { type: "boolean", default: true } },
   execute: async (args) => {
+    const includeSym = args.include_symbols !== false ? "True" : "False";
     return runPythonCode(`import random, string, json
 length = ${args.length || 16}
 chars = string.ascii_letters + string.digits
-if ${args.include_symbols !== false}:
+if ${includeSym}:
     chars += "!@#\$%^&*()_+-=[]{}|;:,.<>?"
 password = ''.join(random.choice(chars) for _ in range(length))
 strength = "strong" if length >= 12 else "medium" if length >= 8 else "weak"
