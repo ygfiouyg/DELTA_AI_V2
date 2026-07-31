@@ -158,7 +158,7 @@ EXPOSE 3000
 # Default fallback: admin@anzaro.local / admin123456
 CMD export DATABASE_URL="file:/app/db/custom.db" && \
     echo "[Startup] V.141: Install Python packages at runtime (Docker build pip fails)..." && \
-    pip3 install --break-system-packages --quiet \
+    pip3 install --break-system-packages \
       huggingface_hub pandas numpy scipy matplotlib seaborn scikit-learn sympy \
       openai anthropic tiktoken transformers \
       nltk spacy gensim textblob vaderSentiment textstat wordcloud rapidfuzz \
@@ -192,7 +192,7 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
       autoscraper fake-useragent \
       xgboost lightgbm statsmodels shap optuna \
       safetensors tokenizers sentence-transformers \
-      2>&1 | tail -3; \
+      2>&1 || true; \
     echo "[Startup] Python packages installed" && \
     echo "[Startup] V.140: Download DB from HF Dataset..." && \
     DB_PATH="/app/db/custom.db" timeout 120 python3 /app/scripts/db_sync_manager.py 2>&1 | tail -5; \
