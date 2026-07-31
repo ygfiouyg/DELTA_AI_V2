@@ -38,14 +38,14 @@ async function runPython(code: string, timeoutMs = 30000): Promise<ToolResult> {
   try {
     await fsPromises.writeFile(tmpFile, code, "utf-8");
     const output = await new Promise<string>((resolve, reject) => {
-      // V.127: Use /app/.venv/bin/python3 if available (has all packages), fallback to python3
-      const pythonPath = existsSync("/app/.venv/bin/python3") ? "/app/.venv/bin/python3" : "python3";
+      // V.140: Use system python3 first (packages installed via --break-system-packages)
+      const pythonPath = "python3";
       const proc = spawn(pythonPath, [tmpFile], {
         cwd: "/home/z/my-project/exports",
         env: {
           ...process.env,
           PYTHONUNBUFFERED: "1",
-          PYTHONPATH: "/app/.venv/lib/python3.12/site-packages:/usr/lib/python3/dist-packages:/usr/local/lib/python3.11/dist-packages",
+          PYTHONPATH: "/usr/local/lib/python3.11/dist-packages:/usr/lib/python3/dist-packages:/app/.venv/lib/python3.12/site-packages:/home/z/.venv/lib/python3.12/site-packages",
         },
         timeout: timeoutMs,
       });
