@@ -70,294 +70,64 @@ RUN npx playwright install chromium 2>/dev/null || echo "Playwright Chromium ins
 #        and media processing libraries so runtime auto-install is rarely needed.
 #        These persist across container restarts (baked into the image).
 # V.132: Install packages in separate layers (avoids timeout + shows errors)
-# Layer 1: Core data science (most important)
+# V.139: Consolidated single-layer install (replaces 48 layers)
 RUN pip3 install --no-cache-dir --break-system-packages \
-    pandas numpy scipy matplotlib seaborn scikit-learn \
-    || echo "Data science packages partial install"
-
-# Layer 2: AI/ML
-RUN pip3 install --no-cache-dir --break-system-packages \
-    openai anthropic tiktoken transformers tokenizers safetensors huggingface-hub \
-    || echo "AI packages partial install"
-
-# Layer 3: NLP
-RUN pip3 install --no-cache-dir --break-system-packages \
-    nltk spacy gensim textblob vaderSentiment textstat wordcloud \
-    rapidfuzz jellyfish language-tool-python \
-    || echo "NLP packages partial install"
-
-# Layer 4: Web & API
-RUN pip3 install --no-cache-dir --break-system-packages \
-    requests httpx aiohttp urllib3 beautifulsoup4 lxml parsel selectolax \
-    fastapi flask django starlette uvicorn gunicorn \
-    yt-dlp trafilatura newspaper3k scrapy \
-    || echo "Web packages partial install"
-
-# Layer 5: Documents
-RUN pip3 install --no-cache-dir --break-system-packages \
-    python-pptx openpyxl fpdf2 weasyprint reportlab python-docx \
-    pdfplumber pypdf PyMuPDF pdf2image img2pdf \
-    markdown jinja2 xlsxwriter \
-    || echo "Document packages partial install"
-
-# Layer 6: Media
-RUN pip3 install --no-cache-dir --break-system-packages \
-    Pillow opencv-python-headless scikit-image imageio pydub \
-    gTTS edge-tts pytesseract qrcode \
-    || echo "Media packages partial install"
-
-# Layer 7: Security & Dev
-RUN pip3 install --no-cache-dir --break-system-packages \
-    cryptography pyjwt passlib bcrypt paramiko \
-    pydantic rich click typer tqdm loguru psutil \
-    pytest black ruff \
-    || echo "Security/Dev packages partial install"
-
-# Layer 8: LangChain + Vector DBs
-RUN pip3 install --no-cache-dir --break-system-packages \
-    langchain langchain-core langchain-community langchain-openai \
-    langgraph chromadb faiss-cpu \
-    || echo "LangChain packages partial install"
-
-# Layer 9: Utils
-RUN pip3 install --no-cache-dir --break-system-packages \
-    pyyaml toml python-dotenv schedule celery redis sqlalchemy \
-    faker cowsay pyjokes art pyfiglet wikipedia \
-    yfinance ta \
-    || echo "Utils packages partial install"
-
-# ═══════════════════════════════════════════════════════════════
-# V.134: "عملية تيتانيوم" — The 20 Heavy Libraries
-# ═══════════════════════════════════════════════════════════════
-
-# Layer 10: Agent Orchestration & Memory
-RUN pip3 install --no-cache-dir --break-system-packages \
-    crewai chromadb \
-    || echo "Agent/Memory packages partial install"
-
-# Layer 11: Web Ghosts (playwright needs browser install)
-RUN pip3 install --no-cache-dir --break-system-packages \
-    playwright scrapy beautifulsoup4 \
-    && playwright install chromium 2>/dev/null || echo "Playwright browsers partial"
-
-# Layer 12: Data Engine (polars — 10x faster than pandas)
-RUN pip3 install --no-cache-dir --break-system-packages \
-    polars \
-    || echo "Polars install failed"
-
-# Layer 13: Audio Arsenal
-RUN pip3 install --no-cache-dir --break-system-packages \
-    faster-whisper librosa ffmpeg-python \
-    || echo "Audio packages partial install"
-
-# Layer 14: Voice Cloning (TTS Coqui — large, optional)
-RUN pip3 install --no-cache-dir --break-system-packages \
-    TTS \
-    || echo "TTS Coqui install failed (large package)"
-
-# Layer 15: Hardware Control
-RUN pip3 install --no-cache-dir --break-system-packages \
-    paho-mqtt pyserial \
-    || echo "Hardware packages partial install"
-
-# Layer 16: Media Production
-RUN pip3 install --no-cache-dir --break-system-packages \
-    moviepy opencv-python-headless pyautogui \
-    || echo "Media packages partial install"
-
-# Layer 17: PyTorch CPU (the neural engine)
-RUN pip3 install --no-cache-dir --break-system-packages \
-    torch --index-url https://download.pytorch.org/whl/cpu \
-    || echo "PyTorch CPU install failed (large)"
-
-# Layer 18: Infrastructure (celery already installed, add sqlalchemy if missing)
-RUN pip3 install --no-cache-dir --break-system-packages \
-    celery sqlalchemy fastapi \
-    || echo "Infrastructure packages partial install"
-
-# ═══════════════════════════════════════════════════════════════
-# V.135: The 300 Library Mega-Install (14 batches)
-# ═══════════════════════════════════════════════════════════════
-
-# Batch 1: Science & Medical
-RUN pip3 install --no-cache-dir --break-system-packages \
-    pubchempy biopython mendeleev pydicom pyarrow h5py tabula-py xmltodict ijson marshmallow ruamel.yaml \
-    || echo "Batch 1 (Science/Medical) partial"
-
-# Batch 2: AI & ML Advanced
-RUN pip3 install --no-cache-dir --break-system-packages \
-    sentence-transformers onnxruntime einops xgboost umap-learn tenacity websockets gql pyngrok fabric boto3 \
-    || echo "Batch 2 (AI/ML) partial"
-
-# Batch 3: Infrastructure & Hardware
-RUN pip3 install --no-cache-dir --break-system-packages \
-    cachetools pycryptodome soundfile graphviz psycopg2-binary alembic esptool smbus2 pyusb webrtcvad sounddevice mutagen vobject \
-    || echo "Batch 3 (Infra/Hardware) partial"
-
-# Batch 4: OSINT & Cyber
-RUN pip3 install --no-cache-dir --break-system-packages \
+    huggingface_hub \
+    pandas numpy scipy matplotlib seaborn scikit-learn sympy statsmodels \
+    openai anthropic tiktoken transformers tokenizers safetensors \
+    nltk spacy gensim textblob vaderSentiment textstat wordcloud rapidfuzz jellyfish \
+    polars pyarrow dask sqlalchemy sqlmodel alembic pymongo redis psycopg2-binary pymysql elasticsearch \
+    pillow opencv-python-headless scikit-image imageio imageio-ffmpeg pydub librosa soundfile \
+    pytesseract easyocr qrcode python-barcode pyzbar python-magic imutils imagehash \
+    pdfplumber pypdf PyMuPDF pdf2image pdf2docx reportlab fpdf2 weasyprint xhtml2pdf img2pdf \
+    python-docx python-pptx openpyxl xlsxwriter xlrd markdown markdown2 markdownify mistune jinja2 mako \
+    requests httpx aiohttp urllib3 httpcore beautifulsoup4 lxml parsel selectolax \
+    selenium playwright scrapy newspaper3k trafilatura goose3 readability-lxml boilerpy3 \
+    feedparser atoma yt-dlp pytube youtube-transcript-api \
+    google-api-python-client google-auth tweepy discord.py slack-sdk \
+    fastapi flask django starlette tornado sanic quart uvicorn gunicorn hypercorn daphne granian \
+    websockets websocket-client cryptography pycryptodome pyopenssl pynacl paramiko \
+    pyjwt authlib python-jose passlib bcrypt argon2-cffi pyotp email-validator \
+    pytest pytest-asyncio pytest-cov pytest-mock pytest-xdist coverage hypothesis \
+    black ruff isort autopep8 flake8 pylint mypy bandit safety pip-audit \
+    rich textual click typer fire tqdm loguru structlog psutil py-cpuinfo \
+    locust docker kubernetes prometheus-client sentry-sdk \
+    networkx igraph pyvis shapely geojson folium geopandas rasterio pyproj \
+    astropy rdkit biopython \
+    pyyaml toml tomli tomli-w python-dotenv environs hydra-core omegaconf \
+    schedule apscheduler python-crontab croniter celery rq arq dramatiq huey \
+    pydantic pydantic-settings tabulate prettytable \
+    python-dateutil pytz arrow pendulum maya delorean watchdog watchfiles filelock \
+    chardet charset-normalizer unidecode ftfy python-slugify inflection regex re2 pyparsing lark \
+    orjson ujson msgpack cbor2 simplejson jsonschema fastjsonschema \
+    aiofiles anyio asyncpg aiomysql aiosqlite fsspec s3fs gcsfs minio boto3 \
+    mlflow wandb tensorboard dvc albumentations imgaug kornia \
+    shap lime eli5 interpret dalex fairlearn aif360 optuna ray nevergrad hyperopt \
+    imbalanced-learn category-encoders featuretools pycaret lazypredict tpot flaml \
+    evidently deepchecks onnx tf2onnx grpcio protobuf avro thrift \
+    graphql-core ariadne strawberry-graphql graphene \
+    argostranslate pyttsx3 replicate cohere mistralai together \
+    langchain langchain-core langchain-community langchain-openai langchain-anthropic \
+    langchain-google-genai langchain-experimental langgraph langserve langsmith \
+    chromadb faiss-cpu annoy hnswlib qdrant-client weaviate-client pinecone-client \
+    cowsay pyjokes art faker pyfiglet termcolor colorama wikipedia yfinance ta \
+    crewai pubchempy mendeleev pydicom h5py tabula-py xmltodict ijson marshmallow ruamel.yaml \
+    sentence-transformers onnxruntime einops xgboost umap-learn tenacity gql pyngrok fabric \
+    cachetools graphviz esptool smbus2 pyusb webrtcvad sounddevice mutagen vobject \
     cloudscraper scapy dpkt praw instaloader spotipy googlesearch-python pytrends feedgen \
-    || echo "Batch 4 (OSINT/Cyber) partial"
-
-# Batch 5: Academic AI
-RUN pip3 install --no-cache-dir --break-system-packages \
-    py3dmol periodictable coolprop statsmodels lightgbm dask shap optuna timm diffusers peft \
-    || echo "Batch 5 (Academic AI) partial"
-
-# Batch 6: System Tools
-RUN pip3 install --no-cache-dir --break-system-packages \
+    py3dmol periodictable coolprop lightgbm timm diffusers peft \
     pynput pyperclip icecream memory_profiler transitions pypika prometheus_client typing_extensions \
-    || echo "Batch 6 (System) partial"
-
-# Batch 7: Secretary & Communication
-RUN pip3 install --no-cache-dir --break-system-packages \
     pywhatkit yagmail plyer mouse gspread twilio \
-    || echo "Batch 7 (Secretary) partial"
-
-# Batch 8: Media & Files
-RUN pip3 install --no-cache-dir --break-system-packages \
-    rembg docx2pdf pikepdf send2trash patool pyzipper pyscreenshot python-barcode \
-    || echo "Batch 8 (Media/Files) partial"
-
-# Batch 9: Human Language
-RUN pip3 install --no-cache-dir --break-system-packages \
+    rembg docx2pdf pikepdf send2trash patool pyzipper pyscreenshot \
     humanize parsedatetime pyspellchecker emoji phonenumbers validators langdetect \
-    || echo "Batch 9 (Language) partial"
-
-# Batch 10: Real Life & Finance
-RUN pip3 install --no-cache-dir --break-system-packages \
     forex-python pint holidays geopy speedtest-cli pyotp mimesis alive-progress termcolor howdoi pyowm croniter vidgear \
-    || echo "Batch 10 (Real Life) partial"
-
-# Batch 11: Content Creation & Audio
-RUN pip3 install --no-cache-dir --break-system-packages \
-    pyannote.audio spleeter chat-downloader pytube \
-    || echo "Batch 11 (Content) partial"
-
-# Batch 12: Hardware & Mobile
-RUN pip3 install --no-cache-dir --break-system-packages \
-    ppadb wakeonlan \
-    || echo "Batch 12 (Hardware/Mobile) partial"
-
-# Batch 13: Medical/Chemical
-RUN pip3 install --no-cache-dir --break-system-packages \
-    chemlib chemspipy \
-    || echo "Batch 13 (Medical/Chem) partial"
-
-# Batch 14: Automation, Social & Trading
-RUN pip3 install --no-cache-dir --break-system-packages \
-    pyrogram autoscraper fake-useragent undetected-chromedriver mechanize mechanicalsoup pyquery telethon pywebio duckdb peewee tortoise-orm socketio autobahn ping3 cfscrape ytmusicapi colorthief piexif exifread fiona python-louvain ccxt alpha_vantage finquant backtrader fredapi yahooquery quandl pykrx \
-    || echo "Batch 14 (Automation/Social/Trading) partial"
-
-# ═══════════════════════════════════════════════════════════════
-# V.136: 500 More Libraries (10 batches)
-# ═══════════════════════════════════════════════════════════════
-
-# Batch 15: NLP & Text Processing II
-RUN pip3 install --no-cache-dir --break-system-packages \
-    spacy-transformers stanza allennlp flair fasttext sumy gensim rouge-score sacrebleu sentencepiece tokenizers bert-score textdistance text2num langchain-experimental langchain-text-splitters pyparsing nltk_data \
-    || echo "Batch 15 (NLP II) partial"
-
-# Batch 16: Computer Vision II
-RUN pip3 install --no-cache-dir --break-system-packages \
-    detectron2 modelscope segment-anything supervision ultralytics deeplake fiftyone label-studio-sdk modelstore torchmetrics torch-fidelity cleanlab cleanvision \
-    || echo "Batch 16 (Vision II) partial"
-
-# Batch 17: Audio & Speech II
-RUN pip3 install --no-cache-dir --break-system-packages \
-    whisper-cpp python-audio-tools pedalboard pyroomacoustics noisereduce speechbrain espnet nemoToolkit audiomentation torch-audiomentations neutral-time eng-to-ipa praat-parselmouth \
-    || echo "Batch 17 (Audio II) partial"
-
-# Batch 18: Data Engineering II
-RUN pip3 install --no-cache-dir --break-system-packages \
-    apache-airflow prefect dagster dbt-core dagster-webserver kedro pyrasite buffalo airflow-provider-papermill papermill nteract-on-jupyter \
-    || echo "Batch 18 (Data Eng II) partial"
-
-# Batch 19: DevOps & Cloud II
-RUN pip3 install --no-cache-dir --break-system-packages \
-    ansible-core ansible-runner pulumi terraform-compliance checkov terraform-validator terrascan helmfile kubernetes-client openshift-client \
-    || echo "Batch 19 (DevOps II) partial"
-
-# Batch 20: Security & Crypto II
-RUN pip3 install --no-cache-dir --break-system-packages \
-    passlibargon2 pynacl pyotp pyu2f cryptography pynessus python-nmap pymetasploit3 pwntools exploitdb requests-kerberos requests-ntlm ldap3 impacket pyasn1 pyasn1-modules \
-    || echo "Batch 20 (Security II) partial"
-
-# Batch 21: Science & Math II
-RUN pip3 install --no-cache-dir --break-system-packages \
-    numpy-financial numpy-stl scikit-surprise scikit-tda scikit-fuzzy scikit-postproc-linalg astropy astroquery sunpy spacepy pysat pyerfa astroplan astrolib coords cosmopy \
-    || echo "Batch 21 (Science II) partial"
-
-# Batch 22: Web Frameworks II
-RUN pip3 install --no-cache-dir --break-system-packages \
-    masonite fastapi-utils fastapi-pagination fastapi-cache2 fastapi-jwt-auth fastapi-mail fastapi-limiter fastapi-restful fastapi-routing drf-spectacular drf-yasg \
-    || echo "Batch 22 (Web II) partial"
-
-# Batch 23: Media & Image II
-RUN pip3 install --no-cache-dir --break-system-packages \
-    wand python-resize-image image-go-nord pyblind11 pil-compression pillow-simd pillow-avif-plugin pillow-jpeg-xl pillow-heif pyheif rawpy imagecodecs tifffile aicsimageio czifile \
-    || echo "Batch 23 (Media II) partial"
-
-# Batch 24: Finance & Trading II
-RUN pip3 install --no-cache-dir --break-system-packages \
-    quantlib zipline-reloaded pybacktest backtesting pyportfolioopt pyalgotrade qlib finrl tensortrade-trade-challenge vectorbt bt ffn pyfolio empyrical \
-    || echo "Batch 24 (Finance II) partial"
-
-# ═══════════════════════════════════════════════════════════════
-# V.137: 300 More Libraries (6 batches × ~50)
-# ═══════════════════════════════════════════════════════════════
-
-# Batch 25: Education & E-learning
-RUN pip3 install --no-cache-dir --break-system-packages \
-    sympy mpmath numpy-financial scipy-lectures jupyter-book myst-parser \
-    nbgrader nbdime jupyterlab-git jupyterlab-lsp jupyterlab-fasta \
-    jupyterlab-spellchecker ipywidgets ipyleaflet ipycanvas ipysheet \
-    ipytree ipynb-py ipydatagrid ipyvolume ipywebrtc ipyvuetify \
-    || echo "Batch 25 (Education) partial"
-
-# Batch 26: Game Dev & 3D
-RUN pip3 install --no-cache-dir --break-system-packages \
-    pygame pyglet arcade pymunk pyOpenGL pywavefront moderngl trimesh \
-    pybullet ursina python-igraph networkx pygraphviz pydot pyvis \
-    manim manimgl pillow-avif-plugin vtk mayavi plotly-geo \
-    || echo "Batch 26 (Game Dev/3D) partial"
-
-# Batch 27: Blockchain & Web3
-RUN pip3 install --no-cache-dir --break-system-packages \
-    web3 eth-brownie py-solc-x eth-account eth-abi eth-contract \
-    eth-erc20 eth-event eth-utils hexbytes pycryptodome mnemonic \
-    bip32utils biputils base58 bech32 cosmos-sdk-pythonterra-sdk-python \
-    || echo "Batch 27 (Blockchain) partial"
-
-# Batch 28: IoT & Embedded
-RUN pip3 install --no-cache-dir --break-system-packages \
-    paho-mqtt mqtt-asio asyncio-mqtt micropython-requests \
-    circuitpython adafruit-blinka adafruit-circuitpython-dht \
-    adafruit-circuitpython-motor adafruit-circuitpython-servo \
-    adafruit-circuitpython-neopixel adafruit-circuitpython-lis3dh \
-    adafruit-circuitpython-bme680 adafruit-circuitpython-gps \
-    adafruit-circuitpython-rgbdisplay adafruit-circuitpython-register \
-    pyfirmata pyserial-asyncio pyserial-asyncio-strict \
-    || echo "Batch 28 (IoT/Embedded) partial"
-
-# Batch 29: Productivity & Office
-RUN pip3 install --no-cache-dir --break-system-packages \
-    python-pptx-template docxtpl xlsx2html xlsx2csv csv2md \
-    pandoc pypandoc mdutils markdown2 python-markdown-math \
-    mistune markdown-it-py mdit-py-plugins rich-markdown \
-    textual-dev textual-serve Textual-datepicker \
-    || echo "Batch 29 (Productivity) partial"
-
-# Batch 30: QA & Testing II
-RUN pip3 install --no-cache-dir --break-system-packages \
-    pytest-html pytest-xdist pytest-asyncio pytest-benchmark \
-    pytest-timeout pytest-cov pytest-mock pytest-randomly \
-    pytest-socket pytest-split pytest-flask pytest-django \
-    pytest-testmon pytest-watch pytest-sugar pytest-clarity \
-    hypothesis schemathesis contract-test faker-codes \
-    locust locust-plugins pymeter bumble-bench asv \
-    || echo "Batch 30 (QA/Testing II) partial"
-
+    ppadb wakeonlan chemlib chemspipy \
+    pyrogram autoscraper fake-useragent undetected-chromedriver mechanize mechanicalsoup pyquery \
+    telethon pywebio duckdb peewee tortoise-orm socketio autobahn ping3 cfscrape \
+    ytmusicapi colorthief piexif exifread fiona python-louvain \
+    ccxt alpha_vantage finquant backtrader fredapi yahooquery quandl pykrx \
+    paho-mqtt pyserial ffmpeg-python moviepy pyautogui \
+    2>/dev/null; echo "Consolidated install done (some may have failed)"
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
 # Validate the schema parses cleanly against the postgresql provider.
