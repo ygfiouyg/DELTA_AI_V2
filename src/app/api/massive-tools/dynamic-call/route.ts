@@ -27,7 +27,7 @@ const PYTHON_PATHS = [
 ];
 
 const SITE_PACKAGES = [
-  "/app/python-packages",
+  "/usr/local/lib/python3.11/dist-packages",
 ];
 
 async function runPython(code: string, timeoutMs = 60000): Promise<string> {
@@ -181,15 +181,15 @@ except Exception as e:
 }
 
 export async function GET() {
-  const code = `import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import os, json, sys
+  const code = `import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import os, json, sys
 pkgs = []
 # check all possible site-packages locations
 paths = [
     "/app/.venv/lib/python3.12/site-packages",
     "/home/z/.venv/lib/python3.12/site-packages",
-    "/app/python-packages",
-    "/app/python-packages",
-    "/app/python-packages",
+    "/usr/local/lib/python3.11/dist-packages",
+    "/usr/local/lib/python3.11/dist-packages",
+    "/usr/local/lib/python3.11/dist-packages",
     "/usr/lib/python3.11/dist-packages",
 ]
 for site in paths:

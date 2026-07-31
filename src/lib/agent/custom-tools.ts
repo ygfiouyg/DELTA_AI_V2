@@ -8,7 +8,7 @@ import { existsSync } from "fs";
 import path from "path";
 
 const PYTHON_PATHS = ["python3", "/usr/bin/python3", "/usr/local/bin/python3", "/app/.venv/bin/python3", "/home/z/.venv/bin/python3"];
-const SITE_PACKAGES = ["/app/python-packages", "/app/python-packages", "/app/.venv/lib/python3.12/site-packages", "/home/z/.venv/lib/python3.12/site-packages"];
+const SITE_PACKAGES = ["/usr/local/lib/python3.11/dist-packages", "/usr/local/lib/python3.11/dist-packages", "/app/.venv/lib/python3.12/site-packages", "/home/z/.venv/lib/python3.12/site-packages"];
 
 async function runPython(code: string, timeoutMs = 60000): Promise<string> {
   const pythonPath = "python3";
@@ -51,7 +51,7 @@ export const textToSpeech: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import edge_tts, asyncio, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import edge_tts, asyncio, json
 async def run():
     comm = edge_tts.Communicate("${(args.text || "").replace(/"/g, '\\"')}", "${args.voice || 'ar-EG-SalmaNeural'}")
     fname = "${args.filename || 'output.mp3'}"
@@ -72,7 +72,7 @@ export const transcribeAudio: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     from faster_whisper import WhisperModel
     model = WhisperModel("base", device="cpu", compute_type="int8")
@@ -144,7 +144,7 @@ export const extractPdfText: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import pymupdf, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import pymupdf, json
 doc = pymupdf.open("${args.file_path}")
 max_p = min(len(doc), ${args.max_pages || 50})
 text = ""
@@ -225,7 +225,7 @@ export const analyzeData: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import pandas as pd, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import pandas as pd, json
 df = pd.read_csv("${args.file_path}") if "${args.file_path}".endswith('.csv') else pd.read_json("${args.file_path}")
 op = "${args.operation || 'describe'}"
 if op == "describe":
@@ -256,7 +256,7 @@ export const createChart: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import matplotlib
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import json
@@ -292,7 +292,7 @@ export const scrapeWeb: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import trafilatura, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import trafilatura, json
 downloaded = trafilatura.fetch_url("${args.url}")
 text = trafilatura.extract(downloaded) or ""
 print(json.dumps({"text": text[:5000], "length": len(text)}, ensure_ascii=False))
@@ -311,7 +311,7 @@ export const httpRequest: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import requests, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import requests, json
 resp = requests.${(args.method || 'get').toLowerCase()}("${args.url}", headers=${JSON.stringify(args.headers || {})}, timeout=15)
 print(json.dumps({"status": resp.status_code, "text": resp.text[:3000]}, ensure_ascii=False))
 `;
@@ -417,7 +417,7 @@ export const runCrewAgents: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     from crewai import Agent, Task, Crew
     agents_data = json.loads('''${(args.agents || '[]').replace(/'/g, "\\'")}''')
@@ -449,7 +449,7 @@ export const storeInMemory: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import chromadb, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import chromadb, json
 client = chromadb.Client()
 collection = client.get_or_create_collection("anzaro_memory")
 collection.add(
@@ -472,7 +472,7 @@ export const searchMemory: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import chromadb, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import chromadb, json
 client = chromadb.Client()
 collection = client.get_or_create_collection("anzaro_memory")
 results = collection.query(query_texts=["${(args.query || '').replace(/"/g, '\\"')}"], n_results=${args.n_results || 5})
@@ -494,7 +494,7 @@ export const browseWebsite: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
@@ -530,7 +530,7 @@ export const fastAnalyzeData: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import polars as pl, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import polars as pl, json
 df = pl.read_csv("${args.file_path}") if "${args.file_path}".endswith('.csv') else pl.read_json("${args.file_path}")
 op = "${args.operation || 'describe'}"
 if op == "describe": result = df.describe().to_dicts()
@@ -556,7 +556,7 @@ export const cloneVoice: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     from TTS.api import TTS
     tts = TTS("tts_models/multilingual/multi-dataset/xtts_v2")
@@ -583,7 +583,7 @@ export const analyzeAudio: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import librosa, json, numpy as np
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import librosa, json, numpy as np
 y, sr = librosa.load("${args.file_path}", sr=None)
 tempo, beats = librosa.beat.beat_track(y=y, sr=sr)
 result = {
@@ -613,7 +613,7 @@ export const processMedia: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import ffmpeg, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import ffmpeg, json
 inp = ffmpeg.input("${args.input_path}")
 op = "${args.operation || 'convert'}"
 out = "${args.output_path || 'output.mp4'}"
@@ -640,7 +640,7 @@ export const sendMqttCommand: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import paho.mqtt.client as mqtt, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import paho.mqtt.client as mqtt, json
 client = mqtt.Client()
 client.connect("${args.broker || 'localhost'}", 1883, 60)
 client.publish("${args.topic}", "${args.message}")
@@ -662,7 +662,7 @@ export const serialCommand: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import serial, json, time
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import serial, json, time
 ser = serial.Serial("${args.port}", ${args.baudrate || 9600}, timeout=5)
 time.sleep(2)
 ser.write(b"${args.command}\\n")
@@ -685,7 +685,7 @@ export const createVideo: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
     images = json.loads('''${args.images || '[]'}''')
@@ -718,7 +718,7 @@ export const automateDesktop: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import pyautogui, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import pyautogui, json
 action = "${args.action || 'screenshot'}"
 if action == "click":
     pyautogui.click(${args.x || 0}, ${args.y || 0})
@@ -753,7 +753,7 @@ export const mineData: AgentTool = {
   },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     import scrapy
     from scrapy.http import HtmlResponse
@@ -780,7 +780,7 @@ export const removeImageBackground: AgentTool = {
   parameters: { input_path: { type: "string", description: "مسار الصورة" }, output_path: { type: "string", description: "مسار الناتج" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import rembg, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import rembg, json
 from PIL import Image
 inp = Image.open("${args.input_path}")
 out = rembg.remove(inp)
@@ -798,7 +798,7 @@ export const sendEmail: AgentTool = {
   parameters: { to: { type: "string" }, subject: { type: "string" }, body: { type: "string" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     import yagmail
     yag = yagmail.SMTP("anzaro@ai")
@@ -818,7 +818,7 @@ export const sendWhatsapp: AgentTool = {
   parameters: { phone: { type: "string" }, message: { type: "string" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import pywhatkit, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import pywhatkit, json
 try:
     pywhatkit.sendwhatmsg_instantly("${args.phone}", "${args.message}", wait_time=5)
     print(json.dumps({"sent": True}))
@@ -854,7 +854,7 @@ export const getWeather: AgentTool = {
   parameters: { city: { type: "string" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     from pyowm import OWM
     owm = OWM('default')
@@ -876,7 +876,7 @@ export const searchGoogle: AgentTool = {
   parameters: { query: { type: "string" }, num_results: { type: "integer", default: 5 } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     from googlesearch import search
     results = list(search("${args.query}", num_results=${args.num_results || 5}))
@@ -949,7 +949,7 @@ export const readDicom: AgentTool = {
   parameters: { file_path: { type: "string" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import pydicom, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import pydicom, json
 ds = pydicom.dcmread("${args.file_path}")
 print(json.dumps({"patient": str(ds.get('PatientName','')), "modality": str(ds.get('Modality','')), "rows": ds.Rows, "cols": ds.Columns}, default=str))
 `;
@@ -964,7 +964,7 @@ export const controlAndroid: AgentTool = {
   parameters: { action: { type: "string", description: "الإجراء (screenshot, open_app, tap)" }, package: { type: "string" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     from ppadb.client import Client as AdbClient
     client = AdbClient(host="127.0.0.1", port=5037)
@@ -993,7 +993,7 @@ export const downloadInstagram: AgentTool = {
   parameters: { profile: { type: "string" }, max_posts: { type: "integer", default: 5 } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import instaloader, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import instaloader, json
 L = instaloader.Instaloader(download_videos=False, save_metadata=False, post_metadata_txt_pattern="")
 profile = instaloader.Profile.from_username(L.context, "${args.profile}")
 posts = []
@@ -1013,7 +1013,7 @@ export const controlTelegram: AgentTool = {
   parameters: { chat_id: { type: "string" }, message: { type: "string" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     from pyrogram import Client
     app = Client("anzaro_bot")
@@ -1034,7 +1034,7 @@ export const getStockData: AgentTool = {
   parameters: { symbol: { type: "string", description: "رمز السهم (AAPL, TSLA, BTC-USD)" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import yfinance as yf, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import yfinance as yf, json
 ticker = yf.Ticker("${args.symbol}")
 info = ticker.info
 print(json.dumps({"symbol": "${args.symbol}", "price": info.get('currentPrice'), "currency": info.get('currency'), "name": info.get('shortName')}, default=str))
@@ -1115,7 +1115,7 @@ export const controlIoT: AgentTool = {
   parameters: { feed: { type: "string" }, value: { type: "string" }, action: { type: "string", description: "read or write" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import json
 try:
     from Adafruit_IO import Client
     aio = Client()
@@ -1162,7 +1162,7 @@ export const testAPI: AgentTool = {
   parameters: { spec_url: { type: "string", description: "OpenAPI spec URL" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import schemathesis, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import schemathesis, json
 schema = schemathesis.openapi.from_url("${args.spec_url}")
 results = []
 for case in schema[""].get_all_tests():
@@ -1185,7 +1185,7 @@ export const render3D: AgentTool = {
   parameters: { file_path: { type: "string" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import trimesh, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import trimesh, json
 mesh = trimesh.load("${args.file_path}")
 print(json.dumps({"faces": len(mesh.faces), "vertices": len(mesh.vertices), "bounds": mesh.bounds.tolist(), "volume": float(mesh.volume)}, default=str))
 `;
@@ -1200,7 +1200,7 @@ export const manageCalendar: AgentTool = {
   parameters: { action: { type: "string", description: "create or read" }, summary: { type: "string" }, date: { type: "string" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import vobject, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import vobject, json
 if "${args.action}" == "create":
     cal = vobject.iCalendar()
     event = cal.add('vevent')
@@ -1220,7 +1220,7 @@ export const extractTables: AgentTool = {
   parameters: { file_path: { type: "string" } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import tabula, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import tabula, json
 dfs = tabula.read_pdf("${args.file_path}", pages='all', multiple_tables=True)
 result = []
 for i, df in enumerate(dfs):
@@ -1260,7 +1260,7 @@ export const getRedditPosts: AgentTool = {
   parameters: { subreddit: { type: "string" }, limit: { type: "integer", default: 10 } },
   execute: async (args) => {
     const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); import praw, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); import praw, json
 try:
     reddit = praw.Reddit(client_id="default", client_secret="default", user_agent="anzaro")
     subreddit = reddit.subreddit("${args.subreddit}")

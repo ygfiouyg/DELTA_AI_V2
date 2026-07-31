@@ -45,7 +45,7 @@ async function runPython(code: string, timeoutMs = 30000): Promise<ToolResult> {
         env: {
           ...process.env,
           PYTHONUNBUFFERED: "1",
-          PYTHONPATH: "/app/python-packages:/app/python-packages:/app/.venv/lib/python3.12/site-packages:/home/z/.venv/lib/python3.12/site-packages",
+          PYTHONPATH: "/usr/local/lib/python3.11/dist-packages:/usr/local/lib/python3.11/dist-packages:/app/.venv/lib/python3.12/site-packages:/home/z/.venv/lib/python3.12/site-packages",
         },
         timeout: timeoutMs,
       });
@@ -121,7 +121,7 @@ export const CALLABLE_TOOLS: CallableTool[] = [
     parameters: { file_path: { type: "string", description: "مسار ملف PDF" } },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import pdfplumber, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import pdfplumber, json
 with pdfplumber.open('${args.file_path}') as pdf:
     text = ""
     for page in pdf.pages[:50]:
@@ -191,7 +191,7 @@ print(json.dumps({"file": "${args.output_path || "resized.png"}", "size": [${arg
     parameters: { image_path: { type: "string" } },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import pytesseract
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import pytesseract
 from PIL import Image
 import json
 img = Image.open('${args.image_path}')
@@ -212,7 +212,7 @@ print(json.dumps({"text": text[:3000]}, ensure_ascii=False))
     },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import qrcode, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import qrcode, json
 qr = qrcode.QRCode(version=1, box_size=10, border=4)
 qr.add_data("${(args.data || "").replace(/"/g, '\\"')}")
 qr.make(fit=True)
@@ -240,7 +240,7 @@ print(json.dumps({"file": fname}))
     },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import matplotlib
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import json
@@ -273,7 +273,7 @@ print(json.dumps({"file": fname}))
     parameters: { url: { type: "string" } },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import requests, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import requests, json
 from bs4 import BeautifulSoup
 resp = requests.get("${args.url}", timeout=15, headers={"User-Agent":"Mozilla/5.0"})
 soup = BeautifulSoup(resp.text, "html.parser")
@@ -295,7 +295,7 @@ print(json.dumps({"title": soup.title.string if soup.title else "", "content": t
     },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import yt_dlp, json, os
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import yt_dlp, json, os
 opts = {
     'format': '${args.format === "audio" ? "bestaudio" : "best"}' if '${args.format}' else 'best',
     'outtmpl': '/home/z/my-project/exports/%(title)s.%(ext)s',
@@ -357,7 +357,7 @@ print(json.dumps({"file": fname}))
     },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import asyncio, edge_tts, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import asyncio, edge_tts, json
 async def run():
     comm = edge_tts.Communicate("""${(args.text || "").replace(/"/g, '\\"')}""", "${args.voice || "ar-EG-SalmaNeural"}")
     fname = "${args.filename || "tts_neural.mp3"}"
@@ -378,7 +378,7 @@ asyncio.run(run())
     parameters: { file_path: { type: "string" } },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import pandas as pd, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import pandas as pd, json
 df = pd.read_csv('${args.file_path}')
 stats = {
     "rows": len(df),
@@ -420,7 +420,7 @@ print(json.dumps(scores))
     parameters: { text: { type: "string" }, top_n: { type: "integer", default: 20 } },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import nltk
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import nltk
 from collections import Counter
 import json, re
 nltk.download('stopwords', quiet=True)
@@ -545,7 +545,7 @@ print(json.dumps({"translation": result}, ensure_ascii=False))
     parameters: {},
     execute: async () => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import pyjokes, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import pyjokes, json
 print(json.dumps({"joke": pyjokes.get_joke()}))
 `;
       return runPython(code);
@@ -559,7 +559,7 @@ print(json.dumps({"joke": pyjokes.get_joke()}))
     parameters: { text: { type: "string" } },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import cowsay, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import cowsay, json
 cowsay.cow("""${(args.text || "Hello").replace(/"/g, '\\"')}""")
 `;
       return runPython(code);
@@ -577,7 +577,7 @@ cowsay.cow("""${(args.text || "Hello").replace(/"/g, '\\"')}""")
     parameters: { url: { type: "string" } },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import trafilatura, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import trafilatura, json
 downloaded = trafilatura.fetch_url("${args.url}")
 text = trafilatura.extract(downloaded) or ""
 print(json.dumps({"text": text[:5000], "length": len(text)}, ensure_ascii=False))
@@ -595,7 +595,7 @@ print(json.dumps({"text": text[:5000], "length": len(text)}, ensure_ascii=False)
     parameters: { text: { type: "string" } },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import nltk, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import nltk, json
 nltk.download('punkt', quiet=True)
 nltk.download('punkt_tab', quiet=True)
 from nltk.tokenize import word_tokenize, sent_tokenize
@@ -621,7 +621,7 @@ print(json.dumps({"words": words[:100], "word_count": len(words), "sentence_coun
     },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import albumentations as A
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import albumentations as A
 import cv2
 import json
 img = cv2.imread('${args.input_path}')
@@ -649,7 +649,7 @@ print(json.dumps({"file": out, "transform": t}))
     parameters: { file_path: { type: "string" } },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import pymupdf, json, os
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import pymupdf, json, os
 doc = pymupdf.open('${args.file_path}')
 images = []
 for page_num in range(min(len(doc), 20)):
@@ -707,7 +707,7 @@ print(json.dumps({"file": out, "duration_sec": len(audio) / 1000}))
     },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import xlsxwriter, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import xlsxwriter, json
 wb = xlsxwriter.Workbook('${args.filename || "chart.xlsx"}')
 ws = wb.add_worksheet()
 data = ${JSON.stringify(args.data || [["Month", "Sales"], ["Jan", 100], ["Feb", 200]])}
@@ -792,7 +792,7 @@ print(json.dumps({
     parameters: {},
     execute: async () => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import arrow, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import arrow, json
 cities = {
     "Cairo": "Africa/Cairo",
     "Riyadh": "Asia/Riyadh",
@@ -839,7 +839,7 @@ except Exception as e:
     parameters: { json_string: { type: "string" } },
     execute: async (args) => {
       const code = `
-import sys; sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/app/python-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import orjson, json
+import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import orjson, json
 try:
     data = orjson.loads('''${(args.json_string || "{}").replace(/'/g, "\\'")}''')
     print(json.dumps(data, indent=2, ensure_ascii=False))

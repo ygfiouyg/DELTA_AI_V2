@@ -70,68 +70,46 @@ RUN npx playwright install chromium 2>/dev/null || echo "Playwright Chromium ins
 #        and media processing libraries so runtime auto-install is rarely needed.
 #        These persist across container restarts (baked into the image).
 # V.132: Install packages in separate layers (avoids timeout + shows errors)
-# V.139: Consolidated single-layer install — use --target for reliability
-RUN pip3 install --no-cache-dir --target=/app/python-packages \
-    huggingface_hub \
-    pandas numpy scipy matplotlib seaborn scikit-learn sympy statsmodels \
-    openai anthropic tiktoken transformers tokenizers safetensors \
-    nltk spacy gensim textblob vaderSentiment textstat wordcloud rapidfuzz jellyfish \
-    polars pyarrow dask sqlalchemy sqlmodel alembic pymongo redis psycopg2-binary pymysql elasticsearch \
-    pillow opencv-python-headless scikit-image imageio imageio-ffmpeg pydub librosa soundfile \
-    pytesseract easyocr qrcode python-barcode pyzbar python-magic imutils imagehash \
-    pdfplumber pypdf PyMuPDF pdf2image pdf2docx reportlab fpdf2 weasyprint xhtml2pdf img2pdf \
-    python-docx python-pptx openpyxl xlsxwriter xlrd markdown markdown2 markdownify mistune jinja2 mako \
-    requests httpx aiohttp urllib3 httpcore beautifulsoup4 lxml parsel selectolax \
-    selenium playwright scrapy newspaper3k trafilatura goose3 readability-lxml boilerpy3 \
-    feedparser atoma yt-dlp pytube youtube-transcript-api \
-    google-api-python-client google-auth tweepy discord.py slack-sdk \
-    fastapi flask django starlette tornado sanic quart uvicorn gunicorn hypercorn daphne granian \
-    websockets websocket-client cryptography pycryptodome pyopenssl pynacl paramiko \
-    pyjwt authlib python-jose passlib bcrypt argon2-cffi pyotp email-validator \
-    pytest pytest-asyncio pytest-cov pytest-mock pytest-xdist coverage hypothesis \
-    black ruff isort autopep8 flake8 pylint mypy bandit safety pip-audit \
-    rich textual click typer fire tqdm loguru structlog psutil py-cpuinfo \
-    locust docker kubernetes prometheus-client sentry-sdk \
-    networkx igraph pyvis shapely geojson folium geopandas rasterio pyproj \
-    astropy rdkit biopython \
-    pyyaml toml tomli tomli-w python-dotenv environs hydra-core omegaconf \
-    schedule apscheduler python-crontab croniter celery rq arq dramatiq huey \
-    pydantic pydantic-settings tabulate prettytable \
-    python-dateutil pytz arrow pendulum maya delorean watchdog watchfiles filelock \
-    chardet charset-normalizer unidecode ftfy python-slugify inflection regex re2 pyparsing lark \
-    orjson ujson msgpack cbor2 simplejson jsonschema fastjsonschema \
-    aiofiles anyio asyncpg aiomysql aiosqlite fsspec s3fs gcsfs minio boto3 \
-    mlflow wandb tensorboard dvc albumentations imgaug kornia \
-    shap lime eli5 interpret dalex fairlearn aif360 optuna ray nevergrad hyperopt \
-    imbalanced-learn category-encoders featuretools pycaret lazypredict tpot flaml \
-    evidently deepchecks onnx tf2onnx grpcio protobuf avro thrift \
-    graphql-core ariadne strawberry-graphql graphene \
-    argostranslate pyttsx3 replicate cohere mistralai together \
-    langchain langchain-core langchain-community langchain-openai langchain-anthropic \
-    langchain-google-genai langchain-experimental langgraph langserve langsmith \
-    chromadb faiss-cpu annoy hnswlib qdrant-client weaviate-client pinecone-client \
-    cowsay pyjokes art faker pyfiglet termcolor colorama wikipedia yfinance ta \
-    crewai pubchempy mendeleev pydicom h5py tabula-py xmltodict ijson marshmallow ruamel.yaml \
-    sentence-transformers onnxruntime einops xgboost umap-learn tenacity gql pyngrok fabric \
-    cachetools graphviz esptool smbus2 pyusb webrtcvad sounddevice mutagen vobject \
-    cloudscraper scapy dpkt praw instaloader spotipy googlesearch-python pytrends feedgen \
-    py3dmol periodictable coolprop lightgbm timm diffusers peft \
-    pynput pyperclip icecream memory_profiler transitions pypika prometheus_client typing_extensions \
-    pywhatkit yagmail plyer mouse gspread twilio \
-    rembg docx2pdf pikepdf send2trash patool pyzipper pyscreenshot \
-    humanize parsedatetime pyspellchecker emoji phonenumbers validators langdetect \
-    forex-python pint holidays geopy speedtest-cli pyotp mimesis alive-progress termcolor howdoi pyowm croniter vidgear \
-    ppadb wakeonlan chemlib chemspipy \
-    pyrogram autoscraper fake-useragent undetected-chromedriver mechanize mechanicalsoup pyquery \
-    telethon pywebio duckdb peewee tortoise-orm socketio autobahn ping3 cfscrape \
-    ytmusicapi colorthief piexif exifread fiona python-louvain \
-    ccxt alpha_vantage finquant backtrader fredapi yahooquery quandl pykrx \
-    paho-mqtt pyserial ffmpeg-python moviepy pyautogui \
-    || echo "Consolidated install partial"
-# Verify key packages installed
-RUN python3 -c "import sys; sys.path.insert(0, '/app/python-packages'); import pandas; print('pandas OK:', pandas.__version__)" || echo "pandas NOT installed"
-RUN python3 -c "import sys; sys.path.insert(0, '/app/python-packages'); import requests; print('requests OK:', requests.__version__)" || echo "requests NOT installed"
-RUN ls /app/python-packages/ | head -20 || echo "No packages dir"
+# V.140: Install in small batches (avoids timeout + memory issues)
+RUN pip3 install --no-cache-dir --break-system-packages pandas numpy requests || echo "Batch A failed"
+RUN pip3 install --no-cache-dir --break-system-packages scipy matplotlib seaborn scikit-learn sympy || echo "Batch B failed"
+RUN pip3 install --no-cache-dir --break-system-packages openai anthropic tiktoken transformers || echo "Batch C failed"
+RUN pip3 install --no-cache-dir --break-system-packages nltk spacy gensim textblob vaderSentiment || echo "Batch D failed"
+RUN pip3 install --no-cache-dir --break-system-packages beautifulsoup4 lxml requests httpx aiohttp || echo "Batch E failed"
+RUN pip3 install --no-cache-dir --break-system-packages fastapi flask django uvicorn gunicorn || echo "Batch F failed"
+RUN pip3 install --no-cache-dir --break-system-packages pillow opencv-python-headless pydub || echo "Batch G failed"
+RUN pip3 install --no-cache-dir --break-system-packages pdfplumber pypdf PyMuPDF reportlab fpdf2 || echo "Batch H failed"
+RUN pip3 install --no-cache-dir --break-system-packages python-docx python-pptx openpyxl xlsxwriter || echo "Batch I failed"
+RUN pip3 install --no-cache-dir --break-system-packages cryptography pyjwt passlib bcrypt || echo "Batch J failed"
+RUN pip3 install --no-cache-dir --break-system-packages pydantic rich click typer tqdm loguru psutil || echo "Batch K failed"
+RUN pip3 install --no-cache-dir --break-system-packages pytest black ruff isort || echo "Batch L failed"
+RUN pip3 install --no-cache-dir --break-system-packages langchain langchain-core langchain-community langchain-openai langgraph || echo "Batch M failed"
+RUN pip3 install --no-cache-dir --break-system-packages chromadb faiss-cpu || echo "Batch N failed"
+RUN pip3 install --no-cache-dir --break-system-packages pyyaml toml python-dotenv schedule celery redis sqlalchemy || echo "Batch O failed"
+RUN pip3 install --no-cache-dir --break-system-packages faker cowsay pyjokes art pyfiglet qrcode || echo "Batch P failed"
+RUN pip3 install --no-cache-dir --break-system-packages edge-tts gTTS deep-translator || echo "Batch Q failed"
+RUN pip3 install --no-cache-dir --break-system-packages yfinance ta arrow pendulum || echo "Batch R failed"
+RUN pip3 install --no-cache-dir --break-system-packages networkx shapely geojson folium || echo "Batch S failed"
+RUN pip3 install --no-cache-dir --break-system-packages orjson ujson msgpack jsonschema || echo "Batch T failed"
+RUN pip3 install --no-cache-dir --break-system-packages yt-dlp trafilatura newspaper3k || echo "Batch U failed"
+RUN pip3 install --no-cache-dir --break-system-packages crewai pubchempy mendeleev pydicom || echo "Batch V failed"
+RUN pip3 install --no-cache-dir --break-system-packages paho-mqtt pyserial ffmpeg-python moviepy || echo "Batch W failed"
+RUN pip3 install --no-cache-dir --break-system-packages pywhatkit yagmail plyer gspread twilio || echo "Batch X failed"
+RUN pip3 install --no-cache-dir --break-system-packages rembg docx2pdf pikepdf send2trash || echo "Batch Y failed"
+RUN pip3 install --no-cache-dir --break-system-packages humanize parsedatetime emoji phonenumbers validators langdetect || echo "Batch Z failed"
+RUN pip3 install --no-cache-dir --break-system-packages forex-python pint holidays geopy speedtest-cli || echo "Batch AA failed"
+RUN pip3 install --no-cache-dir --break-system-packages praw instaloader spotipy googlesearch-python pytrends || echo "Batch AB failed"
+RUN pip3 install --no-cache-dir --break-system-packages cloudscraper scapy dpkt || echo "Batch AC failed"
+RUN pip3 install --no-cache-dir --break-system-packages pyrogram telethon duckdb peewee || echo "Batch AD failed"
+RUN pip3 install --no-cache-dir --break-system-packages ccxt alpha_vantage backtrader || echo "Batch AE failed"
+RUN pip3 install --no-cache-dir --break-system-packages ppadb wakeonlan chemlib chemspipy || echo "Batch AF failed"
+RUN pip3 install --no-cache-dir --break-system-packages autoscraper fake-useragent undetected-chromedriver || echo "Batch AG failed"
+RUN pip3 install --no-cache-dir --break-system-packages xgboost lightgbm statsmodels shap optuna || echo "Batch AH failed"
+RUN pip3 install --no-cache-dir --break-system-packages safetensors tokenizers sentence-transformers || echo "Batch AI failed"
+# Verify
+RUN python3 -c "import pandas; print('pandas OK:', pandas.__version__)" || echo "pandas NOT installed"
+RUN python3 -c "import requests; print('requests OK:', requests.__version__)" || echo "requests NOT installed"
+RUN python3 -c "import flask; print('flask OK')" || echo "flask NOT installed"
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
 # Validate the schema parses cleanly against the postgresql provider.
