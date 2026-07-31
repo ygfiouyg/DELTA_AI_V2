@@ -11,7 +11,7 @@ const PYTHON_PATHS = ["python3", "/usr/bin/python3", "/usr/local/bin/python3", "
 const SITE_PACKAGES = ["/usr/local/lib/python3.11/dist-packages", "/usr/lib/python3/dist-packages", "/app/.venv/lib/python3.12/site-packages", "/home/z/.venv/lib/python3.12/site-packages"];
 
 async function runPython(code: string, timeoutMs = 60000): Promise<string> {
-  const pythonPath = PYTHON_PATHS.find(p => existsSync(p)) || "python3";
+  const pythonPath = "python3";
   const pythonpath = SITE_PACKAGES.join(":");
   return new Promise((resolve) => {
     const proc = spawn(pythonPath, ["-c", code], {

@@ -35,7 +35,7 @@ const SITE_PACKAGES = [
 
 async function runPython(code: string, timeoutMs = 60000): Promise<string> {
   // V.131d: Use inline -c flag instead of tmpfile (avoids filesystem issues)
-  const pythonPath = PYTHON_PATHS.find(p => existsSync(p)) || "python3";
+  const pythonPath = "python3";
   const pythonpath = SITE_PACKAGES.join(":");
 
   return new Promise((resolve) => {
