@@ -1049,11 +1049,12 @@ export const scrapeAuto: AgentTool = {
   description: "سحب بيانات من أي موقع تلقائياً بذكاء. استخدمها لما لا تعرف CSS selectors.",
   parameters: { url: { type: "string" }, wanted_list: { type: "string", description: "JSON array of items you want" } },
   execute: async (args) => {
+    const wanted = args.wanted_list || '["example"]';
     const code = `
 from autoscraper import AutoScraper
 import json
 scraper = AutoScraper()
-wanted = json.loads('''${args.wanted_list || '["example"]}''')
+wanted = json.loads(${JSON.stringify(wanted)})
 result = scraper.build("${args.url}", wanted)
 print(json.dumps({"results": result[:20]}, ensure_ascii=False))
 `;

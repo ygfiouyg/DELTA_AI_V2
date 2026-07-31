@@ -175,7 +175,11 @@ EXPOSE 3000
 # Admin credentials: ADMIN_EMAIL / ADMIN_PASSWORD env vars (set as HF Secrets)
 # Default fallback: admin@anzaro.local / admin123456
 CMD export DATABASE_URL="file:/app/db/custom.db" && \
-    npx prisma db push --skip-generate --accept-data-loss 2>&1 | tail -20 && \
+    echo "[Startup] V.140: Download DB from HF Dataset FIRST (before prisma)..." && \
+    pip3 install --break-system-packages --quiet huggingface_hub 2>&1 | tail -1; \
+    DB_PATH="/app/db/custom.db" timeout 120 python3 /app/scripts/db_sync_manager.py 2>&1 | tail -5; \
+    echo "[Startup] DB downloaded. Running prisma (will add missing tables, not wipe data)..." && \
+    npx prisma db push --skip-generate 2>&1 | tail -5 && \
     echo "[Startup] Database schema synced. Setting up admin user..." && \
     node -e " \
       const { PrismaClient } = require('@prisma/client'); \
@@ -217,13 +221,6 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
     echo "[Startup] V.94: Syncing Global Skill Registry (if manifest exists)..." && \
     if [ -f /app/skills_manifest.json ]; then \
       echo "[Startup] Found skills_manifest.json"; \
-    fi && \
-    echo "[Startup] V.115: Installing huggingface_hub for DB sync..." && \
-    pip3 install --break-system-packages --quiet huggingface_hub 2>&1 | tail -2 || echo "huggingface_hub install failed"; \
-    echo "[Startup] V.115: Sync DB from HF Dataset (AFTER prisma db push — so data isn't wiped)..." && \
-    if [ -f /app/scripts/db_sync_manager.py ]; then \
-      DB_PATH="/app/db/custom.db" timeout 180 python3 /app/scripts/db_sync_manager.py 2>&1 | tee /app/db_sync.log; \
-      echo "[Startup] DB sync complete — DB ready with tools data"; \
     fi && \
     echo "[Startup] V.113: Installing tools from wheels (offline, fast)..." && \
     if [ -f /app/scripts/install_from_wheels.py ]; then \
