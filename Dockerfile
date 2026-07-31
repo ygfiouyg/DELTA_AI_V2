@@ -71,6 +71,8 @@ RUN npx playwright install chromium 2>/dev/null || echo "Playwright Chromium ins
 #        These persist across container restarts (baked into the image).
 # V.143: Install ALL Python packages from requirements.txt (BUILD TIME)
 COPY requirements.txt .
+RUN pip3 install --no-cache-dir --break-system-packages huggingface_hub
+# Now install rest of packages
 RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt || echo "Some packages failed"
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
