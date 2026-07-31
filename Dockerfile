@@ -179,7 +179,7 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
     pip3 install --break-system-packages --quiet huggingface_hub 2>&1 | tail -1; \
     DB_PATH="/app/db/custom.db" timeout 120 python3 /app/scripts/db_sync_manager.py 2>&1 | tail -5; \
     echo "[Startup] DB downloaded. Running prisma (will add missing tables, not wipe data)..." && \
-    npx prisma db push --skip-generate 2>&1 | tail -5 && \
+    npx prisma db push --skip-generate --accept-data-loss 2>&1 | tail -5 && \
     echo "[Startup] Database schema synced. Setting up admin user..." && \
     node -e " \
       const { PrismaClient } = require('@prisma/client'); \
