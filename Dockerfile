@@ -69,47 +69,9 @@ RUN npx playwright install chromium 2>/dev/null || echo "Playwright Chromium ins
 # V.93: MASTER PROMPT — pre-install ALL data science, document generation,
 #        and media processing libraries so runtime auto-install is rarely needed.
 #        These persist across container restarts (baked into the image).
-# V.132: Install packages in separate layers (avoids timeout + shows errors)
-# V.140: Install in small batches (avoids timeout + memory issues)
-RUN pip3 install --no-cache-dir --break-system-packages pandas numpy requests || echo "Batch A failed"
-RUN pip3 install --no-cache-dir --break-system-packages scipy matplotlib seaborn scikit-learn sympy || echo "Batch B failed"
-RUN pip3 install --no-cache-dir --break-system-packages openai anthropic tiktoken transformers || echo "Batch C failed"
-RUN pip3 install --no-cache-dir --break-system-packages nltk spacy gensim textblob vaderSentiment || echo "Batch D failed"
-RUN pip3 install --no-cache-dir --break-system-packages beautifulsoup4 lxml requests httpx aiohttp || echo "Batch E failed"
-RUN pip3 install --no-cache-dir --break-system-packages fastapi flask django uvicorn gunicorn || echo "Batch F failed"
-RUN pip3 install --no-cache-dir --break-system-packages pillow opencv-python-headless pydub || echo "Batch G failed"
-RUN pip3 install --no-cache-dir --break-system-packages pdfplumber pypdf PyMuPDF reportlab fpdf2 || echo "Batch H failed"
-RUN pip3 install --no-cache-dir --break-system-packages python-docx python-pptx openpyxl xlsxwriter || echo "Batch I failed"
-RUN pip3 install --no-cache-dir --break-system-packages cryptography pyjwt passlib bcrypt || echo "Batch J failed"
-RUN pip3 install --no-cache-dir --break-system-packages pydantic rich click typer tqdm loguru psutil || echo "Batch K failed"
-RUN pip3 install --no-cache-dir --break-system-packages pytest black ruff isort || echo "Batch L failed"
-RUN pip3 install --no-cache-dir --break-system-packages langchain langchain-core langchain-community langchain-openai langgraph || echo "Batch M failed"
-RUN pip3 install --no-cache-dir --break-system-packages chromadb faiss-cpu || echo "Batch N failed"
-RUN pip3 install --no-cache-dir --break-system-packages pyyaml toml python-dotenv schedule celery redis sqlalchemy || echo "Batch O failed"
-RUN pip3 install --no-cache-dir --break-system-packages faker cowsay pyjokes art pyfiglet qrcode || echo "Batch P failed"
-RUN pip3 install --no-cache-dir --break-system-packages edge-tts gTTS deep-translator || echo "Batch Q failed"
-RUN pip3 install --no-cache-dir --break-system-packages yfinance ta arrow pendulum || echo "Batch R failed"
-RUN pip3 install --no-cache-dir --break-system-packages networkx shapely geojson folium || echo "Batch S failed"
-RUN pip3 install --no-cache-dir --break-system-packages orjson ujson msgpack jsonschema || echo "Batch T failed"
-RUN pip3 install --no-cache-dir --break-system-packages yt-dlp trafilatura newspaper3k || echo "Batch U failed"
-RUN pip3 install --no-cache-dir --break-system-packages crewai pubchempy mendeleev pydicom || echo "Batch V failed"
-RUN pip3 install --no-cache-dir --break-system-packages paho-mqtt pyserial ffmpeg-python moviepy || echo "Batch W failed"
-RUN pip3 install --no-cache-dir --break-system-packages pywhatkit yagmail plyer gspread twilio || echo "Batch X failed"
-RUN pip3 install --no-cache-dir --break-system-packages rembg docx2pdf pikepdf send2trash || echo "Batch Y failed"
-RUN pip3 install --no-cache-dir --break-system-packages humanize parsedatetime emoji phonenumbers validators langdetect || echo "Batch Z failed"
-RUN pip3 install --no-cache-dir --break-system-packages forex-python pint holidays geopy speedtest-cli || echo "Batch AA failed"
-RUN pip3 install --no-cache-dir --break-system-packages praw instaloader spotipy googlesearch-python pytrends || echo "Batch AB failed"
-RUN pip3 install --no-cache-dir --break-system-packages cloudscraper scapy dpkt || echo "Batch AC failed"
-RUN pip3 install --no-cache-dir --break-system-packages pyrogram telethon duckdb peewee || echo "Batch AD failed"
-RUN pip3 install --no-cache-dir --break-system-packages ccxt alpha_vantage backtrader || echo "Batch AE failed"
-RUN pip3 install --no-cache-dir --break-system-packages ppadb wakeonlan chemlib chemspipy || echo "Batch AF failed"
-RUN pip3 install --no-cache-dir --break-system-packages autoscraper fake-useragent undetected-chromedriver || echo "Batch AG failed"
-RUN pip3 install --no-cache-dir --break-system-packages xgboost lightgbm statsmodels shap optuna || echo "Batch AH failed"
-RUN pip3 install --no-cache-dir --break-system-packages safetensors tokenizers sentence-transformers || echo "Batch AI failed"
-# Verify
-RUN python3 -c "import pandas; print('pandas OK:', pandas.__version__)" || echo "pandas NOT installed"
-RUN python3 -c "import requests; print('requests OK:', requests.__version__)" || echo "requests NOT installed"
-RUN python3 -c "import flask; print('flask OK')" || echo "flask NOT installed"
+# V.143: Install ALL Python packages from requirements.txt (BUILD TIME)
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir --break-system-packages -r requirements.txt || echo "Some packages failed"
 # Generate Prisma client (V.27: must succeed — AudioRecord model needed)
 RUN npx prisma generate
 # Validate the schema parses cleanly against the postgresql provider.
@@ -157,48 +119,17 @@ EXPOSE 3000
 # Admin credentials: ADMIN_EMAIL / ADMIN_PASSWORD env vars (set as HF Secrets)
 # Default fallback: admin@anzaro.local / admin123456
 CMD export DATABASE_URL="file:/app/db/custom.db" && \
-    echo "[Startup] V.141: Install Python packages at runtime (Docker build pip fails)..." && \
-    pip3 install --break-system-packages \
-      huggingface_hub pandas numpy scipy matplotlib seaborn scikit-learn sympy \
-      openai anthropic tiktoken transformers \
-      nltk spacy gensim textblob vaderSentiment textstat wordcloud rapidfuzz \
-      requests httpx aiohttp beautifulsoup4 lxml \
-      fastapi flask django uvicorn gunicorn \
-      pillow opencv-python-headless pydub \
-      pdfplumber pypdf PyMuPDF reportlab fpdf2 \
-      python-docx python-pptx openpyxl xlsxwriter \
-      cryptography pyjwt passlib bcrypt \
-      pydantic rich click typer tqdm loguru psutil \
-      pytest black ruff \
-      langchain langchain-core langchain-community langchain-openai langgraph \
-      chromadb faiss-cpu \
-      pyyaml toml python-dotenv schedule celery redis sqlalchemy \
-      faker cowsay pyjokes art pyfiglet qrcode \
-      edge-tts gTTS deep-translator \
-      yfinance ta arrow pendulum \
-      networkx orjson ujson msgpack jsonschema \
-      yt-dlp trafilatura \
-      crewai pubchempy mendeleev \
-      paho-mqtt pyserial ffmpeg-python moviepy \
-      pywhatkit yagmail plyer \
-      rembg docx2pdf pikepdf send2trash \
-      humanize parsedatetime emoji phonenumbers validators langdetect \
-      forex-python pint holidays geopy \
-      praw instaloader spotipy googlesearch-python pytrends \
-      cloudscraper scapy dpkt \
-      pyrogram telethon duckdb peewee \
-      ccxt backtrader \
-      ppadb wakeonlan chemlib chemspipy \
-      autoscraper fake-useragent \
-      xgboost lightgbm statsmodels shap optuna \
-      safetensors tokenizers sentence-transformers \
-      2>&1 || true; \
-    echo "[Startup] Python packages installed" && \
-    echo "[Startup] V.140: Download DB from HF Dataset..." && \
-    DB_PATH="/app/db/custom.db" timeout 120 python3 /app/scripts/db_sync_manager.py 2>&1 | tail -5; \
-    echo "[Startup] DB downloaded. Running prisma (will add missing tables, not wipe data)..." && \
+    echo "[Startup] V.143: Checking /data/ for persistent DB..." && \
+    if [ -f /data/custom.db ]; then \
+      echo "[Startup] Found DB in /data/ — using persistent storage"; \
+      cp /data/custom.db /app/db/custom.db; \
+    else \
+      echo "[Startup] No DB in /data/ — downloading from HF Dataset..."; \
+      python3 /app/scripts/db_sync_manager.py 2>&1 | tail -5; \
+    fi && \
+    echo "[Startup] Running prisma db push..." && \
     npx prisma db push --skip-generate --accept-data-loss 2>&1 | tail -5 && \
-    echo "[Startup] Database schema synced. Setting up admin user..." && \
+    echo "[Startup] Setting up admin user..." && \
     node -e " \
       const { PrismaClient } = require('@prisma/client'); \
       const bcrypt = require('bcryptjs'); \
@@ -214,47 +145,19 @@ CMD export DATABASE_URL="file:/app/db/custom.db" && \
           const u = await db.user.create({ data: { email, password: hash, name: 'Admin', role: 'admin', isVerified: true, isActive: true } }); \
           console.log('[Startup] Admin created:', u.email); \
         } \
-        await db.\$disconnect(); \
-      })().catch(e => { console.error('[Startup] Admin setup failed:', e.message); process.exit(0); }); \
-    " && \
-    echo "[Startup] V.112: Creating persistent guest user (no re-login after rebuild)..." && \
-    node -e " \
-      const { PrismaClient } = require('@prisma/client'); \
-      (async () => { \
-        const db = new PrismaClient(); \
         const guest = await db.user.findUnique({ where: { email: 'guest@anzaro.ai' } }); \
         if (!guest) { \
-          const u = await db.user.create({ data: { email: 'guest@anzaro.ai', name: 'زائر', isVerified: true, role: 'user' } }); \
-          console.log('[Startup] Guest user created:', u.id); \
-        } else { \
-          console.log('[Startup] Guest user exists:', guest.id); \
+          const g = await db.user.create({ data: { email: 'guest@anzaro.ai', name: 'زائر', isVerified: true, role: 'user' } }); \
+          console.log('[Startup] Guest created:', g.id); \
         } \
         await db.\$disconnect(); \
-      })().catch(e => { console.error('[Startup] Guest setup failed:', e.message); process.exit(0); }); \
+      })().catch(e => { console.error('[Startup] Setup failed:', e.message); process.exit(0); }); \
     " && \
-    echo "[Startup] Installing runtime requirements (if any)..." && \
-    if [ -f /app/requirements-runtime.txt ]; then \
-      pip3 install --break-system-packages -r /app/requirements-runtime.txt 2>&1 | tail -5 || echo "Runtime requirements install partial"; \
-    fi && \
-    echo "[Startup] V.94: Syncing Global Skill Registry (if manifest exists)..." && \
-    if [ -f /app/skills_manifest.json ]; then \
-      echo "[Startup] Found skills_manifest.json"; \
-    fi && \
-    echo "[Startup] V.113: Installing tools from wheels (offline, fast)..." && \
-    if [ -f /app/scripts/install_from_wheels.py ]; then \
-      (python3 /app/scripts/install_from_wheels.py > /app/wheels_install.log 2>&1 &) || true; \
-      echo "[Startup] Wheels installer launched in background"; \
-    fi && \
-    echo "[Startup] V.96: Starting framework installer in background (if script exists)..." && \
-    if [ -f /app/scripts/install_frameworks.py ]; then \
-      (nohup python3 /app/scripts/install_frameworks.py > /app/frameworks_install.log 2>&1 &) || true; \
-      echo "[Startup] Framework installer launched"; \
-    else \
-      echo "[Startup] No framework installer script — skipping"; \
-    fi && \
+    echo "[Startup] Saving DB to /data/ for persistence..." && \
+    mkdir -p /data && cp /app/db/custom.db /data/custom.db 2>/dev/null || true && \
     echo "[Startup] Starting Next.js..." && \
     if [ -d /app/.next/standalone ] || [ -f /app/.next/BUILD_ID ]; then \
-      echo "[Startup] Production build found — using next start"; \
+      echo "[Startup] Production build — using next start"; \
       DATABASE_URL="file:/app/db/custom.db" npx next start -p 3000 -H 0.0.0.0; \
     else \
       echo "[Startup] No production build — using next dev"; \
