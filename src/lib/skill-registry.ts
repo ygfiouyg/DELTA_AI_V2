@@ -31,7 +31,7 @@ import path from "path";
 
 const GLOBAL_SKILLS_DIR = path.join(process.cwd(), "global_skills");
 const MANIFEST_PATH = path.join(process.cwd(), "skills_manifest.json");
-const HF_REPO_ID = process.env.HF_REPO_ID || "kopabdo/DELTA_AI_V2";
+const HF_REPO_ID = process.env.HF_REPO_ID || "abdelslam-ai/DELTA_AI_V2";
 const HF_TOKEN = process.env.HF_TOKEN || "";
 
 export interface SkillEntry {

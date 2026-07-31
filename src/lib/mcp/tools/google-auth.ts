@@ -19,7 +19,7 @@ function getNextAuthSecret(): string | null {
   // نفس logic بتاع getStableSecret() في auth-nextauth.ts
   const googleId = process.env.GOOGLE_CLIENT_ID ?? "anzaro-google-id";
   const googleSecret = process.env.GOOGLE_CLIENT_SECRET ?? "anzaro-google-secret";
-  const url = process.env.NEXTAUTH_URL ?? "https://kopabdo-delta-ai-v2.hf.space";
+  const url = process.env.NEXTAUTH_URL ?? "https://abdelslam-ai-delta-ai-v2.hf.space";
   const source = `${url}:${googleId}:${googleSecret}:anzaro-v1`;
   let hash = 0;
   for (let i = 0; i < source.length; i++) {

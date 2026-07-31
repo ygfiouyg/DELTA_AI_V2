@@ -11,7 +11,7 @@ export const githubCreateIssueTool: MCPTool = {
   parameters: {
     type: "object",
     properties: {
-      repo: { type: "string", description: "الـ repo بصيغة owner/name (مثلاً: kopabdo/DELTA_AI_V2)" },
+      repo: { type: "string", description: "الـ repo بصيغة owner/name (مثلاً: abdelslam-ai/DELTA_AI_V2)" },
       title: { type: "string", description: "عنوان الـ issue" },
       body: { type: "string", description: "وصف الـ issue" },
       labels: { type: "string", description: "labels مفصولة بفواصل (اختياري): bug,enhancement,question" },

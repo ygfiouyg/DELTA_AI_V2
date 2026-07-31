@@ -86,9 +86,9 @@ COPY . .
 # Create .env file with non-secret production values.
 # V.56: Using SQLite (matches schema.prisma provider = "sqlite")
 # The DB file lives at /app/db/custom.db and is created by prisma db push at startup.
-RUN echo 'SESSION_SECRET="anzaro-hf-space-secret-2025-stable"' > .env && \
-    echo 'NEXTAUTH_URL="https://kopabdo-delta-ai-v2.hf.space"' >> .env && \
-    echo 'NEXTAUTH_SECRET="anzaro-nextauth-secret-2025"' >> .env && \
+RUN echo 'SESSION_SECRET="anzaro-hf-space-secret-2026-abdelslam"' > .env && \
+    echo 'NEXTAUTH_URL="https://abdelslam-ai-delta-ai-v2.hf.space"' >> .env && \
+    echo 'NEXTAUTH_SECRET="anzaro-nextauth-secret-2026-abdelslam"' >> .env && \
     echo 'NODE_ENV="production"' >> .env && \
     echo 'DATABASE_URL="file:/app/db/custom.db"' >> .env && \
     echo 'ZAI_API_KEY=""' >> .env
@@ -97,9 +97,9 @@ RUN echo 'SESSION_SECRET="anzaro-hf-space-secret-2025-stable"' > .env && \
 ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
-ENV SESSION_SECRET="anzaro-hf-space-secret-2025-stable"
-ENV NEXTAUTH_URL="https://kopabdo-delta-ai-v2.hf.space"
-ENV NEXTAUTH_SECRET="anzaro-nextauth-secret-2025"
+ENV SESSION_SECRET="anzaro-hf-space-secret-2026-abdelslam"
+ENV NEXTAUTH_URL="https://abdelslam-ai-delta-ai-v2.hf.space"
+ENV NEXTAUTH_SECRET="anzaro-nextauth-secret-2026-abdelslam"
 # V.56: SQLite database (matches schema.prisma provider = "sqlite")
 ENV DATABASE_URL="file:/app/db/custom.db"
 # ZAI_API_KEY must be set as a HF Space Secret.

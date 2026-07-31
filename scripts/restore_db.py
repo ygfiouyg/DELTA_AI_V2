@@ -7,7 +7,7 @@ from pathlib import Path
 
 DB_PATH = os.environ.get("DB_PATH", "/home/z/my-project/db/custom.db")
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
-DATASET_REPO = "kopabdo/anzaro-tools-db"
+DATASET_REPO = os.environ.get("HF_DATASET_REPO", "abdelslam-ai/anzaro-tools-db")
 MIN_TOOLS = 1000
 LOG_FILE = "/home/z/my-project/exports/db_restore.log"
 

@@ -96,7 +96,7 @@ export const N8N_WORKFLOW_TEMPLATES: N8nWorkflowTemplate[] = [
     requiredEnvVars: ["DELTAAI_API_URL", "ZAI_API_KEY", "YOUTUBE_API_KEY"],
     setupInstructions: [
       "1. استيراد الـ workflow في n8n",
-      "2. ضبط DELTAAI_API_URL = https://kopabdo-delta-ai-v2.hf.space",
+      "2. ضبط DELTAAI_API_URL = https://abdelslam-ai-delta-ai-v2.hf.space",
       "3. ضبط ZAI_API_KEY في credentials",
       "4. ضبط YOUTUBE_API_KEY لرفع الفيديوهات",
       "5. الـ webhook URL هيكون: https://[n8n-space].hf.space/webhook/video-creation",
@@ -175,7 +175,7 @@ return {
     requiredEnvVars: ["DELTAAI_API_URL", "BREVO_API_KEY"],
     setupInstructions: [
       "1. استيراد الـ workflow في n8n",
-      "2. ضبط DELTAAI_API_URL = https://kopabdo-delta-ai-v2.hf.space",
+      "2. ضبط DELTAAI_API_URL = https://abdelslam-ai-delta-ai-v2.hf.space",
       "3. ضبط BREVO_API_KEY (أو RESEND_API_KEY) للإرسال",
       "4. الـ webhook URL: https://[n8n-space].hf.space/webhook/email-campaign",
       "5. من DeltaAI، استخدم n8n_workflow_async بـ workflowType='email_campaign'",
@@ -251,7 +251,7 @@ return {
     requiredEnvVars: ["DELTAAI_API_URL"],
     setupInstructions: [
       "1. استيراد الـ workflow في n8n",
-      "2. ضبط DELTAAI_API_URL = https://kopabdo-delta-ai-v2.hf.space",
+      "2. ضبط DELTAAI_API_URL = https://abdelslam-ai-delta-ai-v2.hf.space",
       "3. الـ workflow بيشتغل كل يوم الساعة 9 الصبح (cron trigger)",
       "4. بيولّد محتوى + بيجدوله لـ Twitter, LinkedIn, Facebook, Instagram",
     ],
@@ -323,7 +323,7 @@ return platforms.map(platform => ({
     requiredEnvVars: ["DELTAAI_API_URL", "TELEGRAM_BOT_TOKEN"],
     setupInstructions: [
       "1. استيراد الـ workflow في n8n",
-      "2. ضبط DELTAAI_API_URL = https://kopabdo-delta-ai-v2.hf.space",
+      "2. ضبط DELTAAI_API_URL = https://abdelslam-ai-delta-ai-v2.hf.space",
       "3. ضبط TELEGRAM_BOT_TOKEN للإرسال",
       "4. الـ workflow بيشتغل كل يوم الساعة 8 الصبح",
       "5. بيبحث + يلخص + يبعتلك على تليجرام",
@@ -408,7 +408,7 @@ return platforms.map(platform => ({
     requiredEnvVars: ["DELTAAI_API_URL", "GITLAB_TOKEN"],
     setupInstructions: [
       "1. استيراد الـ workflow في n8n",
-      "2. ضبط DELTAAI_API_URL = https://kopabdo-delta-ai-v2.hf.space",
+      "2. ضبط DELTAAI_API_URL = https://abdelslam-ai-delta-ai-v2.hf.space",
       "3. ضبط GITLAB_TOKEN للوصول للـ MRs",
       "4. اضبط webhook في GitLab لـ merge request events",
       "5. الـ workflow هيـ review كل MR تلقائياً",
