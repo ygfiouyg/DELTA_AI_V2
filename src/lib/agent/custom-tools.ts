@@ -1275,6 +1275,8 @@ except Exception as e:
   },
 };
 
+import { STANDALONE_TOOLS } from "./standalone-tools";
+
 export const ALL_AGENT_TOOLS: AgentTool[] = [
   // V.133: Original 14 tools
   textToSpeech,
@@ -1332,6 +1334,8 @@ export const ALL_AGENT_TOOLS: AgentTool[] = [
   extractTables,
   createAnimation,
   getRedditPosts,
+  // V.142: Standalone custom tools (not from packages)
+  ...STANDALONE_TOOLS,
 ];
 
 /** بيـ رجّع tools schema بصيغة OpenAI function calling */
