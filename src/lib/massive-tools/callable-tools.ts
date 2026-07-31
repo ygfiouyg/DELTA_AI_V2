@@ -873,3 +873,47 @@ print(json.dumps({"query": query, "matches": [{"choice": r[0], "score": r[1]} fo
     },
   },
 ];
+
+// ─────────────────────────────────────────────────────────────
+// Tool Registry Helpers (V.140: restored after being lost)
+// ─────────────────────────────────────────────────────────────
+
+export function getCallableTools(): CallableTool[] {
+  return CALLABLE_TOOLS;
+}
+
+export function findCallableTool(name: string): CallableTool | null {
+  return CALLABLE_TOOLS.find(t => t.name === name) || null;
+}
+
+export async function executeCallableTool(name: string, args: any): Promise<{success: boolean; output: string; error?: string; durationMs: number}> {
+  const tool = findCallableTool(name);
+  if (!tool) {
+    return {
+      success: false,
+      output: "",
+      error: `Tool "${name}" not found. Available: ${CALLABLE_TOOLS.map(t => t.name).join(", ")}`,
+      durationMs: 0,
+    };
+  }
+  const start = Date.now();
+  try {
+    const output = await tool.execute(args);
+    return { success: true, output, durationMs: Date.now() - start };
+  } catch (e: any) {
+    return { success: false, output: "", error: e.message, durationMs: Date.now() - start };
+  }
+}
+
+export function getToolsSchema() {
+  return CALLABLE_TOOLS.map(t => ({
+    type: "function",
+    function: {
+      name: t.name,
+      description: t.description,
+      parameters: { type: "object", properties: t.parameters },
+    },
+    category: t.category,
+    package: t.package,
+  }));
+}
