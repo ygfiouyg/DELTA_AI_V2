@@ -6741,3 +6741,76 @@ Task: تثبيت كل الأدوات الفعلية لحد ما الـ disk يم
 - Utils: rich, click, typer, tqdm, loguru, psutil, schedule, faker, cowsay, pyjokes, qrcode
 
 *Last updated: 2026-07-29 (V.119) — 159 tools installed, disk 78% full*
+
+---
+Task ID: v144-migration-abdelslam-ai
+Agent: main (Z.ai Code)
+Task: نقل كل المشروع من حساب HF القديم (kopabdo - مقفول) لحساب جديد (abdelslam-ai) + نسخة GitHub
+
+### السبب:
+حساب HF القديم `kopabdo` اتعمله **lock من Hugging Face** بسبب ToS violation. الـ DB (302MB) والـ wheels (686MB) على الـ datasets القديمة بقوا مش متاحين.
+
+### 🎯 اللي اتعمل:
+
+**1. إنشاء repos جديدة على حساب `abdelslam-ai`:**
+- ✅ `abdelslam-ai/anzaro-tools-db` (Dataset) — فيه DB 311MB
+- ✅ `abdelslam-ai/anzaro-python-wheels` (Dataset) — فيه wheels manifest + requirements.txt
+- ✅ `abdelslam-ai/DELTA_AI_V2_CODE` (Static Space) — فيه 1,582 ملف كـ code backup
+- ❌ `abdelslam-ai/DELTA_AI_V2` (Docker Space) — **محتاج PRO** (الحساب free tier)
+
+**2. Rebuild الـ DB (لأن القديم بقى مش متاح):**
+- استخدمت script `/tmp/fast_pypi_rebuild2.py` لـ fetch PyPI simple index (40MB)
+- Insert 861,572 أداة في ToolRegistry (في 26 ثانية!)
+- Mark 410 tools كـ installed
+- Register 70 local skills في SkillRegistry
+- DB final size: **311MB** (مقارنة بـ 302MB القديم — حتى أكبر!)
+- اترفع على `abdelslam-ai/anzaro-tools-db`
+
+**3. تحديث الكود (19 file):**
+- كل references من `kopabdo` → `abdelslam-ai` في:
+  - Dockerfile (NEXTAUTH_URL, secrets)
+  - scripts/db_sync_manager.py (DATASET_REPO + env var support)
+  - scripts/install_from_wheels.py (WHEELS_DATASET env-configurable)
+  - scripts/restore_db.py (DATASET_REPO env-configurable)
+  - src/app/api/auth/* (NEXTAUTH_URL fallback)
+  - src/app/api/oauth/* (BASE_URL fallback)
+  - src/app/api/spotify/* (REDIRECT_URI fallback)
+  - src/lib/skill-registry.ts (HF_REPO_ID)
+  - src/lib/auth-nextauth.ts
+  - src/lib/hf-document.service.ts
+  - src/lib/integrations/telegram-webhook.ts
+  - src/lib/agents/n8n-templates.ts
+  - src/lib/mcp/tools/{github-create-issue,google-auth}.ts
+  - src/components/delta/header.tsx
+
+**4. Push لـ GitHub:**
+- ✅ Repo جديد: https://github.com/ygfiouyg/DELTA_AI_V2
+- آخر commit: `82709842 Add MIGRATION.md — guide for kopabdo → abdelslam-ai migration`
+- 1,582 ملف مترفع
+
+**5. Push لـ HF Static Space (Code Backup):**
+- ✅ https://huggingface.co/spaces/abdelslam-ai/DELTA_AI_V2_CODE
+- نفس الـ 1,582 ملف
+
+### 📊 النتائج:
+
+| Item | Status |
+|------|--------|
+| Old HF account (kopabdo) | ❌ Locked by HF |
+| New HF datasets | ✅ Created + populated (311MB DB + manifest) |
+| New HF static space | ✅ Code backup (1,582 files) |
+| New HF Docker Space | ❌ Requires PRO ($9/mo) |
+| GitHub repo | ✅ https://github.com/ygfiouyg/DELTA_AI_V2 |
+| DB rebuild | ✅ 861,572 tools + 410 installed + 70 skills |
+
+### ⚠️ محتاج إجراء يدوي من المستخدم:
+1. **اشتراك PRO** على حساب `abdelslam-ai` ($9/شهر) لتفعيل Docker Space
+2. بعد الاشتراك: إنشاء Docker Space + push الكود + ضبط HF Secrets
+3. التفاصيل كلها في `MIGRATION.md`
+
+### 💡 ملاحظات:
+- الحساب الجديد `abdelslam-ai` هو free tier — ما يقدرش يعمل Docker Spaces (محتاج PRO)
+- الـ datasets والـ static spaces مجانية وشغالة 100%
+- GitHub repo هو الـ primary backup للكود
+
+*Last updated: 2026-07-31 (V.144) — Migration to abdelslam-ai complete (datasets + GitHub + static space)*
