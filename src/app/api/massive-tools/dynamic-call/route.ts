@@ -184,7 +184,7 @@ except Exception as e:
 }
 
 export async function GET() {
-  const code = `import os, json, sys
+  const code = `import sys; sys.path.insert(0, "/usr/local/lib/python3.11/dist-packages"); sys.path.insert(0, "/usr/lib/python3/dist-packages"); sys.path.insert(0, "/usr/local/lib/python3.12/dist-packages"); sys.path.insert(0, "/usr/lib/python3.12/dist-packages"); import os, json, sys
 pkgs = []
 # check all possible site-packages locations
 paths = [
