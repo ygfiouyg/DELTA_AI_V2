@@ -1,0 +1,66 @@
+"""
+Tool: rust_print_proper_powers
+Source: rust-lang/rust (115,011 stars)
+License: Apache-2.0
+Original file: src/etc/dec2flt_table.py
+
+Description:
+Empowering everyone to build reliable and efficient software.
+
+Parameters:
+  min_exp: required
+  max_exp: required
+  bias: required
+
+Repo URL: https://github.com/rust-lang/rust
+"""
+
+import sys, os, json
+for p in ["/usr/local/lib/python3.11/dist-packages", "/app/.venv/lib/python3.12/site-packages"]:
+    if os.path.isdir(p) and p not in sys.path:
+        sys.path.insert(0, p)
+
+
+def execute(min_exp, max_exp, bias):
+    """Execute print_proper_powers from rust-lang/rust."""
+    try:
+        import importlib
+        try:
+            mod = importlib.import_module("rust")
+            if hasattr(mod, "print_proper_powers"):
+                fn = getattr(mod, "print_proper_powers")
+                result = fn(min_exp, max_exp, bias)
+                return {"success": True, "result": str(result)[:2000] if result is not None else "None", "source": "rust-lang/rust"}
+        except ImportError:
+            pass
+        
+        return {
+            "success": False,
+            "error": f"Package 'rust' not installed. Install: pip install rust",
+            "repo_url": "https://github.com/rust-lang/rust",
+            "original_function": "print_proper_powers",
+            "docstring": "N/A",
+            "params": ["min_exp", "max_exp", "bias"],
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)[:200]}
+
+
+def _dispatch(args):
+    """V.145 dispatch for tools/registry."""
+    valid_keys = ['min_exp', 'max_exp', 'bias']
+    filtered = {k: v for k, v in args.items() if k in valid_keys} if valid_keys else args
+    return execute(**filtered)
+
+
+if __name__ == "__main__":
+    import sys as _sys
+    if "--args_file" in _sys.argv:
+        import json as _json
+        _idx = _sys.argv.index("--args_file")
+        with open(_sys.argv[_idx + 1]) as _f:
+            _args = _json.load(_f)
+        _result = _dispatch(_args)
+        print(_json.dumps(_result, ensure_ascii=False, default=str))
+        _sys.exit(0)
+    print(json.dumps({"usage": "Use --args_file <path> with JSON args", "params": ["min_exp", "max_exp", "bias"]}))
