@@ -6998,3 +6998,70 @@ Task: نسخ أدوات من top GitHub repos وتثبيتها كـ implementati
 - الـ script قابل للتشغيل تاني لجمع أدوات أكتر من repos تانية
 
 *Last updated: 2026-08-01 (V.146) — 40 GitHub tools harvested from top repos*
+
+---
+Task ID: v147-hermes-agent-integration
+Agent: main (Z.ai Code)
+Task: تركيب Hermes Agent + إنشاء صفحة موحدة لكل الـ agents
+
+### اللي اتعمل:
+
+**Phase 1 — تثبيت Hermes Agent:**
+- اتثبت Hermes Agent v0.19.1 عبر الـ installer الرسمي
+- Python 3.11.15 + OpenAI SDK 2.24.0
+- Location: `~/.hermes/` (HERMES_HOME)
+- 70 bundled skills، 28 toolsets، 7 terminal backends
+- حالة: مثبت بس محتاج API key (OPENAI_API_KEY / ANTHROPIC_API_KEY / etc.)
+
+**Phase 2 — Hermes API Endpoints (4 routes):**
+- `GET /api/hermes/status` — check installation, version, providers, skills count
+- `POST /api/hermes/chat` — send message to Hermes via `-z` zero-shot mode (subprocess spawn)
+- `GET /api/hermes/models` — list available models per provider (openai, anthropic, openrouter, etc.)
+- `GET /api/hermes/skills` — list all Hermes skills
+
+**Phase 3 — Unified Agents API:**
+- `GET /api/agents-list` — endpoint موحد بيـ list كل الـ agents:
+  1. **Hermes Agent** (external, by NousResearch) — ☤
+  2. **Anzaro AI** (builtin, ZAI-powered) — 🤖
+  3. **Massive Tools Agent** (builtin, 861K+ tools) — 🛠️
+  4. **Custom agents** from DB (لو فيه)
+
+**Phase 4 — Agents Hub UI Component:**
+- `src/components/agents/AgentsHub.tsx` — صفحة كاملة فيها:
+  * Grid لاختيار الـ agent (مع filter بالفئة)
+  * Chat interface لكل agent
+  * Agent cards فيها stats، features، availability
+  * Suggestions لكل نوع agent
+  * تحذير واضح لما Hermes محتاج API key
+  * دعم RTL كامل
+
+**Phase 5 — Main Page Integration:**
+- أضفت `agents` view لـ `AppView` type في `page.tsx`
+- أضفت `onSwitchToAgents` prop من `ChatApp` → `ChatHeader`
+- أضفت زر "🤖 مركز الوكلاء (Hermes + Anzaro)" في الـ dropdown menu
+
+### ✅ اختبارات فعلية:
+- `/api/hermes/status` → `Hermes 0.19.1 installed but no API key configured` ✅
+- `/api/agents-list` → 3 agents (Hermes + Anzaro + Massive Tools) ✅
+- `/api/hermes/chat` → `Hermes has no API key configured. Set an API key...` ✅ (error handling سليم)
+
+### 📊 النتائج النهائية:
+- **Hermes Agent v0.19.1** مثبت وجاهز (محتاج API key بس)
+- **4 API endpoints** للـ Hermes integration
+- **1 unified API** لكل الـ agents
+- **Agents Hub UI** صفحة موحدة للدردشة مع أي agent
+- **زر في الـ main chat** للوصول للمركز
+- اترفعت على GitHub: `ygfiouyg/DELTA_AI_V2` (commit `2f8627fa`)
+- اترفعت على HF Space: `abdelslam-ai/DELTA_AI_V2_CODE`
+
+### ⚠️ محتاج إجراء يدوي:
+عشان Hermes يشتغل فعلياً، محتاج تضيف API key في `~/.hermes/.env`:
+```bash
+echo 'OPENAI_API_KEY=sk-...' >> ~/.hermes/.env
+# أو
+echo 'ANTHROPIC_API_KEY=sk-...' >> ~/.hermes/.env
+# أو
+echo 'OPENROUTER_API_KEY=sk-or-...' >> ~/.hermes/.env
+```
+
+*Last updated: 2026-08-01 (V.147) — Hermes Agent + Unified Agents Hub*
