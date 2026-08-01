@@ -162,7 +162,7 @@ export async function autoSetupTelegramWebhook(): Promise<void> {
   // Determine the public URL for webhook
   const publicUrl = process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL ||
     process.env.SPACE_URL ||
-    'https://abdelslam-ai-delta-ai-v2.hf.space';
+    'https://ebsaya-delta-ai.hf.space';
 
   console.log(`[Telegram] Auto-setting up webhook: ${publicUrl}/api/telegram/webhook`);
   const result = await startTelegramBotWebhook(token, publicUrl);

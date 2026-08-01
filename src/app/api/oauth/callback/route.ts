@@ -35,7 +35,7 @@ const OAUTH_CONFIG: Record<string, {
   },
 };
 
-const BASE_URL = process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://abdelslam-ai-delta-ai-v2.hf.space';
+const BASE_URL = process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://ebsaya-delta-ai.hf.space';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

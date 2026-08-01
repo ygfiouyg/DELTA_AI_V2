@@ -9,7 +9,7 @@ from pathlib import Path
 DB_PATH = os.environ.get("DB_PATH", "/home/z/my-project/db/custom.db")
 WHEELS_DIR = "/home/z/my-project/wheels"
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
-WHEELS_DATASET = os.environ.get("HF_WHEELS_REPO", "abdelslam-ai/anzaro-python-wheels")
+WHEELS_DATASET = os.environ.get("HF_WHEELS_REPO", "ebsaya/anzaro-python-wheels")
 LOG = Path("/home/z/my-project/exports/fast_install.log")
 
 def log(msg):

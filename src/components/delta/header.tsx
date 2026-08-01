@@ -67,7 +67,7 @@ export function Header({ toolCount, status, sidebarOpen, onToggleSidebar }: Head
           </div>
 
           <Button variant="ghost" size="icon" className="h-9 w-9" asChild>
-            <a href="https://huggingface.co/spaces/abdelslam-ai/DELTA_AI_V2" target="_blank" rel="noreferrer" title="HuggingFace Space">
+            <a href="https://huggingface.co/spaces/ebsaya/delta_ai" target="_blank" rel="noreferrer" title="HuggingFace Space">
               <Github className="h-4 w-4" />
             </a>
           </Button>

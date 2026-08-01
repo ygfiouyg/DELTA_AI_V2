@@ -9,7 +9,7 @@ from pathlib import Path
 
 DB_PATH = os.environ.get("DB_PATH", "/app/db/custom.db")
 HF_TOKEN = os.environ.get("HF_TOKEN", "")
-DATASET_REPO = os.environ.get("HF_DATASET_REPO", "abdelslam-ai/anzaro-tools-db")
+DATASET_REPO = os.environ.get("HF_DATASET_REPO", "ebsaya/anzaro-tools-db")
 SYNC_INTERVAL = 300  # 5 minutes
 LOG_FILE = os.environ.get("DB_SYNC_LOG", "/tmp/db_sync.log")
 

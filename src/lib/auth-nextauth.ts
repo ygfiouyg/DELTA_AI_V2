@@ -95,7 +95,7 @@ function getStableSecret(): string {
   // fallback: hash ثابت من الـ Google credentials (نفسه عبر restarts)
   const googleId = process.env.GOOGLE_CLIENT_ID ?? "anzaro-google-id";
   const googleSecret = process.env.GOOGLE_CLIENT_SECRET ?? "anzaro-google-secret";
-  const url = process.env.NEXTAUTH_URL ?? "https://abdelslam-ai-delta-ai-v2.hf.space";
+  const url = process.env.NEXTAUTH_URL ?? "https://ebsaya-delta-ai.hf.space";
   const source = `${url}:${googleId}:${googleSecret}:anzaro-v1`;
   let hash = 0;
   for (let i = 0; i < source.length; i++) {
