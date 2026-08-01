@@ -106,9 +106,10 @@ interface ChatHeaderProps {
   onToggleToolsGallery?: () => void;
   toolsGalleryOpen?: boolean;
   onSwitchToPdfCreator?: () => void;
+  onSwitchToAgents?: () => void;
 }
 
-export function ChatHeader({ onToggleSidebar, onToggleFilesPanel, onToggleSkillsPanel, skillsPanelOpen, onToggleToolsGallery, toolsGalleryOpen, onSwitchToPdfCreator }: ChatHeaderProps) {
+export function ChatHeader({ onToggleSidebar, onToggleFilesPanel, onToggleSkillsPanel, skillsPanelOpen, onToggleToolsGallery, toolsGalleryOpen, onSwitchToPdfCreator, onSwitchToAgents }: ChatHeaderProps) {
   const [modelSelectorOpen, setModelSelectorOpen] = useState(false);
   const [adminDashboardOpen, setAdminDashboardOpen] = useState(false);
   const [toolsHubOpen, setToolsHubOpen] = useState(false);
@@ -436,6 +437,12 @@ export function ChatHeader({ onToggleSidebar, onToggleFilesPanel, onToggleSkills
               <Bot className="size-4 ml-2.5" />
               <span>استوديو بناء الوكلاء</span>
             </DropdownMenuItem>
+            {onSwitchToAgents && (
+              <DropdownMenuItem className="cursor-pointer min-h-[40px] text-[14px] text-muted-foreground hover:text-foreground hover:bg-purple-50 dark:hover:bg-purple-900/30 hover:text-purple-900 dark:hover:text-purple-100 transition-colors duration-150 rounded-lg px-2.5" onClick={onSwitchToAgents}>
+                <Bot className="size-4 ml-2.5" />
+                <span>🤖 مركز الوكلاء (Hermes + Anzaro)</span>
+              </DropdownMenuItem>
+            )}
             <DropdownMenuItem className="cursor-pointer min-h-[40px] text-[14px] text-muted-foreground hover:text-foreground hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-150 rounded-lg px-2.5" onClick={() => setJobsMonitorOpen(true)}>
               <Activity className="size-4 ml-2.5" />
               <span>مراقب المهام</span>

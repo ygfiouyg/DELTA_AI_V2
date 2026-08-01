@@ -36,9 +36,10 @@ import {
 
 interface ChatAppProps {
   onSwitchToPdfCreator?: () => void;
+  onSwitchToAgents?: () => void;
 }
 
-export function ChatApp({ onSwitchToPdfCreator }: ChatAppProps = {}) {
+export function ChatApp({ onSwitchToPdfCreator, onSwitchToAgents }: ChatAppProps = {}) {
   const { sidebarOpen, setSidebarOpen, sendMessage, setActiveModel, activeModel, quizAutoData, quizGenStatus, quizOpen: storeQuizOpen, quizTopic, setQuizOpen, setQuizAutoData, setQuizGenStatus, setQuizTopic } = useChatStore();
   const isMobile = useIsMobile();
   const [islamicPanelOpen, setIslamicPanelOpen] = useState(false);
@@ -438,6 +439,7 @@ export function ChatApp({ onSwitchToPdfCreator }: ChatAppProps = {}) {
           onToggleToolsGallery={handleToggleToolsGallery}
           toolsGalleryOpen={toolsGalleryOpen}
           onSwitchToPdfCreator={onSwitchToPdfCreator}
+          onSwitchToAgents={onSwitchToAgents}
         />
 
         {/* Messages Area */}

@@ -6,12 +6,13 @@ import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/store/auth-store';
 import { ChatApp } from '@/components/chat/ChatApp';
 import { PdfCreatorApp } from '@/components/pdf/PdfCreatorApp';
+import { AgentsHub } from '@/components/agents/AgentsHub';
 import { AuthScreen } from '@/components/anzaro/AuthScreen';
 import { OnboardingFlow } from '@/components/anzaro/OnboardingFlow';
 import { SessionProvider } from '@/components/providers/SessionProvider';
 import { authFetch } from '@/lib/auth-fetch';
 
-type AppView = 'chat' | 'pdf-creator';
+type AppView = 'chat' | 'pdf-creator' | 'agents';
 
 export default function DeltaAIApp() {
   const { isAuthenticated, checkAuth, setGoogleSession } = useAuthStore();
@@ -140,9 +141,21 @@ export default function DeltaAIApp() {
     );
   }
 
+  // V.147: Agents Hub view — unified page for all agents
+  if (appView === 'agents') {
+    return (
+      <SessionProvider>
+        <AgentsHub onBack={() => setAppView('chat')} />
+      </SessionProvider>
+    );
+  }
+
   return (
     <SessionProvider>
-      <ChatApp onSwitchToPdfCreator={() => setAppView('pdf-creator')} />
+      <ChatApp
+        onSwitchToPdfCreator={() => setAppView('pdf-creator')}
+        onSwitchToAgents={() => setAppView('agents')}
+      />
     </SessionProvider>
   );
 }
