@@ -237,7 +237,24 @@ def main():
     tools_created = 0
     repos_processed = 0
     
+    # Track already-processed repos (skip if any gh_<repo>_*.py exists)
+    import glob
+    existing_repos = set()
+    for f in glob.glob(str(TOOLS_DIR / "gh_*.py")):
+        fname = os.path.basename(f)
+        # gh_<repo>_<func>.py → extract repo part
+        parts = fname.replace("gh_", "").rsplit("_", 1)
+        if len(parts) == 2:
+            existing_repos.add(parts[0])
+    log(f"Already processed {len(existing_repos)} repos (will skip)")
+    
     for i, repo in enumerate(repos, 1):
+        # Skip if already processed
+        repo_clean = re.sub(r'[^a-zA-Z0-9_]', '_', repo["name"]).lower()[:30]
+        if repo_clean in existing_repos:
+            log(f"[{i}/{len(repos)}] ⏭️  Skip {repo['full_name']} (already done)")
+            continue
+        
         log(f"\n[{i}/{len(repos)}] {repo['full_name']} ({repo['stars']:,} stars)")
         
         tree = get_repo_tree(repo["full_name"], repo.get("default_branch", "main"))

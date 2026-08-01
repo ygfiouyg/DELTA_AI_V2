@@ -24,6 +24,19 @@ def execute(device, n_mels):
     """Execute mel_filters from openai/whisper."""
     try:
         import importlib
+
+        # V.146: Try submodules if top-level import doesn't have the function
+        submodules_to_try = ["whisper.audio", "whisper.decoding", "whisper.model", "whisper.tokenizer", "whisper.triton"]
+        for submod_name in submodules_to_try:
+            try:
+                submod = importlib.import_module(submod_name)
+                if hasattr(submod, "mel_filters"):
+                    fn = getattr(submod, "mel_filters")
+                    result = fn(device, n_mels)
+                    return {"success": True, "result": str(result)[:2000] if result is not None else "None", "source": submod_name}
+            except (ImportError, AttributeError):
+                continue
+
         try:
             mod = importlib.import_module("whisper")
             if hasattr(mod, "mel_filters"):

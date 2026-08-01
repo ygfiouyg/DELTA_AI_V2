@@ -1,16 +1,18 @@
 """
-Tool: whisper_median_kernel
-Source: openai/whisper (106,333 stars)
-License: MIT
-Original file: whisper/triton_ops.py
+Tool: requests_dispatch_hook
+Source: psf/requests (54,201 stars)
+License: Apache-2.0
+Original file: src/requests/hooks.py
 
 Description:
-Robust Speech Recognition via Large-Scale Weak Supervision
+A simple, yet elegant, HTTP library.
 
 Parameters:
-  filter_width: required
+  key: required
+  hooks: required
+  hook_data: required
 
-Repo URL: https://github.com/openai/whisper
+Repo URL: https://github.com/psf/requests
 """
 
 import sys, os, json
@@ -19,39 +21,39 @@ for p in ["/usr/local/lib/python3.11/dist-packages", "/app/.venv/lib/python3.12/
         sys.path.insert(0, p)
 
 
-def execute(filter_width):
-    """Execute median_kernel from openai/whisper."""
+def execute(key, hooks, hook_data):
+    """Execute dispatch_hook from psf/requests."""
     try:
         import importlib
 
         # V.146: Try submodules if top-level import doesn't have the function
-        submodules_to_try = ["whisper.audio", "whisper.decoding", "whisper.model", "whisper.tokenizer", "whisper.triton"]
+        submodules_to_try = ["requests._internal_utils", "requests.utils", "requests.sessions", "requests.models", "requests.adapters", "requests.hooks", "requests.auth", "requests.cookies", "requests.structures"]
         for submod_name in submodules_to_try:
             try:
                 submod = importlib.import_module(submod_name)
-                if hasattr(submod, "median_kernel"):
-                    fn = getattr(submod, "median_kernel")
-                    result = fn(filter_width)
+                if hasattr(submod, "dispatch_hook"):
+                    fn = getattr(submod, "dispatch_hook")
+                    result = fn(key, hooks, hook_data)
                     return {"success": True, "result": str(result)[:2000] if result is not None else "None", "source": submod_name}
             except (ImportError, AttributeError):
                 continue
 
         try:
-            mod = importlib.import_module("whisper")
-            if hasattr(mod, "median_kernel"):
-                fn = getattr(mod, "median_kernel")
-                result = fn(filter_width)
-                return {"success": True, "result": str(result)[:2000] if result is not None else "None", "source": "openai/whisper"}
+            mod = importlib.import_module("requests")
+            if hasattr(mod, "dispatch_hook"):
+                fn = getattr(mod, "dispatch_hook")
+                result = fn(key, hooks, hook_data)
+                return {"success": True, "result": str(result)[:2000] if result is not None else "None", "source": "psf/requests"}
         except ImportError:
             pass
         
         return {
             "success": False,
-            "error": f"Package 'whisper' not installed. Install: pip install whisper",
-            "repo_url": "https://github.com/openai/whisper",
-            "original_function": "median_kernel",
+            "error": f"Package 'requests' not installed. Install: pip install requests",
+            "repo_url": "https://github.com/psf/requests",
+            "original_function": "dispatch_hook",
             "docstring": "N/A",
-            "params": ["filter_width"],
+            "params": ["key", "hooks", "hook_data"],
         }
     except Exception as e:
         return {"success": False, "error": str(e)[:200]}
@@ -59,7 +61,7 @@ def execute(filter_width):
 
 def _dispatch(args):
     """V.145 dispatch for tools/registry."""
-    valid_keys = ['filter_width']
+    valid_keys = ['key', 'hooks', 'hook_data']
     filtered = {k: v for k, v in args.items() if k in valid_keys} if valid_keys else args
     return execute(**filtered)
 
@@ -74,4 +76,4 @@ if __name__ == "__main__":
         _result = _dispatch(_args)
         print(_json.dumps(_result, ensure_ascii=False, default=str))
         _sys.exit(0)
-    print(json.dumps({"usage": "Use --args_file <path> with JSON args", "params": ["filter_width"]}))
+    print(json.dumps({"usage": "Use --args_file <path> with JSON args", "params": ["key", "hooks", "hook_data"]}))

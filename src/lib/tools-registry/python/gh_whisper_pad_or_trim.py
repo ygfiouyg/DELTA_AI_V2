@@ -25,6 +25,19 @@ def execute(array, length, axis):
     """Execute pad_or_trim from openai/whisper."""
     try:
         import importlib
+
+        # V.146: Try submodules if top-level import doesn't have the function
+        submodules_to_try = ["whisper.audio", "whisper.decoding", "whisper.model", "whisper.tokenizer", "whisper.triton"]
+        for submod_name in submodules_to_try:
+            try:
+                submod = importlib.import_module(submod_name)
+                if hasattr(submod, "pad_or_trim"):
+                    fn = getattr(submod, "pad_or_trim")
+                    result = fn(array, length, axis)
+                    return {"success": True, "result": str(result)[:2000] if result is not None else "None", "source": submod_name}
+            except (ImportError, AttributeError):
+                continue
+
         try:
             mod = importlib.import_module("whisper")
             if hasattr(mod, "pad_or_trim"):

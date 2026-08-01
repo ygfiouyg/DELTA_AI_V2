@@ -24,6 +24,19 @@ def execute(s, keep):
     """Execute remove_symbols_and_diacritics from openai/whisper."""
     try:
         import importlib
+
+        # V.146: Try submodules if top-level import doesn't have the function
+        submodules_to_try = ["whisper.audio", "whisper.decoding", "whisper.model", "whisper.tokenizer", "whisper.triton"]
+        for submod_name in submodules_to_try:
+            try:
+                submod = importlib.import_module(submod_name)
+                if hasattr(submod, "remove_symbols_and_diacritics"):
+                    fn = getattr(submod, "remove_symbols_and_diacritics")
+                    result = fn(s, keep)
+                    return {"success": True, "result": str(result)[:2000] if result is not None else "None", "source": submod_name}
+            except (ImportError, AttributeError):
+                continue
+
         try:
             mod = importlib.import_module("whisper")
             if hasattr(mod, "remove_symbols_and_diacritics"):

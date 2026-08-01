@@ -23,6 +23,19 @@ def execute(code_snippet):
     """Execute check_code_snippet from microsoft/playwright."""
     try:
         import importlib
+
+        # V.146: Try submodules if top-level import doesn't have the function
+        submodules_to_try = ["playwright.sync_api", "playwright.async_api", "playwright._impl"]
+        for submod_name in submodules_to_try:
+            try:
+                submod = importlib.import_module(submod_name)
+                if hasattr(submod, "check_code_snippet"):
+                    fn = getattr(submod, "check_code_snippet")
+                    result = fn(code_snippet)
+                    return {"success": True, "result": str(result)[:2000] if result is not None else "None", "source": submod_name}
+            except (ImportError, AttributeError):
+                continue
+
         try:
             mod = importlib.import_module("playwright")
             if hasattr(mod, "check_code_snippet"):

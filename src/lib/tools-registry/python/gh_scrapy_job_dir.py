@@ -1,16 +1,16 @@
 """
-Tool: whisper_median_kernel
-Source: openai/whisper (106,333 stars)
-License: MIT
-Original file: whisper/triton_ops.py
+Tool: scrapy_job_dir
+Source: scrapy/scrapy (63,532 stars)
+License: BSD-3-Clause
+Original file: scrapy/utils/job.py
 
 Description:
-Robust Speech Recognition via Large-Scale Weak Supervision
+Scrapy, a fast high-level web crawling & scraping framework for Python.
 
 Parameters:
-  filter_width: required
+  settings: required
 
-Repo URL: https://github.com/openai/whisper
+Repo URL: https://github.com/scrapy/scrapy
 """
 
 import sys, os, json
@@ -19,39 +19,39 @@ for p in ["/usr/local/lib/python3.11/dist-packages", "/app/.venv/lib/python3.12/
         sys.path.insert(0, p)
 
 
-def execute(filter_width):
-    """Execute median_kernel from openai/whisper."""
+def execute(settings):
+    """Execute job_dir from scrapy/scrapy."""
     try:
         import importlib
 
         # V.146: Try submodules if top-level import doesn't have the function
-        submodules_to_try = ["whisper.audio", "whisper.decoding", "whisper.model", "whisper.tokenizer", "whisper.triton"]
+        submodules_to_try = ["scrapy.spiders", "scrapy.crawler", "scrapy.selector", "scrapy.http", "scrapy.utils", "scrapy.pipelines"]
         for submod_name in submodules_to_try:
             try:
                 submod = importlib.import_module(submod_name)
-                if hasattr(submod, "median_kernel"):
-                    fn = getattr(submod, "median_kernel")
-                    result = fn(filter_width)
+                if hasattr(submod, "job_dir"):
+                    fn = getattr(submod, "job_dir")
+                    result = fn(settings)
                     return {"success": True, "result": str(result)[:2000] if result is not None else "None", "source": submod_name}
             except (ImportError, AttributeError):
                 continue
 
         try:
-            mod = importlib.import_module("whisper")
-            if hasattr(mod, "median_kernel"):
-                fn = getattr(mod, "median_kernel")
-                result = fn(filter_width)
-                return {"success": True, "result": str(result)[:2000] if result is not None else "None", "source": "openai/whisper"}
+            mod = importlib.import_module("scrapy")
+            if hasattr(mod, "job_dir"):
+                fn = getattr(mod, "job_dir")
+                result = fn(settings)
+                return {"success": True, "result": str(result)[:2000] if result is not None else "None", "source": "scrapy/scrapy"}
         except ImportError:
             pass
         
         return {
             "success": False,
-            "error": f"Package 'whisper' not installed. Install: pip install whisper",
-            "repo_url": "https://github.com/openai/whisper",
-            "original_function": "median_kernel",
+            "error": f"Package 'scrapy' not installed. Install: pip install scrapy",
+            "repo_url": "https://github.com/scrapy/scrapy",
+            "original_function": "job_dir",
             "docstring": "N/A",
-            "params": ["filter_width"],
+            "params": ["settings"],
         }
     except Exception as e:
         return {"success": False, "error": str(e)[:200]}
@@ -59,7 +59,7 @@ def execute(filter_width):
 
 def _dispatch(args):
     """V.145 dispatch for tools/registry."""
-    valid_keys = ['filter_width']
+    valid_keys = ['settings']
     filtered = {k: v for k, v in args.items() if k in valid_keys} if valid_keys else args
     return execute(**filtered)
 
@@ -74,4 +74,4 @@ if __name__ == "__main__":
         _result = _dispatch(_args)
         print(_json.dumps(_result, ensure_ascii=False, default=str))
         _sys.exit(0)
-    print(json.dumps({"usage": "Use --args_file <path> with JSON args", "params": ["filter_width"]}))
+    print(json.dumps({"usage": "Use --args_file <path> with JSON args", "params": ["settings"]}))

@@ -30,6 +30,9 @@ import { existsSync, promises as fs } from "fs";
 import path from "path";
 import * as os from "os";
 
+// ─── GitHub-harvested tools (auto-generated) ─────────────────
+import { GH_TOOLS, getGhStats } from "./gh_tools_registry";
+
 // ─── Node.js tools (static imports) ──────────────────────────
 import dateUtilities from "./nodejs/date_utilities";
 import textUtilities from "./nodejs/text_utilities";
@@ -119,9 +122,11 @@ async function runPythonTool(scriptName: string, args: any, timeoutMs: number = 
 export interface ToolDefinition {
   name: string;
   description: string;
-  category: "ai" | "data" | "media" | "web" | "utility" | "security";
+  category: "ai" | "data" | "media" | "web" | "utility" | "security" | "github";
   runtime: "python" | "nodejs";
   package?: string;
+  source_repo?: string;
+  license?: string;
   parameters: Record<string, { type: string; description: string; default?: any; required?: boolean }>;
   execute: (args: any) => Promise<any>;
 }
@@ -659,11 +664,11 @@ async function runPythonToolWithArgs(scriptName: string, args: any, timeoutMs: n
 // ─── Public API ──────────────────────────────────────────────
 
 export function getAllTools(): ToolDefinition[] {
-  return TOOLS;
+  return [...TOOLS, ...GH_TOOLS];
 }
 
 export function findTool(name: string): ToolDefinition | null {
-  return TOOLS.find((t) => t.name === name) || null;
+  return TOOLS.find((t) => t.name === name) || GH_TOOLS.find((t) => t.name === name) || null;
 }
 
 export async function executeTool(name: string, args: any): Promise<{ success: boolean; output?: any; error?: string; durationMs: number }> {
@@ -685,7 +690,7 @@ export async function executeTool(name: string, args: any): Promise<{ success: b
 }
 
 export function getToolsSchema() {
-  return TOOLS.map((t) => ({
+  return [...TOOLS, ...GH_TOOLS].map((t) => ({
     type: "function",
     function: {
       name: t.name,
@@ -697,20 +702,25 @@ export function getToolsSchema() {
     },
     category: t.category,
     runtime: t.runtime,
-    package: t.package,
+    package: (t as any).package,
+    source_repo: (t as any).source_repo,
+    license: (t as any).license,
   }));
 }
 
 export function getStats() {
+  const all = [...TOOLS, ...GH_TOOLS];
   const byCategory: Record<string, number> = {};
   const byRuntime: Record<string, number> = {};
-  for (const t of TOOLS) {
+  for (const t of all) {
     byCategory[t.category] = (byCategory[t.category] || 0) + 1;
     byRuntime[t.runtime] = (byRuntime[t.runtime] || 0) + 1;
   }
+  const ghStats = getGhStats();
   return {
-    total: TOOLS.length,
+    total: all.length,
     byCategory,
     byRuntime,
+    github_tools: ghStats,
   };
 }
