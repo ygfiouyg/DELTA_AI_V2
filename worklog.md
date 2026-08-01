@@ -7065,3 +7065,66 @@ echo 'OPENROUTER_API_KEY=sk-or-...' >> ~/.hermes/.env
 ```
 
 *Last updated: 2026-08-01 (V.147) — Hermes Agent + Unified Agents Hub*
+
+---
+Task ID: v148-unified-agents-hub
+Agent: main (Z.ai Code)
+Task: إضافة كل الـ agents + كل الـ models لـ Unified Agents Hub
+
+### اللي اتعمل:
+
+**1. تحديث /api/agents-list:**
+- دلوقتي بيرجع كل الـ agents (17+ وكيل) + كل الـ models (32 نموذج)
+- أضفت 3 Specialized Agents (Content Creator, Research Analyst, Developer Helper)
+- أضفت 10 Agent Recipes (Video Pipeline, Content Marketing, Research, Code Review, Email, Data, Social, Customer Support, Educational, YouTube)
+- أضفت 32 platform models من `src/lib/models.ts`
+
+**2. تحديث AgentsHub UI:**
+- أضفت tab للـ Models view (غير الـ Agents view)
+- Models tab فيه:
+  * Filter بالـ category (fast, smart, creative, specialized, professional, global, dark)
+  * Cards لكل model فيها: provider, capabilities, max tokens, skills
+  * Expandable details تظهر model ID و realChatModel
+- Agents tab دلوقتي فيه 5 filters (all, builtin, specialized, external, custom)
+
+**3. كل الـ agents المتاحة:**
+
+| # | Icon | Name | Type | Category |
+|---|------|------|------|----------|
+| 1 | ☤ | Hermes Agent | hermes | external |
+| 2 | 🤖 | Anzaro AI | anzaro | builtin |
+| 3 | 🛠️ | Massive Tools Agent | massive-tools | builtin |
+| 4 | ✍️ | Content Creator | specialized | specialized |
+| 5 | 🔬 | Research Analyst | specialized | specialized |
+| 6 | 💻 | Developer Helper | specialized | specialized |
+| 7 | 🎬 | Video Pipeline | recipe | builtin |
+| 8 | 📢 | Content Marketing | recipe | builtin |
+| 9 | 📊 | Research & Analysis | recipe | builtin |
+| 10 | 🔍 | Code Review | recipe | builtin |
+| 11 | 📧 | Email Automation | recipe | builtin |
+| 12 | 📈 | Data Analysis | recipe | builtin |
+| 13 | 📱 | Social Media Manager | recipe | builtin |
+| 14 | 🎧 | Customer Support | recipe | builtin |
+| 15 | 📚 | Educational Content | recipe | builtin |
+| 16 | ▶️ | YouTube Automation | recipe | builtin |
+| 17+ | 🤖 | Custom agents | custom | custom |
+
+**4. كل الـ models المتاحة (32):**
+- **OpenRouter:** GLM-5-2, GLM-4-Flash
+- **OVHcloud:** Llama 70B, Mistral Small, Qwen 397B, GPT-OSS 120B, Qwen VL
+- **Google Gemini:** Gemini 2.0 Flash, Gemini 2.5 Pro, GPT-4o, GPT-4o Mini
+- **GitHub Models:** Llama 70B/405B/8B, GPT-4o, Claude Sonnet/Opus/Haiku
+- **Cloudflare:** GLM 5.2/4.7, Llama 3.3 70B, Qwen Coder, DeepSeek R1
+- **NVIDIA:** Nemotron 3 Ultra
+- **Dark:** نماذج مفتوحة المصدر بدون رقابة
+
+**5. Commit:**
+- GitHub: `ygfiouyg/DELTA_AI_V2` (commit `d5a9f2e4`)
+- HF Space: `abdelslam-ai/DELTA_AI_V2_CODE`
+
+### ⚠️ ملاحظات:
+- السيرفر بيعاني من OOM بسبب حجم الـ bundle
+- محتاج تشغيل بـ `NODE_OPTIONS=--max-old-space-size=1024`
+- المستخدم يقدر يفتح الـ sandbox ويجرب من الـ Preview Panel
+
+*Last updated: 2026-08-01 (V.148) — Unified Agents Hub with all agents + 32 models*
