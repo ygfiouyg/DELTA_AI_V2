@@ -1,17 +1,17 @@
 ---
-title: Anzaro AI
-emoji: "\u26BD"
-colorFrom: purple
-colorTo: pink
+title: Delta AI V2
+emoji: "🤖"
+colorFrom: green
+colorTo: blue
 sdk: docker
 app_port: 3000
 pinned: false
 license: mit
 ---
 
-# Anzaro AI — The Smart Ball
+# Delta AI V2 — Unified AI Platform
 
-منصة ذكاء اصطناعي عربي متكاملة مع الكرة الذكية والتحكم المنزلي.
+منصة ذكاء اصطناعي متكاملة: Anzaro AI + Hermes Agent + 861K tools + 32 models.
 
 ## Tech Stack
 - Next.js 16 (App Router)
