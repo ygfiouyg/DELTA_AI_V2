@@ -23,11 +23,11 @@ RAM_GB=$((RAM_KB / 1024 / 1024))
 echo "📊 Device RAM: ${RAM_GB}GB"
 
 # Determine mode based on RAM
-if [ "$RAM_GB" -ge 8 ]; then
+if [ "$RAM_GB" -ge 4 ]; then
     MODE="full"
     NODE_MEM="2048"
     echo "🚀 Mode: FULL (Hermes + Playwright + all features)"
-elif [ "$RAM_GB" -ge 4 ]; then
+elif [ "$RAM_GB" -ge 3 ]; then
     MODE="standard"
     NODE_MEM="1024"
     echo "✅ Mode: STANDARD (Next.js + Python, no Hermes)"
