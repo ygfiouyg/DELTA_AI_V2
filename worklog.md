@@ -7128,3 +7128,70 @@ Task: إضافة كل الـ agents + كل الـ models لـ Unified Agents Hub
 - المستخدم يقدر يفتح الـ sandbox ويجرب من الـ Preview Panel
 
 *Last updated: 2026-08-01 (V.148) — Unified Agents Hub with all agents + 32 models*
+
+---
+Task ID: v149-deploy-to-ebsaya
+Agent: main (Z.ai Code)
+Task: نشر المشروع على حساب ebsaya (فيه Docker space متاح)
+
+### اللي اتعمل:
+
+**1. التحقق من الحساب الجديد:**
+- Token: `hf_xZ...Kox` (redacted for security)
+- Username: `ebsaya`
+- فيه Docker space موجود: `ebsaya/delta_ai` (اتعمل 2026-05-19)
+
+**2. تحديث الـ README metadata:**
+- title: Delta AI V2
+- emoji: 🤖
+- colorFrom: green, colorTo: blue
+- sdk: docker, app_port: 3000
+
+**3. تحديث كل الـ references من abdelslam-ai لـ ebsaya:**
+- `NEXTAUTH_URL` → `ebsaya-delta-ai.hf.space`
+- `DATASET_REPO` → `ebsaya/anzaro-tools-db`
+- `WHEELS_REPO` → `ebsaya/anzaro-python-wheels`
+- `HF_REPO_ID` → `ebsaya/delta_ai`
+- في 19 ملف (Dockerfile, scripts, src/app/api/*, src/lib/*)
+
+**4. إعادة بناء DB:**
+- 862,290 أداة، 450 مثبتة، 70 skills
+- Size: 289.5MB
+
+**5. إنشاء Datasets:**
+- ✅ `ebsaya/anzaro-tools-db` (DB 304MB مرفوع)
+- ✅ `ebsaya/anzaro-python-wheels` (requirements.txt مرفوع)
+
+**6. ضبط HF Secrets على الـ space:**
+- HF_TOKEN, HF_DATASET_REPO, HF_WHEELS_REPO
+- SESSION_SECRET, NEXTAUTH_SECRET
+- ADMIN_EMAIL, ADMIN_PASSWORD
+
+**7. Push الكود:**
+- ✅ GitHub: ygfiouyg/DELTA_AI_V2 (commit `a06dac89`)
+- ✅ HF Space: ebsaya/delta_ai (1672 file)
+- ✅ HF Datasets: ebsaya/anzaro-tools-db, ebsaya/anzaro-python-wheels
+
+### 🔄 حالة الـ Build:
+- الـ Space في حالة **BUILDING** على HF
+- الـ Dockerfile بينفذ:
+  1. apt-get install (system deps + Playwright)
+  2. bun install (Node.js deps)
+  3. playwright install chromium
+  4. pip install -r requirements.txt (Python packages)
+  5. prisma generate
+  6. next build
+  7. CMD: prisma db push → admin setup → DB sync → next start
+
+### 🌐 URL بعد الـ build:
+- **https://ebsaya-delta-ai.hf.space**
+
+### 💡 ملاحظات:
+- الـ build بياخد وقت (10-20 دقيقة) بسبب:
+  * pip install لـ ~100 Python package
+  * next build للـ Next.js 16
+  * Playwright Chromium download
+- بعد ما يخلص، الـ Space هيـ download الـ DB (304MB) من HF Dataset
+- الـ admin credentials: admin@anzaro.local / admin123456
+
+*Last updated: 2026-08-01 (V.149) — Deployed to ebsaya/delta_ai Docker space*
