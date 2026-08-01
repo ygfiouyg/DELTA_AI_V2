@@ -1,14 +1,15 @@
 /**
  * GET /api/agents-list
- * بيـ list كل الـ agents المتاحة في المنصة (Hermes + Custom + Massive Tools + Anzaro AI).
+ * بيـ list كل الـ agents المتاحة في المنصة + كل الـ models.
  *
- * V.147: Unified agents hub — كل الـ agents في مكان واحد.
+ * V.148: Updated — كل الـ agents (Hermes + Anzaro + Massive + Specialized + Recipes) + 32 models.
  */
 
 import { NextResponse } from "next/server";
 import { existsSync, readFileSync, readdirSync } from "fs";
 import path from "path";
 import { execSync } from "child_process";
+import { models as PLATFORM_MODELS } from "@/lib/models";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -24,8 +25,8 @@ export interface UnifiedAgent {
   descriptionAr?: string;
   icon: string;
   color: string;
-  category: "external" | "custom" | "builtin";
-  type: "hermes" | "anzaro" | "massive-tools" | "custom";
+  category: "external" | "custom" | "builtin" | "specialized";
+  type: "hermes" | "anzaro" | "massive-tools" | "custom" | "specialized" | "recipe";
   available: boolean;
   endpoint: string;
   features?: string[];
@@ -52,7 +53,6 @@ export async function GET() {
       hermesVersion = versionMatch ? versionMatch[1] : null;
     } catch {}
 
-    // Check configured providers
     const envPath = path.join(HERMES_HOME, ".env");
     if (existsSync(envPath)) {
       const envContent = readFileSync(envPath, "utf-8");
@@ -74,7 +74,6 @@ export async function GET() {
       }
     }
 
-    // Count skills
     const skillsPath = path.join(HERMES_HOME, "skills");
     if (existsSync(skillsPath)) {
       try {
@@ -89,7 +88,7 @@ export async function GET() {
       name: "Hermes Agent",
       nameAr: "هيرمس",
       description: "Self-improving AI agent by NousResearch. Creates skills from experience, searches past conversations, builds user models. 70+ tools, 28 toolsets, 7 terminal backends.",
-      descriptionAr: "وكيل ذكاء اصطناعي ذاتي التحسين من NousResearch. ينشئ مهارات من التجربة، يبحث في المحادثات السابقة، يبني نموذج مستخدم. 70+ أداة، 28 مجموعة أدوات.",
+      descriptionAr: "وكيل ذكاء اصطناعي ذاتي التحسين من NousResearch. ينشئ مهارات من التجربة، يبحث في المحادثات السابقة. 70+ أداة، 28 مجموعة أدوات.",
       icon: "☤",
       color: "from-purple-600 to-indigo-600",
       category: "external",
@@ -124,8 +123,8 @@ export async function GET() {
       id: "anzaro-ai",
       name: "Anzaro AI",
       nameAr: "أنزارو",
-      description: "The built-in Arabic AI assistant with tool-calling capabilities. Powered by ZAI. Supports 67+ agent tools, voice chat, and massive tool registry.",
-      descriptionAr: "المساعد الذكي العربي المدمج مع إمكانية استدعاء الأدوات. مدعوم بـ ZAI. يدعم 67+ أداة، دردشة صوتية، وسجل أدوات ضخم.",
+      description: "The built-in Arabic AI assistant with tool-calling capabilities. Supports 67+ agent tools, voice chat, and massive tool registry.",
+      descriptionAr: "المساعد الذكي العربي المدمج مع إمكانية استدعاء الأدوات. يدعم 67+ أداة، دردشة صوتية، وسجل أدوات ضخم.",
       icon: "🤖",
       color: "from-emerald-600 to-teal-600",
       category: "builtin",
@@ -165,7 +164,7 @@ export async function GET() {
       name: "Massive Tools Agent",
       nameAr: "وكيل الأدوات الضخمة",
       description: "Agent with access to 861K+ tools registry. 73 callable implementations, 40 from GitHub repos, 410 installed packages. Dynamic package caller for any PyPI package.",
-      descriptionAr: "وكيل مع وصول لـ 861 ألف+ أداة. 73 تطبيق قابل للاستدعاء، 40 من GitHub، 410 حزم مثبتة. مستدعي ديناميكي لأي حزمة PyPI.",
+      descriptionAr: "وكيل مع وصول لـ 861 ألف+ أداة. 73 تطبيق قابل للاستدعاء، 40 من GitHub، 410 حزم مثبتة.",
       icon: "🛠️",
       color: "from-orange-600 to-red-600",
       category: "builtin",
@@ -187,7 +186,94 @@ export async function GET() {
       },
     });
 
-    // ── 4. Custom Agents from DB ─────────────────────────
+    // ── 4. Specialized Agents ────────────────────────────
+    const specializedAgents = [
+      {
+        id: "content_creator",
+        name: "Content Creator",
+        nameAr: "وكيل صناعة المحتوى",
+        description: "Specialized agent for content creation — articles, social posts, scripts, marketing copy.",
+        icon: "✍️",
+        color: "from-pink-600 to-rose-600",
+      },
+      {
+        id: "research_analyst",
+        name: "Research Analyst",
+        nameAr: "وكيل البحث والتحليل",
+        description: "Specialized agent for research and analysis — data gathering, synthesis, insights.",
+        icon: "🔬",
+        color: "from-cyan-600 to-blue-600",
+      },
+      {
+        id: "developer_helper",
+        name: "Developer Helper",
+        nameAr: "وكيل مساعدة المطور",
+        description: "Specialized agent for development help — code review, debugging, architecture.",
+        icon: "💻",
+        color: "from-violet-600 to-purple-600",
+      },
+    ];
+
+    for (const sa of specializedAgents) {
+      agents.push({
+        id: `specialized-${sa.id}`,
+        name: sa.name,
+        nameAr: sa.nameAr,
+        description: sa.description,
+        icon: sa.icon,
+        color: sa.color,
+        category: "specialized",
+        type: "specialized",
+        available: true,
+        endpoint: "/api/agent/specialized",
+        features: [
+          "Tool-calling enabled",
+          "MCP integration",
+          "Streaming responses",
+          "Multi-iteration reasoning",
+        ],
+        stats: {
+          agentId: sa.id,
+          maxIterations: 8,
+        },
+      });
+    }
+
+    // ── 5. Agent Recipes (10 preset agents) ──────────────
+    const recipes = [
+      { id: "video-pipeline", name: "Video Pipeline", nameAr: "خط إنتاج الفيديو", icon: "🎬", color: "from-red-600 to-orange-600" },
+      { id: "content-marketing", name: "Content Marketing", nameAr: "وكيل التسويق بالمحتوى", icon: "📢", color: "from-amber-600 to-yellow-600" },
+      { id: "research-analysis", name: "Research & Analysis", nameAr: "وكيل البحث والتحليل", icon: "📊", color: "from-blue-600 to-indigo-600" },
+      { id: "code-review", name: "Code Review", nameAr: "وكيل مراجعة وتطوير الكود", icon: "🔍", color: "from-gray-600 to-slate-600" },
+      { id: "email-automation", name: "Email Automation", nameAr: "وكيل أتمتة الإيميلات", icon: "📧", color: "from-green-600 to-emerald-600" },
+      { id: "data-analysis", name: "Data Analysis", nameAr: "وكيل تحليل البيانات", icon: "📈", color: "from-purple-600 to-pink-600" },
+      { id: "social-media-manager", name: "Social Media Manager", nameAr: "مدير السوشيال ميديا", icon: "📱", color: "from-fuchsia-600 to-pink-600" },
+      { id: "customer-support", name: "Customer Support", nameAr: "وكيل دعم العملاء", icon: "🎧", color: "from-teal-600 to-cyan-600" },
+      { id: "educational-content", name: "Educational Content", nameAr: "وكيل المحتوى التعليمي", icon: "📚", color: "from-lime-600 to-green-600" },
+      { id: "youtube-automation", name: "YouTube Automation", nameAr: "وكيل أتمتة يوتيوب", icon: "▶️", color: "from-red-700 to-rose-700" },
+    ];
+
+    for (const r of recipes) {
+      agents.push({
+        id: `recipe-${r.id}`,
+        name: r.name,
+        nameAr: r.nameAr,
+        description: `Preset agent recipe: ${r.nameAr}. Pre-configured with relevant tools and prompts.`,
+        icon: r.icon,
+        color: r.color,
+        category: "builtin",
+        type: "recipe",
+        available: true,
+        endpoint: "/api/agents/recipes",
+        features: [
+          "Pre-configured tools",
+          "Optimized prompts",
+          "One-click setup",
+        ],
+      });
+    }
+
+    // ── 6. Custom Agents from DB ─────────────────────────
     try {
       const { db } = await import("@/lib/db");
       const customAgents = await db.customAgent.findMany({
@@ -217,28 +303,64 @@ export async function GET() {
           },
         });
       }
-    } catch (dbError) {
-      // DB might not be available
-    }
+    } catch {}
+
+    // ── 7. Platform Models (32 models) ──────────────────
+    const platformModels = PLATFORM_MODELS.map(m => ({
+      id: m.id,
+      name: m.name,
+      nameEn: m.nameEn,
+      icon: m.icon,
+      category: m.category,
+      provider: m.provider,
+      realChatModel: m.realChatModel,
+      maxTokens: m.maxTokens,
+      openSource: m.openSource,
+      capabilities: {
+        chat: m.capabilities.chat,
+        vision: m.capabilities.vision,
+        imageGeneration: m.capabilities.imageGeneration,
+        videoGeneration: m.capabilities.videoGeneration,
+        codeGeneration: m.capabilities.codeGeneration,
+        webSearch: m.capabilities.webSearch,
+        functionCalling: m.capabilities.functionCalling,
+        reasoning: m.capabilities.reasoning,
+        largeContext: m.capabilities.largeContext,
+      },
+      skills: m.skills,
+    }));
 
     // ── Summary ──────────────────────────────────────────
     const summary = {
-      total: agents.length,
-      available: agents.filter(a => a.available).length,
+      total_agents: agents.length,
+      available_agents: agents.filter(a => a.available).length,
       by_category: {
         external: agents.filter(a => a.category === "external").length,
         builtin: agents.filter(a => a.category === "builtin").length,
+        specialized: agents.filter(a => a.category === "specialized").length,
         custom: agents.filter(a => a.category === "custom").length,
       },
       by_type: agents.reduce((acc, a) => {
         acc[a.type] = (acc[a.type] || 0) + 1;
         return acc;
       }, {} as Record<string, number>),
+      models: {
+        total: platformModels.length,
+        by_category: platformModels.reduce((acc, m) => {
+          acc[m.category] = (acc[m.category] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+        by_provider: platformModels.reduce((acc, m) => {
+          acc[m.provider] = (acc[m.provider] || 0) + 1;
+          return acc;
+        }, {} as Record<string, number>),
+      },
     };
 
     return NextResponse.json({
       success: true,
       agents,
+      models: platformModels,
       summary,
     });
   } catch (e: any) {
@@ -246,6 +368,7 @@ export async function GET() {
       success: false,
       error: e.message,
       agents: [],
+      models: [],
     });
   }
 }

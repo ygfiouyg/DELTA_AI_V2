@@ -11,13 +11,27 @@ interface UnifiedAgent {
   descriptionAr?: string;
   icon: string;
   color: string;
-  category: 'external' | 'custom' | 'builtin';
-  type: 'hermes' | 'anzaro' | 'massive-tools' | 'custom';
+  category: 'external' | 'custom' | 'builtin' | 'specialized';
+  type: 'hermes' | 'anzaro' | 'massive-tools' | 'custom' | 'specialized' | 'recipe';
   available: boolean;
   endpoint: string;
   features?: string[];
   stats?: Record<string, any>;
   config?: Record<string, any>;
+}
+
+interface PlatformModel {
+  id: string;
+  name: string;
+  nameEn: string;
+  icon: string;
+  category: string;
+  provider: string;
+  realChatModel: string;
+  maxTokens: number;
+  openSource: boolean;
+  capabilities: Record<string, boolean>;
+  skills: string[];
 }
 
 interface ChatMessage {
@@ -32,13 +46,15 @@ interface ChatMessage {
 // ─── Component ──────────────────────────────────────
 export function AgentsHub({ onBack }: { onBack: () => void }) {
   const [agents, setAgents] = useState<UnifiedAgent[]>([]);
+  const [models, setModels] = useState<PlatformModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedAgent, setSelectedAgent] = useState<UnifiedAgent | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'builtin' | 'external' | 'custom'>('all');
+  const [filter, setFilter] = useState<'all' | 'builtin' | 'external' | 'custom' | 'specialized'>('all');
+  const [view, setView] = useState<'agents' | 'models'>('agents');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Load agents list
@@ -57,7 +73,8 @@ export function AgentsHub({ onBack }: { onBack: () => void }) {
       const res = await fetch('/api/agents-list');
       const data = await res.json();
       if (data.success) {
-        setAgents(data.agents);
+        setAgents(data.agents || []);
+        setModels(data.models || []);
       } else {
         setError(data.error || 'Failed to load agents');
       }
@@ -203,10 +220,10 @@ export function AgentsHub({ onBack }: { onBack: () => void }) {
             <div className="flex-1">
               <h1 className="text-xl font-bold flex items-center gap-2">
                 <span className="text-2xl">🤖</span>
-                مركز الوكلاء
+                مركز الوكلاء والنماذج
               </h1>
               <p className="text-xs text-muted-foreground">
-                اختر الوكيل المناسب لمهمتك
+                {agents.length} وكيل + {models.length} نموذج — اختر المناسب لمهمتك
               </p>
             </div>
             <button
@@ -219,69 +236,104 @@ export function AgentsHub({ onBack }: { onBack: () => void }) {
           </div>
         </div>
 
-        {/* Filter tabs */}
+        {/* View tabs: Agents | Models */}
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <div className="flex gap-2 mb-6 flex-wrap">
-            {([
-              { id: 'all', label: 'الكل', icon: '🌐' },
-              { id: 'builtin', label: 'مدمج', icon: '⚡' },
-              { id: 'external', label: 'خارجي', icon: '🔌' },
-              { id: 'custom', label: 'مخصص', icon: '✨' },
-            ] as const).map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setFilter(tab.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  filter === tab.id
-                    ? 'bg-primary text-primary-foreground shadow-lg'
-                    : 'bg-muted/50 hover:bg-muted'
-                }`}
-              >
-                <span className="ml-1">{tab.icon}</span>
-                {tab.label}
-                <span className="mr-2 text-xs opacity-60">
-                  {tab.id === 'all'
-                    ? agents.length
-                    : agents.filter(a => a.category === tab.id).length}
-                </span>
-              </button>
-            ))}
+          <div className="flex gap-2 mb-6">
+            <button
+              onClick={() => setView('agents')}
+              className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${
+                view === 'agents'
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'bg-muted/50 hover:bg-muted'
+              }`}
+            >
+              🤖 الوكلاء ({agents.length})
+            </button>
+            <button
+              onClick={() => setView('models')}
+              className={`px-6 py-3 rounded-xl text-sm font-bold transition-all ${
+                view === 'models'
+                  ? 'bg-primary text-primary-foreground shadow-lg'
+                  : 'bg-muted/50 hover:bg-muted'
+              }`}
+            >
+              🧠 النماذج ({models.length})
+            </button>
           </div>
 
-          {/* Error */}
-          {error && (
-            <div className="mb-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-              ⚠️ {error}
-            </div>
+          {/* ─── Agents View ─── */}
+          {view === 'agents' && (
+            <>
+              {/* Filter tabs */}
+              <div className="flex gap-2 mb-6 flex-wrap">
+                {([
+                  { id: 'all', label: 'الكل', icon: '🌐' },
+                  { id: 'builtin', label: 'مدمج', icon: '⚡' },
+                  { id: 'specialized', label: 'متخصص', icon: '🎯' },
+                  { id: 'external', label: 'خارجي', icon: '🔌' },
+                  { id: 'custom', label: 'مخصص', icon: '✨' },
+                ] as const).map(tab => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setFilter(tab.id)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      filter === tab.id
+                        ? 'bg-primary text-primary-foreground shadow-lg'
+                        : 'bg-muted/50 hover:bg-muted'
+                    }`}
+                  >
+                    <span className="ml-1">{tab.icon}</span>
+                    {tab.label}
+                    <span className="mr-2 text-xs opacity-60">
+                      {tab.id === 'all'
+                        ? agents.length
+                        : agents.filter(a => a.category === tab.id).length}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Error */}
+              {error && (
+                <div className="mb-4 p-4 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
+                  ⚠️ {error}
+                </div>
+              )}
+
+              {/* Loading */}
+              {loading && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {[1, 2, 3, 4, 5, 6].map(i => (
+                    <div key={i} className="h-64 rounded-2xl bg-muted/30 animate-pulse" />
+                  ))}
+                </div>
+              )}
+
+              {/* Agents grid */}
+              {!loading && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredAgents.map(agent => (
+                    <AgentCard
+                      key={agent.id}
+                      agent={agent}
+                      onSelect={() => handleSelectAgent(agent)}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {!loading && filteredAgents.length === 0 && (
+                <div className="text-center py-20 text-muted-foreground">
+                  <div className="text-5xl mb-4">🔍</div>
+                  <p>لا توجد وكلاء في هذه الفئة</p>
+                </div>
+              )}
+            </>
           )}
 
-          {/* Loading */}
-          {loading && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="h-64 rounded-2xl bg-muted/30 animate-pulse" />
-              ))}
-            </div>
-          )}
-
-          {/* Agents grid */}
-          {!loading && (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {filteredAgents.map(agent => (
-                <AgentCard
-                  key={agent.id}
-                  agent={agent}
-                  onSelect={() => handleSelectAgent(agent)}
-                />
-              ))}
-            </div>
-          )}
-
-          {!loading && filteredAgents.length === 0 && (
-            <div className="text-center py-20 text-muted-foreground">
-              <div className="text-5xl mb-4">🔍</div>
-              <p>لا توجد وكلاء في هذه الفئة</p>
-            </div>
+          {/* ─── Models View ─── */}
+          {view === 'models' && !loading && (
+            <ModelsGrid models={models} />
           )}
         </div>
       </div>
@@ -578,9 +630,234 @@ function getSuggestions(agent: UnifiedAgent): string[] {
       'ترجم النص ده للإنجليزي',
     ];
   }
+  if (agent.type === 'specialized') {
+    return [
+      'ساعدني في مهمتي',
+      'إيه اللي تقدر تعمله؟',
+      'اعمللي بحث عن موضوع',
+    ];
+  }
   return [
     'مرحباً!',
     'ساعدني في مهمة',
     'إيه اللي تقدر تعمله؟',
   ];
+}
+
+// ─── Models Grid Component ──────────────────────────
+function ModelsGrid({ models }: { models: PlatformModel[] }) {
+  const [filter, setFilter] = useState<string>('all');
+
+  const categories = ['all', ...Array.from(new Set(models.map(m => m.category)))];
+  const filtered = filter === 'all' ? models : models.filter(m => m.category === filter);
+
+  return (
+    <>
+      {/* Category filter */}
+      <div className="flex gap-2 mb-6 flex-wrap">
+        {categories.map(cat => (
+          <button
+            key={cat}
+            onClick={() => setFilter(cat)}
+            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              filter === cat
+                ? 'bg-primary text-primary-foreground shadow-lg'
+                : 'bg-muted/50 hover:bg-muted'
+            }`}
+          >
+            {cat === 'all' ? '🌐 الكل' : getCategoryLabel(cat)}
+            <span className="mr-2 text-xs opacity-60">
+              {cat === 'all' ? models.length : models.filter(m => m.category === cat).length}
+            </span>
+          </button>
+        ))}
+      </div>
+
+      {/* Models grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filtered.map(model => (
+          <ModelCard key={model.id} model={model} />
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <div className="text-center py-20 text-muted-foreground">
+          <div className="text-5xl mb-4">🔍</div>
+          <p>لا توجد نماذج في هذه الفئة</p>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── Model Card Component ───────────────────────────
+function ModelCard({ model }: { model: PlatformModel }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const caps = model.capabilities || {};
+  const activeCaps = Object.entries(caps).filter(([_, v]) => v).map(([k]) => k);
+
+  return (
+    <div className="rounded-2xl border border-border bg-card overflow-hidden hover:shadow-lg transition-shadow">
+      {/* Header */}
+      <div className="p-4 flex items-center gap-3 border-b border-border">
+        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center text-2xl flex-shrink-0">
+          {model.icon}
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-bold text-sm truncate">{model.name}</h3>
+          <p className="text-xs text-muted-foreground truncate">{model.nameEn}</p>
+        </div>
+        {model.openSource && (
+          <span className="px-2 py-0.5 rounded-full bg-green-500/10 text-green-600 text-xs font-medium">
+            مفتوح
+          </span>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="p-4 space-y-3">
+        {/* Provider + Category */}
+        <div className="flex flex-wrap gap-2">
+          <span className="px-2 py-0.5 rounded-full bg-muted text-xs">
+            {getProviderLabel(model.provider)}
+          </span>
+          <span className="px-2 py-0.5 rounded-full bg-muted text-xs">
+            {getCategoryLabel(model.category)}
+          </span>
+        </div>
+
+        {/* Max tokens */}
+        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <span>📊</span>
+          <span>{(model.maxTokens / 1000).toFixed(0)}K tokens</span>
+        </div>
+
+        {/* Capabilities */}
+        <div className="flex flex-wrap gap-1">
+          {activeCaps.slice(0, 5).map(cap => (
+            <span key={cap} className="px-2 py-0.5 rounded bg-primary/10 text-primary text-xs">
+              {getCapabilityIcon(cap)} {getCapabilityLabel(cap)}
+            </span>
+          ))}
+          {activeCaps.length > 5 && (
+            <span className="px-2 py-0.5 rounded bg-muted text-xs">
+              +{activeCaps.length - 5}
+            </span>
+          )}
+        </div>
+
+        {/* Expand button */}
+        <button
+          onClick={() => setExpanded(!expanded)}
+          className="text-xs text-primary hover:underline w-full text-right"
+        >
+          {expanded ? 'إخفاء التفاصيل' : 'عرض التفاصيل'}
+        </button>
+
+        {/* Expanded details */}
+        {expanded && (
+          <div className="space-y-2 pt-2 border-t border-border">
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">المعرف:</p>
+              <code className="block p-2 rounded bg-muted text-xs" dir="ltr">{model.id}</code>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">النموذج الفعلي:</p>
+              <code className="block p-2 rounded bg-muted text-xs" dir="ltr">{model.realChatModel}</code>
+            </div>
+            {model.skills.length > 0 && (
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">المهارات:</p>
+                <div className="flex flex-wrap gap-1">
+                  {model.skills.slice(0, 8).map((s, i) => (
+                    <span key={i} className="px-2 py-0.5 rounded bg-muted/50 text-xs">
+                      {s}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Helper functions ───────────────────────────────
+function getCategoryLabel(cat: string): string {
+  const labels: Record<string, string> = {
+    fast: '⚡ سريع',
+    smart: '🧠 ذكي',
+    creative: '🎨 مبدع',
+    specialized: '🎯 متخصص',
+    professional: '💼 مهني',
+    global: '🌍 عالمي',
+    dark: '🌑 مظلم',
+    'hf-chat': '💬 HF Chat',
+    'hf-image': '🖼️ HF Image',
+    'hf-video': '🎬 HF Video',
+    huggingface: '🤗 HuggingFace',
+  };
+  return labels[cat] || cat;
+}
+
+function getProviderLabel(provider: string): string {
+  const labels: Record<string, string> = {
+    openrouter: 'OpenRouter',
+    gemini: 'Google Gemini',
+    zhipuai: 'ZhipuAI',
+    github: 'GitHub Models',
+    groq: 'Groq',
+    cerebras: 'Cerebras',
+    pollinations: 'Pollinations',
+    hf: 'HuggingFace',
+    huggingface: 'HuggingFace',
+    openai: 'OpenAI',
+    ovh: 'OVHcloud',
+    anthropic: 'Anthropic',
+    cloudflare: 'Cloudflare',
+  };
+  return labels[provider] || provider;
+}
+
+function getCapabilityIcon(cap: string): string {
+  const icons: Record<string, string> = {
+    chat: '💬',
+    vision: '👁️',
+    imageGeneration: '🖼️',
+    videoGeneration: '🎬',
+    codeGeneration: '💻',
+    pdfAnalysis: '📄',
+    webSearch: '🔍',
+    audioTTS: '🔊',
+    functionCalling: '🔧',
+    reasoning: '🧠',
+    rag: '📚',
+    largeContext: '📊',
+    translation: '🌐',
+    summarization: '📝',
+  };
+  return icons[cap] || '✨';
+}
+
+function getCapabilityLabel(cap: string): string {
+  const labels: Record<string, string> = {
+    chat: 'محادثة',
+    vision: 'رؤية',
+    imageGeneration: 'توليد صور',
+    videoGeneration: 'توليد فيديو',
+    codeGeneration: 'أكواد',
+    pdfAnalysis: 'تحليل PDF',
+    webSearch: 'بحث ويب',
+    audioTTS: 'صوت',
+    functionCalling: 'استدعاء دوال',
+    reasoning: 'استدلال',
+    rag: 'RAG',
+    largeContext: 'سياق كبير',
+    translation: 'ترجمة',
+    summarization: 'تلخيص',
+  };
+  return labels[cap] || cap;
 }
