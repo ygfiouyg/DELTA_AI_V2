@@ -39,18 +39,56 @@ interface HermesChatRequest {
   toolsets?: string;
   skills?: string;
   yolo?: boolean;
+  use_platform_model?: boolean; // V.155: استخدم موديلات المنصة بدل Hermes providers
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body: HermesChatRequest = await req.json();
-    const { message, session_id, model, toolsets, skills, yolo } = body;
+    const { message, session_id, model, toolsets, skills, yolo, use_platform_model } = body;
 
     if (!message || !message.trim()) {
       return NextResponse.json(
         { success: false, error: "message required" },
         { status: 400 }
       );
+    }
+
+    // V.155: لو المستخدم اختار use_platform_model = true
+    // يبقى نستخدم موديلات المنصة (ZAI, OVH, إلخ) بدل ما Hermes يستخدم providers الخاصة بيه
+    if (use_platform_model) {
+      const startTime = Date.now();
+      try {
+        // استدعاء /api/chat/agent (الـ Anzaro AI engine)
+        const platformResponse = await fetch(
+          `http://localhost:${process.env.PORT || 3000}/api/chat/agent`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              message: `[Hermes Mode] ${message}`,
+              model: model || undefined, // تمرير الموديل المختار
+              enableThinking: false,
+            }),
+          }
+        );
+
+        if (platformResponse.ok) {
+          const data = await platformResponse.json();
+          return NextResponse.json({
+            success: true,
+            response: data.response || data.message || data.output || "No response from platform model",
+            session_id: session_id || `hermes_platform_${Date.now()}`,
+            duration_ms: Date.now() - startTime,
+            hermes_version: "platform-bridge",
+            model_used: model || "default",
+            source: "platform-models",
+          });
+        }
+      } catch (platformErr: any) {
+        // fallback للـ Hermes العادي
+        console.log("[Hermes] Platform model failed, falling back to Hermes:", platformErr.message);
+      }
     }
 
     // Check if Hermes is installed

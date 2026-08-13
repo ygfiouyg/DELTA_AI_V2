@@ -1,0 +1,46 @@
+name: 🔄 Hermes Auto-Update (Hourly)
+
+on:
+  schedule:
+    # كل ساعة
+    - cron: '0 * * * *'
+  workflow_dispatch: # manual trigger
+
+jobs:
+  update-hermes:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Pull latest Hermes changes
+        run: |
+          echo "Checking for Hermes updates..."
+          # Get latest commit hash from Hermes repo
+          LATEST_HERMES=$(curl -s https://api.github.com/repos/NousResearch/hermes-agent/commits/main | jq -r '.sha' | head -c 7)
+          echo "Latest Hermes commit: $LATEST_HERMES"
+          echo "HERMES_VERSION=$LATEST_HERMES" >> $GITHUB_ENV
+
+      - name: 🚀 SSH to server and update
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HETZNER_SERVER_IP }}
+          username: root
+          key: ${{ secrets.HETZNER_SSH_KEY }}
+          script: |
+            cd /opt/delta-ai
+            
+            echo "🔄 Updating Hermes..."
+            if [ -d ~/.hermes/hermes-agent ]; then
+              cd ~/.hermes/hermes-agent
+              git pull origin main
+              cd /opt/delta-ai
+            else
+              echo "Hermes not installed, skipping..."
+            fi
+            
+            echo "🔄 Updating Delta AI..."
+            git pull origin main
+            
+            echo "🏗️ Rebuilding container..."
+            docker compose up -d --build
+            
+            echo "✅ Update complete!"
+            docker compose ps
