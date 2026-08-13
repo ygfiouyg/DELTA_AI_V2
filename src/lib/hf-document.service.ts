@@ -135,7 +135,7 @@ const DOC_GEN_TIMEOUT_MS = 300_000; // 5 min (PPTX generation can be slow)
 
 // ─── Delta-AI Space Proxy (Fallback) ─────────────────────────────────
 // External delta-ai space for file generation fallback
-const DELTA_AI_SPACE_URL = process.env.DELTA_AI_SPACE_URL || 'https://ebsaya-delta-ai.hf.space';
+const DELTA_AI_SPACE_URL = process.env.DELTA_AI_SPACE_URL || 'https://anov.ddns.net';
 
 /**
  * Generate a document via the external delta-ai space as a fallback.

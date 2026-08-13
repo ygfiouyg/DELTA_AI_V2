@@ -11,8 +11,8 @@ export const dynamic = 'force-dynamic';
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET || '';
-const REDIRECT_URI = `${process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://ebsaya-delta-ai.hf.space'}/api/spotify/callback`;
-const FRONTEND_URL = process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://ebsaya-delta-ai.hf.space';
+const REDIRECT_URI = `${process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://anov.ddns.net'}/api/spotify/callback`;
+const FRONTEND_URL = process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://anov.ddns.net';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

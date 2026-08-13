@@ -87,7 +87,7 @@ COPY . .
 # V.56: Using SQLite (matches schema.prisma provider = "sqlite")
 # The DB file lives at /app/db/custom.db and is created by prisma db push at startup.
 RUN echo 'SESSION_SECRET="anzaro-hf-space-secret-2026-abdelslam"' > .env && \
-    echo 'NEXTAUTH_URL="https://ebsaya-delta-ai.hf.space"' >> .env && \
+    echo 'NEXTAUTH_URL="https://anov.ddns.net"' >> .env && \
     echo 'NEXTAUTH_SECRET="anzaro-nextauth-secret-2026-abdelslam"' >> .env && \
     echo 'NODE_ENV="production"' >> .env && \
     echo 'DATABASE_URL="file:/app/db/custom.db"' >> .env && \
@@ -98,7 +98,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV SESSION_SECRET="anzaro-hf-space-secret-2026-abdelslam"
-ENV NEXTAUTH_URL="https://ebsaya-delta-ai.hf.space"
+ENV NEXTAUTH_URL="https://anov.ddns.net"
 ENV NEXTAUTH_SECRET="anzaro-nextauth-secret-2026-abdelslam"
 # V.56: SQLite database (matches schema.prisma provider = "sqlite")
 ENV DATABASE_URL="file:/app/db/custom.db"

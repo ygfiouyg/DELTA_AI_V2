@@ -13,8 +13,8 @@ export const dynamic = 'force-dynamic';
 
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || '';
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET || '';
-const REDIRECT_URI = `${process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://ebsaya-delta-ai.hf.space'}/api/auth/google/callback`;
-const FRONTEND_URL = process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://ebsaya-delta-ai.hf.space';
+const REDIRECT_URI = `${process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://anov.ddns.net'}/api/auth/google/callback`;
+const FRONTEND_URL = process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://anov.ddns.net';
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);

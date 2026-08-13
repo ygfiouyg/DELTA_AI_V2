@@ -8,7 +8,7 @@ import { withAuth } from '@/lib/with-auth';
 import { NextRequest } from 'next/server';
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID || '';
-const REDIRECT_URI = `${process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://ebsaya-delta-ai.hf.space'}/api/spotify/callback`;
+const REDIRECT_URI = `${process.env.ANZARO_PUBLIC_URL || process.env.DELTAAI_PUBLIC_URL || 'https://anov.ddns.net'}/api/spotify/callback`;
 
 const SCOPES = [
   'user-read-playback-state',
