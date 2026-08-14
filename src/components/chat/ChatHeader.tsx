@@ -445,7 +445,7 @@ export function ChatHeader({ onToggleSidebar, onToggleFilesPanel, onToggleSkills
             )}
             <DropdownMenuItem className="cursor-pointer min-h-[40px] text-[14px] text-muted-foreground hover:text-foreground hover:bg-indigo-50 dark:hover:bg-indigo-900/30 hover:text-indigo-900 dark:hover:text-indigo-100 transition-colors duration-150 rounded-lg px-2.5" onClick={() => window.open('/hermes', '_blank')}>
               <Bot className="size-4 ml-2.5" />
-              <span>☤ Hermes Agent (منفصل)</span>
+              <span>☤ Nova Agent (منفصل)</span>
             </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer min-h-[40px] text-[14px] text-muted-foreground hover:text-foreground hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-900 dark:hover:text-blue-100 transition-colors duration-150 rounded-lg px-2.5" onClick={() => setJobsMonitorOpen(true)}>
               <Activity className="size-4 ml-2.5" />

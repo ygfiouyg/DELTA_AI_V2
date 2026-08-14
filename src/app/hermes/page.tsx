@@ -130,7 +130,7 @@ export default function HermesPage() {
           <a href="/" className="px-3 py-2 rounded-lg hover:bg-muted text-sm">→ رجوع</a>
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-xl shadow-lg">☤</div>
           <div className="flex-1">
-            <h1 className="font-bold text-sm">Hermes Agent</h1>
+            <h1 className="font-bold text-sm">Nova Agent</h1>
             <p className="text-xs text-muted-foreground">
               {loadingStatus ? '...' : status?.is_ready ? `✅ جاهز v${status.version}` : '⚠️ يستخدم موديلات المنصة'}
             </p>
@@ -150,7 +150,7 @@ export default function HermesPage() {
               {messages.length === 0 && (
                 <div className="text-center py-20">
                   <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-3xl shadow-xl mb-4">☤</div>
-                  <h3 className="text-lg font-bold mb-2">Hermes Agent</h3>
+                  <h3 className="text-lg font-bold mb-2">Nova Agent</h3>
                   <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
                     وكيل ذكاء اصطناعي ذاتي التحسين. بينشئ مهارات من التجربة وبيبحث في المحادثات السابقة.
                   </p>

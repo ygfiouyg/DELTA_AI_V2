@@ -1,9 +1,9 @@
 /**
  * POST /api/hermes/chat
- * بيـ send message لـ Hermes Agent ويرجّع الـ response.
+ * بيـ send message لـ Nova Agent ويرجّع الـ response.
  *
  * V.162: Default = Platform Models (always works)
- * If Hermes is installed + has API key, use Hermes.
+ * If Nova is installed + has API key, use Nova.
  * Otherwise, fallback to platform models (ZAI, OpenRouter).
  */
 
@@ -19,7 +19,7 @@ export const maxDuration = 120;
 const HERMES_BIN = path.join(process.env.HOME || "/root", ".local", "bin", "hermes");
 const HERMES_HOME = process.env.HERMES_HOME || path.join(process.env.HOME || "/root", ".hermes");
 
-interface HermesChatRequest {
+interface NovaChatRequest {
   message: string;
   session_id?: string;
   model?: string;
@@ -31,7 +31,7 @@ interface HermesChatRequest {
 
 export async function POST(req: NextRequest) {
   try {
-    const body: HermesChatRequest = await req.json();
+    const body: NovaChatRequest = await req.json();
     const { message, session_id, model, toolsets, skills, yolo } = body;
 
     if (!message || !message.trim()) {
@@ -43,12 +43,12 @@ export async function POST(req: NextRequest) {
 
     const startTime = Date.now();
 
-    // ─── 1. Try Hermes first (if installed) ──────────
+    // ─── 1. Try Nova first (if installed) ──────────
     const hermesInstalled = existsSync(HERMES_BIN);
 
     if (hermesInstalled) {
       try {
-        const result = await runHermes(message, {
+        const result = await runNova(message, {
           model,
           toolsets,
           skills,
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
           });
         }
       } catch (hermesErr: any) {
-        console.log("[Hermes] Native failed, trying platform:", hermesErr.message);
+        console.log("[Nova] Native failed, trying platform:", hermesErr.message);
       }
     }
 
@@ -102,15 +102,15 @@ export async function POST(req: NextRequest) {
         });
       }
     } catch (platformErr: any) {
-      console.log("[Hermes] Platform also failed:", platformErr.message);
+      console.log("[Nova] Platform also failed:", platformErr.message);
     }
 
     // ─── 3. Last resort: return error ────────────────
     return NextResponse.json({
       success: false,
       error: hermesInstalled
-        ? "Hermes installed but failed to respond. Check API keys in ~/.hermes/.env"
-        : "Hermes not installed and platform models also failed. Check ZAI_API_KEY in .env",
+        ? "Nova installed but failed to respond. Check API keys in ~/.hermes/.env"
+        : "Nova not installed and platform models also failed. Check ZAI_API_KEY in .env",
       hermes_installed: hermesInstalled,
       duration_ms: Date.now() - startTime,
     }, { status: 500 });
@@ -123,8 +123,8 @@ export async function POST(req: NextRequest) {
   }
 }
 
-// ─── Hermes runner ─────────────────────────────────
-async function runHermes(
+// ─── Nova runner ─────────────────────────────────
+async function runNova(
   message: string,
   options: {
     model?: string;
@@ -171,7 +171,7 @@ async function runHermes(
 
     proc.on("close", (code) => {
       clearTimeout(timer);
-      const versionMatch = stderr.match(/Hermes Agent v([\d.]+)/);
+      const versionMatch = stderr.match(/Nova Agent v([\d.]+)/);
       const version = versionMatch ? versionMatch[1] : undefined;
 
       if (code === 0 && stdout.trim()) {
