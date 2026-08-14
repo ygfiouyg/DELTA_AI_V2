@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" class="">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>أنوفا | المحادثة</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Cairo', 'sans-serif'] },
+                    colors: {
+                        brand: {
+                            50:'#ecfdf5',100:'#d1fae5',200:'#a7f3d0',300:'#6ee7b7',400:'#34d399',
+                            500:'#10b981',600:'#059669',700:'#047857',800:'#065f46',900:'#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Cairo', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #10b98155; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #10b98199; }
+        .typing-dot {
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+        .fade-in { animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-300 h-screen overflow-hidden">
+
+    <div class="flex h-screen">
+
+        <!-- ============ SIDEBAR ============ -->
+        <aside id="sidebar" class="fixed lg:static inset-y-0 right-0 z-40 w-72 bg-white dark:bg-slate-900 border-l border-slate-200 dark:border-slate-800 flex flex-col transform translate-x-full lg:translate-x-0 transition-transform duration-300">
+
+            <!-- Sidebar Header -->
+            <div class="p-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                <a href="chat.html" class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl flex items-center justify-center shadow-md shadow-emerald-500/30">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <span class="text-xl font-bold text-slate-800 dark:text-white">أنوفا</span>
+                </a>
+                <button id="close-sidebar" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                </button>
+            </div>
+
+            <!-- New Chat Button -->
+            <div class="p-3">
+                <button onclick="startNewChat()" class="w-full flex items-center justify-center gap-2 py-3 bg-gradient-to-l from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium rounded-xl shadow-md shadow-emerald-500/20 transition-all">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                    <span>محادثة جديدة</span>
+                </button>
+            </div>
+
+            <!-- Search -->
+            <div class="px-3 pb-2">
+                <div class="relative">
+                    <svg class="w-4 h-4 absolute top-3.5 right-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                    <input type="text" placeholder="بحث في المحادثات..." class="w-full pr-9 pl-3 py-2.5 text-sm bg-slate-100 dark:bg-slate-800 border-0 rounded-lg focus:ring-2 focus:ring-emerald-500/50 focus:outline-none text-slate-700 dark:text-slate-200 placeholder-slate-400">
+                </div>
+            </div>
+
+            <!-- Recent Conversations -->
+            <div class="flex-1 overflow-y-auto px-2 py-2">
+                <p class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">اليوم</p>
+                <button class="w-full flex items-start gap-3 p-3 rounded-xl bg-emerald-50 dark:bg-emerald-500/10 text-right hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors mb-1">
+                    <div class="w-2 h-2 rounded-full bg-emerald-500 mt-2 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-800 dark:text-slate-100 truncate">شرح مفهوم البرمجة الكائنية</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">البرمجة الكائنية هي نمط...</p>
+                    </div>
+                </button>
+                <button class="w-full flex items-start gap-3 p-3 rounded-xl text-right hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mb-1">
+                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 mt-2 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">ترجمة نص قانوني</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">بناءً على طلبك، إليك الترجمة...</p>
+                    </div>
+                </button>
+
+                <p class="px-3 py-2 mt-3 text-xs font-semibold text-slate-400 uppercase tracking-wider">الأسبوع الماضي</p>
+                <button class="w-full flex items-start gap-3 p-3 rounded-xl text-right hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mb-1">
+                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 mt-2 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">أفكار لمشروع ناشئ</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">إليك بعض الأفكار المبتكرة...</p>
+                    </div>
+                </button>
+                <button class="w-full flex items-start gap-3 p-3 rounded-xl text-right hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mb-1">
+                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 mt-2 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">تحليل بيانات المبيعات</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">البيانات تظهر نمواً بنسبة 23%...</p>
+                    </div>
+                </button>
+                <button class="w-full flex items-start gap-3 p-3 rounded-xl text-right hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors mb-1">
+                    <div class="w-2 h-2 rounded-full bg-slate-300 dark:bg-slate-600 mt-2 flex-shrink-0"></div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">كتابة بريد رسمي</p>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">الموضوع: دعوة لاجتماع...</p>
+                    </div>
+                </button>
+            </div>
+
+            <!-- Sidebar Footer -->
+            <div class="p-3 border-t border-slate-200 dark:border-slate-800 space-y-1">
+                <a href="history.html" class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    <span class="text-sm font-medium">المحادثات السابقة</span>
+                </a>
+                <a href="settings.html" class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-600 dark:text-slate-300">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                    <span class="text-sm font-medium">الإعدادات</span>
+                </a>
+                <div class="flex items-center gap-3 p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer">
+                    <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold text-sm">أ</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium text-slate-700 dark:text-slate-200 truncate">أحمد العلي</p>
+                        <p class="text-xs text-slate-400 truncate">الخطة الاحترافية</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Sidebar Overlay (mobile) -->
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden lg:hidden"></div>
+
+        <!-- ============ MAIN CHAT AREA ============ -->
+        <main class="flex-1 flex flex-col min-w-0 bg-slate-50 dark:bg-slate-950">
+
+            <!-- Top Header -->
+            <header class="flex items-center justify-between px-4 sm:px-6 py-3.5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
+                <div class="flex items-center gap-3">
+                    <button id="open-sidebar" class="lg:hidden p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+                    </button>
+
+                    <!-- Model Selector -->
+                    <div class="relative">
+                        <button id="model-btn" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                            <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/></svg>
+                            </div>
+                            <div class="text-right hidden sm:block">
+                                <p class="text-sm font-semibold text-slate-800 dark:text-white leading-tight">Anova Pro</p>
+                                <p class="text-xs text-emerald-600 dark:text-emerald-400 leading-tight">● متصل</p>
+                            </div>
+                            <svg class="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                        </button>
+
+                        <!-- Model Dropdown -->
+                        <div id="model-dropdown" class="hidden absolute right-0 mt-2 w-64 bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 p-2 z-50">
+                            <p class="px-3 py-2 text-xs font-semibold text-slate-400 uppercase">اختر النموذج</p>
+                            <button class="w-full flex items-center gap-3 p-3 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors text-right">
+                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M13 7H7v6h6V7z"/><path fill-rule="evenodd" d="M7 2a1 1 0 012 0v1h2V2a1 1 0 112 0v1h2a2 2 0 012 2v2h1a1 1 0 110 2h-1v2h1a1 1 0 110 2h-1v2a2 2 0 01-2 2h-2v1a1 1 0 11-2 0v-1H9v1a1 1 0 11-2 0v-1H5a2 2 0 01-2-2v-2H2a1 1 0 110-2h1V9H2a1 1 0 010-2h1V5a2 2 0 012-2h2V2zM5 5v10h10V5H5z" clip-rule="evenodd"/></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-semibold text-slate-800 dark:text-white">Anova Pro</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">الأسرع والأذكى</p>
+                                </div>
+                                <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                            </button>
+                            <button class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-right">
+                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M11 3a1 1 0 10-2 0v1a1 1 0 102 0V3zM15.657 5.757a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414l.707-.707zM18 10a1 1 0 01-1 1h-1a1 1 0 110-2h1a1 1 0 011 1zM5.05 6.464A1 1 0 106.464 5.05l-.707-.707a1 1 0 00-1.414 1.414l.707.707zM5 10a1 1 0 01-1 1H3a1 1 0 110-2h1a1 1 0 011 1zM8 16v-1h4v1a2 2 0 11-4 0zM12 14c.015-.34.208-.646.477-.859a4 4 0 10-4.954 0c.27.213.462.519.476.859h4.002z"/></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-semibold text-slate-800 dark:text-white">Anova Light</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">سريع للمهام البسيطة</p>
+                                </div>
+                            </button>
+                            <button class="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors text-right">
+                                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                                    <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"/><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"/></svg>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-semibold text-slate-800 dark:text-white">Anova Vision</p>
+                                    <p class="text-xs text-slate-500 dark:text-slate-400">يدعم الصور والملفات</p>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-1">
+                    <!-- Voice toggle -->
+                    <button id="voice-toggle" class="p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors" title="الإدخال الصوتي">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                    </button>
+                    <!-- Share -->
+                    <button class="hidden sm:block p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors" title="مشاركة">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/></svg>
+                    </button>
+                    <!-- Dark mode -->
+                    <button id="theme-toggle" class="p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 transition-colors">
+                        <svg class="w-5 h-5 hidden dark:block text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.46l.707-.707a1 1 0 00-1.414-1.414l-.707.707a1 1 0 001.414 1.414zM18 9a1 1 0 100 2h1a1 1 0 100-2h-1zm-1 7a1 1 0 01-1-1v-1a1 1 0 112 0v1a1 1 0 01-1 1zm-1-14a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zM4 9a1 1 0 100 2H3a1 1 0 100-2h1zm1.464 6.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zM3.05 5.36l-.707-.707a1 1 0 011.414-1.414l.707.707a1 1 0 01-1.414 1.414z"/></svg>
+                        <svg class="w-5 h-5 block dark:hidden" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/></svg>
+                    </button>
+                </div>
+            </header>
+
+            <!-- Messages Area -->
+            <div id="messages" class="flex-1 overflow-y-auto px-4 sm:px-6 py-6 space-y-6">
+
+                <!-- Welcome / Empty state (hidden by default, shown on new chat) -->
+                <div id="welcome-state" class="hidden h-full flex flex-col items-center justify-center text-center max-w-2xl mx-auto">
+                    <div class="w-20 h-20 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-3xl flex items-center justify-center shadow-xl shadow-emerald-500/30 mb-6">
+                        <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <h2 class="text-3xl font-bold text-slate-800 dark:text-white mb-3">كيف يمكنني مساعدتك اليوم؟</h2>
+                    <p class="text-slate-500 dark:text-slate-400 mb-8">أنا أنوفا، مساعدك الذكي. اسألني أي شيء وسأجيبك بأفضل ما لديّ.</p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+                        <button class="suggestion-btn text-right p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md transition-all">
+                            <p class="font-semibold text-slate-800 dark:text-white mb-1">✍️ ساعدني في الكتابة</p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">اكتب لي بريداً رسمياً لطلب إجازة</p>
+                        </button>
+                        <button class="suggestion-btn text-right p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md transition-all">
+                            <p class="font-semibold text-slate-800 dark:text-white mb-1">💡 أعطني أفكاراً</p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">اقترح أفكاراً لمشروع تقني ناشئ</p>
+                        </button>
+                        <button class="suggestion-btn text-right p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md transition-all">
+                            <p class="font-semibold text-slate-800 dark:text-white mb-1">📊 حلل بياناتي</p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">لديّ جدول مبيعات، حلله لي</p>
+                        </button>
+                        <button class="suggestion-btn text-right p-4 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-md transition-all">
+                            <p class="font-semibold text-slate-800 dark:text-white mb-1">🌐 ترجم نصاً</p>
+                            <p class="text-sm text-slate-500 dark:text-slate-400">ترجم هذا النص من العربية للإنجليزية</p>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Date Divider -->
+                <div class="flex items-center justify-center">
+                    <span class="px-4 py-1.5 text-xs font-medium text-slate-400 bg-slate-100 dark:bg-slate-800/50 rounded-full">اليوم</span>
+                </div>
+
+                <!-- AI Message -->
+                <div class="flex flex-row-reverse gap-3 fade-in">
+                    <div class="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <div class="flex-1 max-w-[80%]">
+                        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
+                            <p class="text-slate-700 dark:text-slate-200 leading-relaxed">
+                                مرحباً أحمد! 👋 أنا أنوفا، مساعدك الذكي. كيف يمكنني مساعدتك اليوم؟
+                                <br><br>
+                                يمكنني مساعدتك في الكتابة، الترجمة، التحليل، البرمجة، وأكثر بكثير. فقط اكتب لي ما تحتاجه.
+                            </p>
+                            <div class="flex items-center gap-3 mt-3 pt-3 border-t border-slate-100 dark:border-slate-700">
+                                <button class="flex items-center gap-1 text-xs text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    أعجبني
+                                </button>
+                                <button class="flex items-center gap-1 text-xs text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>
+                                    نسخ
+                                </button>
+                                <button class="flex items-center gap-1 text-xs text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">
+                                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                                    إعادة
+                                </button>
+                            </div>
+                        </div>
+                        <span class="text-xs text-slate-400 mt-1.5 block mr-2">10:24 ص</span>
+                    </div>
+                </div>
+
+                <!-- User Message (right side in RTL = justify-start) -->
+                <div class="flex justify-start fade-in">
+                    <div class="max-w-[80%]">
+                        <div class="bg-gradient-to-l from-emerald-600 to-teal-600 text-white rounded-2xl rounded-tr-sm px-5 py-4 shadow-md shadow-emerald-500/20">
+                            <p class="leading-relaxed">اشرح لي مفهوم البرمجة الكائنية (OOP) بأسلوب بسيط مع أمثلة عملية من الحياة اليومية.</p>
+                        </div>
+                        <div class="flex items-center gap-2 mt-1.5 mr-2">
+                            <span class="text-xs text-slate-400">10:25 ص</span>
+                            <svg class="w-4 h-4 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Response -->
+                <div class="flex flex-row-reverse gap-3 fade-in">
+                    <div class="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <div class="flex-1 max-w-[80%]">
+                        <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
+                            <p class="text-slate-700 dark:text-slate-200 leading-relaxed mb-3">
+                                سؤال رائع! 🎯 البرمجة الكائنية (Object-Oriented Programming) هي أسلوب في كتابة البرامج يعتمد على تنظيم الكود في وحدات تُسمى <strong class="text-emerald-600 dark:text-emerald-400">"الكائنات" (Objects)</strong>.
+                            </p>
+                            <p class="text-slate-700 dark:text-slate-200 leading-relaxed mb-3">
+                                <strong class="text-slate-800 dark:text-white">مثال من الحياة اليومية:</strong><br>
+                                تخيّل أن لديك <strong>قالب كعك (Class)</strong> — هذا القالب يحدد شكل الكعك ومكوناته، لكنه ليس كعكة بحد ذاته. وعندما تصنع كعكة فعلية من هذا القالب، فإنك تحصل على <strong>كائن (Object)</strong>.
+                            </p>
+                            <div class="bg-slate-50 dark:bg-slate-900/50 rounded-xl p-4 my-3 border-r-4 border-emerald-500">
+                                <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                                    <strong class="text-emerald-600 dark:text-emerald-400">الأركان الأربعة للـ OOP:</strong><br>
+                                    1. <strong>التغليف</strong> (Encapsulation) — إخفاء التفاصيل الداخلية<br>
+                                    2. <strong>الوراثة</strong> (Inheritance) — وراثة خصائص من قالب آخر<br>
+                                    3. <strong>تعدد الأشكال</strong> (Polymorphism) — نفس الأمر بطرق مختلفة<br>
+                                    4. <strong>التجريد</strong> (Abstraction) — التركيز على المهم وإهمال الباقي
+                                </p>
+                            </div>
+                            <p class="text-slate-700 dark:text-slate-200 leading-relaxed">
+                                هل تريد أن أعطيك مثالاً عملياً بكود بايثون؟ 💻
+                            </p>
+                        </div>
+                        <div class="flex items-center gap-3 mt-1.5 mr-2">
+                            <span class="text-xs text-slate-400">10:25 ص</span>
+                            <button class="text-xs text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors">👍</button>
+                            <button class="text-xs text-slate-400 hover:text-red-500 transition-colors">👎</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Typing indicator -->
+                <div class="flex flex-row-reverse gap-3 fade-in">
+                    <div class="flex-shrink-0 w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-md">
+                        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    </div>
+                    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm flex items-center gap-1.5">
+                        <span class="typing-dot w-2 h-2 bg-emerald-500 rounded-full"></span>
+                        <span class="typing-dot w-2 h-2 bg-emerald-500 rounded-full"></span>
+                        <span class="typing-dot w-2 h-2 bg-emerald-500 rounded-full"></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="px-4 sm:px-6 pb-4 pt-2 bg-gradient-to-t from-slate-50 dark:from-slate-950 to-transparent">
+                <div class="max-w-4xl mx-auto">
+                    <div class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-lg focus-within:border-emerald-400 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                        <textarea
+                            id="message-input"
+                            rows="1"
+                            placeholder="اكتب رسالتك هنا..."
+                            class="w-full bg-transparent px-5 py-3.5 text-slate-800 dark:text-white placeholder-slate-400 focus:outline-none resize-none max-h-32"
+                            oninput="autoResize(this)"
+                            onkeydown="handleKey(event)"></textarea>
+                        <div class="flex items-center justify-between px-3 pb-3">
+                            <div class="flex items-center gap-1">
+                                <button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" title="إرفاق ملف">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+                                </button>
+                                <button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" title="إرفاق صورة">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                                </button>
+                                <button class="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors" title="ميكروفون">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                                </button>
+                            </div>
+                            <button onclick="sendMessage()" class="flex items-center gap-2 px-4 sm:px-5 py-2.5 bg-gradient-to-l from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-medium rounded-xl shadow-md shadow-emerald-500/30 transition-all">
+                                <span class="hidden sm:inline">إرسال</span>
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+                            </button>
+                        </div>
+                    </div>
+                    <p class="text-center text-xs text-slate-400 mt-2.5">قد تُخطئ أنوفا أحياناً. تحقّق من المعلومات المهمة.</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // ===== Dark Mode =====
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            html.classList.add('dark');
+        }
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            localStorage.theme = html.classList.contains('dark') ? 'dark' : 'light';
+        });
+
+        // ===== Sidebar Toggle (mobile) =====
+        const sidebar = document.getElementById('sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        document.getElementById('open-sidebar').addEventListener('click', () => {
+            sidebar.classList.remove('translate-x-full');
+            overlay.classList.remove('hidden');
+        });
+        document.getElementById('close-sidebar').addEventListener('click', closeSidebar);
+        overlay.addEventListener('click', closeSidebar);
+        function closeSidebar() {
+            sidebar.classList.add('translate-x-full');
+            overlay.classList.add('hidden');
+        }
+
+        // ===== Model Dropdown =====
+        const modelBtn = document.getElementById('model-btn');
+        const modelDropdown = document.getElementById('model-dropdown');
+        modelBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            modelDropdown.classList.toggle('hidden');
+        });
+        document.addEventListener('click', () => modelDropdown.classList.add('hidden'));
+
+        // ===== Voice toggle =====
+        document.getElementById('voice-toggle').addEventListener('click', function() {
+            this.classList.toggle('bg-emerald-100');
+            this.classList.toggle('dark:bg-emerald-500/20');
+            this.classList.toggle('text-emerald-600');
+            this.classList.toggle('dark:text-emerald-400');
+        });
+
+        // ===== Auto-resize textarea =====
+        function autoResize(el) {
+            el.style.height = 'auto';
+            el.style.height = Math.min(el.scrollHeight, 128) + 'px';
+        }
+
+        // ===== Send message =====
+        function handleKey(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        }
+        function sendMessage() {
+            const input = document.getElementById('message-input');
+            const text = input.value.trim();
+            if (!text) return;
+            const messages = document.getElementById('messages');
+            const userMsg = document.createElement('div');
+            userMsg.className = 'flex justify-start fade-in';
+            userMsg.innerHTML = `
+                <div class="max-w-[80%]">
+                    <div class="bg-gradient-to-l from-emerald-600 to-teal-600 text-white rounded-2xl rounded-tr-sm px-5 py-4 shadow-md shadow-emerald-500/20">
+                        <p class="leading-relaxed">${text}</p>
+                    </div>
+                    <span class="text-xs text-slate-400 mt-1.5 block mr-2">الآن</span>
+                </div>`;
+            messages.appendChild(userMsg);
+            input.value = '';
+            autoResize(input);
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+        // ===== Suggestion buttons =====
+        document.querySelectorAll('.suggestion-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.getElementById('message-input').value = btn.querySelector('p:last-child').textContent;
+                document.getElementById('message-input').focus();
+                autoResize(document.getElementById('message-input'));
+            });
+        });
+
+        function startNewChat() {
+            document.getElementById('welcome-state').classList.remove('hidden');
+        }
+
+        // Scroll to bottom on load
+        document.getElementById('messages').scrollTop = document.getElementById('messages').scrollHeight;
+    </script>
+</body>
+</html>
