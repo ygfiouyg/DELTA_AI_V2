@@ -2,35 +2,22 @@
  * POST /api/hermes/chat
  * بيـ send message لـ Hermes Agent ويرجّع الـ response.
  *
- * Body:
- *   {
- *     "message": "string",       // required — user message
- *     "session_id"?: "string",   // optional — for conversation continuity
- *     "model"?: "string",        // optional — override model
- *     "toolsets"?: "string",     // optional — comma-separated toolsets
- *     "skills"?: "string",       // optional — comma-separated skills
- *   }
- *
- * Response:
- *   {
- *     "success": true,
- *     "response": "string",
- *     "session_id": "string",
- *     "duration_ms": number
- *   }
+ * V.162: Default = Platform Models (always works)
+ * If Hermes is installed + has API key, use Hermes.
+ * Otherwise, fallback to platform models (ZAI, OpenRouter).
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { spawn } from "child_process";
-import { existsSync, mkdirSync } from "fs";
+import { existsSync } from "fs";
 import path from "path";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 120;
 
-const HERMES_BIN = path.join(process.env.HOME || "/home/z", ".local", "bin", "hermes");
-const HERMES_HOME = process.env.HERMES_HOME || path.join(process.env.HOME || "/home/z", ".hermes");
+const HERMES_BIN = path.join(process.env.HOME || "/root", ".local", "bin", "hermes");
+const HERMES_HOME = process.env.HERMES_HOME || path.join(process.env.HOME || "/root", ".hermes");
 
 interface HermesChatRequest {
   message: string;
@@ -39,13 +26,13 @@ interface HermesChatRequest {
   toolsets?: string;
   skills?: string;
   yolo?: boolean;
-  use_platform_model?: boolean; // V.155: استخدم موديلات المنصة بدل Hermes providers
+  use_platform_model?: boolean;
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body: HermesChatRequest = await req.json();
-    const { message, session_id, model, toolsets, skills, yolo, use_platform_model } = body;
+    const { message, session_id, model, toolsets, skills, yolo } = body;
 
     if (!message || !message.trim()) {
       return NextResponse.json(
@@ -54,92 +41,80 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // V.155: لو المستخدم اختار use_platform_model = true
-    // يبقى نستخدم موديلات المنصة (ZAI, OVH, إلخ) بدل ما Hermes يستخدم providers الخاصة بيه
-    if (use_platform_model) {
-      const startTime = Date.now();
-      try {
-        // استدعاء /api/chat/agent (الـ Anzaro AI engine)
-        const platformResponse = await fetch(
-          `http://localhost:${process.env.PORT || 3000}/api/chat/agent`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              message: `[Hermes Mode] ${message}`,
-              model: model || undefined, // تمرير الموديل المختار
-              enableThinking: false,
-            }),
-          }
-        );
+    const startTime = Date.now();
 
-        if (platformResponse.ok) {
-          const data = await platformResponse.json();
+    // ─── 1. Try Hermes first (if installed) ──────────
+    const hermesInstalled = existsSync(HERMES_BIN);
+
+    if (hermesInstalled) {
+      try {
+        const result = await runHermes(message, {
+          model,
+          toolsets,
+          skills,
+          yolo: yolo ?? true,
+          session_id,
+        });
+
+        if (result.success && result.output) {
           return NextResponse.json({
             success: true,
-            response: data.response || data.message || data.output || "No response from platform model",
-            session_id: session_id || `hermes_platform_${Date.now()}`,
+            response: result.output,
+            error: result.error,
+            session_id: session_id || `hermes_${Date.now()}`,
             duration_ms: Date.now() - startTime,
-            hermes_version: "platform-bridge",
-            model_used: model || "default",
-            source: "platform-models",
+            hermes_version: result.version,
+            source: "hermes-native",
           });
         }
-      } catch (platformErr: any) {
-        // fallback للـ Hermes العادي
-        console.log("[Hermes] Platform model failed, falling back to Hermes:", platformErr.message);
+      } catch (hermesErr: any) {
+        console.log("[Hermes] Native failed, trying platform:", hermesErr.message);
       }
     }
 
-    // Check if Hermes is installed
-    if (!existsSync(HERMES_BIN)) {
-      return NextResponse.json({
-        success: false,
-        error: "Hermes Agent not installed. Run the installer first.",
-        install_command: "curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash",
-      }, { status: 503 });
+    // ─── 2. Fallback: Use Platform Models (always works) ──
+    try {
+      const platformResponse = await fetch(
+        `http://localhost:${process.env.PORT || 3000}/api/chat/agent`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: message,
+            model: model || undefined,
+            enableThinking: false,
+          }),
+          signal: AbortSignal.timeout(60000),
+        }
+      );
+
+      if (platformResponse.ok) {
+        const data = await platformResponse.json();
+        return NextResponse.json({
+          success: true,
+          response: data.response || data.message || data.output || "No response",
+          session_id: session_id || `hermes_platform_${Date.now()}`,
+          duration_ms: Date.now() - startTime,
+          hermes_version: "platform-bridge",
+          model_used: model || "default",
+          source: "platform-models",
+          hermes_installed: hermesInstalled,
+        });
+      }
+    } catch (platformErr: any) {
+      console.log("[Hermes] Platform also failed:", platformErr.message);
     }
 
-    // Build Hermes CLI arguments
-    const args: string[] = ["-z", message];
-
-    // Model override
-    if (model) {
-      args.push("-m", model);
-    }
-
-    // Toolsets
-    if (toolsets) {
-      args.push("-t", toolsets);
-    }
-
-    // Skills
-    if (skills) {
-      args.push("--skills", skills);
-    }
-
-    // YOLO mode (no approval prompts)
-    if (yolo) {
-      args.push("--yolo");
-    }
-
-    // Session resume
-    if (session_id) {
-      args.push("--resume", session_id);
-    }
-
-    // Execute Hermes
-    const startTime = Date.now();
-    const result = await runHermes(args);
-
+    // ─── 3. Last resort: return error ────────────────
     return NextResponse.json({
-      success: result.success,
-      response: result.output,
-      error: result.error,
-      session_id: session_id || `hermes_${Date.now()}`,
+      success: false,
+      error: hermesInstalled
+        ? "Hermes installed but failed to respond. Check API keys in ~/.hermes/.env"
+        : "Hermes not installed and platform models also failed. Check ZAI_API_KEY in .env",
+      hermes_installed: hermesInstalled,
       duration_ms: Date.now() - startTime,
-      hermes_version: result.version,
-    });
+    }, { status: 500 });
+
   } catch (e: any) {
     return NextResponse.json(
       { success: false, error: e.message },
@@ -148,18 +123,30 @@ export async function POST(req: NextRequest) {
   }
 }
 
-async function runHermes(args: string[], timeoutMs: number = 90000): Promise<{
-  success: boolean;
-  output: string;
-  error?: string;
-  version?: string;
-}> {
+// ─── Hermes runner ─────────────────────────────────
+async function runHermes(
+  message: string,
+  options: {
+    model?: string;
+    toolsets?: string;
+    skills?: string;
+    yolo?: boolean;
+    session_id?: string;
+  }
+): Promise<{ success: boolean; output: string; error?: string; version?: string }> {
+  const args: string[] = ["-z", message];
+
+  if (options.model) args.push("-m", options.model);
+  if (options.toolsets) args.push("-t", options.toolsets);
+  if (options.skills) args.push("--skills", options.skills);
+  if (options.yolo) args.push("--yolo");
+  if (options.session_id) args.push("--resume", options.session_id);
+
   return new Promise((resolve) => {
     const env = {
       ...process.env,
       HERMES_HOME,
       PATH: `${HERMES_HOME}/bin:${process.env.PATH}`,
-      // Ensure non-interactive mode
       HERMES_NONINTERACTIVE: "1",
       TERM: "dumb",
     };
@@ -168,63 +155,36 @@ async function runHermes(args: string[], timeoutMs: number = 90000): Promise<{
       cwd: HERMES_HOME,
       env,
       stdio: ["pipe", "pipe", "pipe"],
-      timeout: timeoutMs,
+      timeout: 90000,
     });
 
     let stdout = "";
     let stderr = "";
 
-    proc.stdout.on("data", (d) => {
-      stdout += d.toString();
-    });
-
-    proc.stderr.on("data", (d) => {
-      stderr += d.toString();
-    });
+    proc.stdout.on("data", (d) => (stdout += d.toString()));
+    proc.stderr.on("data", (d) => (stderr += d.toString()));
 
     const timer = setTimeout(() => {
       proc.kill("SIGKILL");
-      resolve({
-        success: false,
-        output: "",
-        error: `Hermes timed out after ${timeoutMs}ms`,
-      });
-    }, timeoutMs);
+      resolve({ success: false, output: "", error: "Timeout" });
+    }, 90000);
 
     proc.on("close", (code) => {
       clearTimeout(timer);
-
-      // Extract version from stderr if present
       const versionMatch = stderr.match(/Hermes Agent v([\d.]+)/);
       const version = versionMatch ? versionMatch[1] : undefined;
 
-      if (code === 0) {
-        // Clean output — remove ANSI codes and spinner artifacts
-        const cleaned = cleanOutput(stdout);
+      if (code === 0 && stdout.trim()) {
         resolve({
           success: true,
-          output: cleaned,
+          output: cleanOutput(stdout),
           version,
         });
       } else {
-        // Check for common errors
-        const errorText = stderr || stdout;
-        let errorMsg = `Hermes exited with code ${code}`;
-
-        if (errorText.includes("No inference provider configured")) {
-          errorMsg = "Hermes has no API key configured. Set an API key in ~/.hermes/.env (e.g. OPENAI_API_KEY, OPENROUTER_API_KEY, ANTHROPIC_API_KEY)";
-        } else if (errorText.includes("rate limit")) {
-          errorMsg = "Rate limit hit. Please try again in a moment.";
-        } else if (errorText.includes("authentication") || errorText.includes("unauthorized")) {
-          errorMsg = "Authentication failed. Check your API key in Hermes config.";
-        } else if (errorText.trim()) {
-          errorMsg = errorText.slice(-500);
-        }
-
         resolve({
           success: false,
-          output: cleanOutput(stdout),
-          error: errorMsg,
+          output: "",
+          error: stderr.slice(-300) || `Exit code ${code}`,
           version,
         });
       }
@@ -232,24 +192,15 @@ async function runHermes(args: string[], timeoutMs: number = 90000): Promise<{
 
     proc.on("error", (e) => {
       clearTimeout(timer);
-      resolve({
-        success: false,
-        output: "",
-        error: `Failed to spawn Hermes: ${e.message}`,
-      });
+      resolve({ success: false, output: "", error: e.message });
     });
   });
 }
 
 function cleanOutput(text: string): string {
-  // Remove ANSI escape codes
   let cleaned = text.replace(/\x1b\[[0-9;]*[a-zA-Z]/g, "");
-  // Remove spinner characters
   cleaned = cleaned.replace(/[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏]/g, "");
-  // Remove carriage returns
   cleaned = cleaned.replace(/\r/g, "");
-  // Collapse multiple newlines
   cleaned = cleaned.replace(/\n{3,}/g, "\n\n");
-  // Trim
   return cleaned.trim();
 }
