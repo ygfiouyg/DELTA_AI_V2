@@ -1,0 +1,64 @@
+# ═══════════════════════════════════════════════════
+# Delta AI V2 — Dockerfile with Hermes Agent
+# ═══════════════════════════════════════════════════
+FROM node:20-slim
+
+# ─── System dependencies ───────────────────────────
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    openssl ca-certificates \
+    python3 python3-pip python3-venv \
+    make g++ \
+    ffmpeg \
+    git curl wget \
+    # Playwright/Chromium deps
+    libnss3 libnspr4 libatk1.0-0 libatk-bridge2.0-0 \
+    libcups2 libdrm2 libdbus-1-3 libxcb1 libxkbcommon0 \
+    libx11-6 libxcomposite1 libxdamage1 libxext6 libxfixes3 \
+    libxrandr2 libgbm1 libpango-1.0-0 libcairo2 libasound2 \
+    libatspi2.0-0 fonts-liberation \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# ─── Node.js dependencies ──────────────────────────
+COPY package.json bun.lock* ./
+COPY prisma ./prisma/
+RUN npm install -g bun && \
+    (bun install --frozen-lockfile 2>/dev/null || npm install)
+
+# ─── Python dependencies ───────────────────────────
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir --break-system-packages huggingface_hub && \
+    pip3 install --no-cache-dir --break-system-packages -r requirements.txt || echo "Some packages failed"
+
+# ─── Playwright Chromium ───────────────────────────
+RUN npx playwright install chromium 2>/dev/null || echo "Playwright install failed"
+
+# ─── Prisma client ─────────────────────────────────
+RUN npx prisma generate
+
+# ─── Install Hermes Agent ──────────────────────────
+RUN curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-setup || echo "Hermes install failed"
+ENV HERMES_HOME="/root/.hermes"
+ENV PATH="/root/.hermes/bin:${PATH}"
+
+# ─── Source code ───────────────────────────────────
+COPY . .
+
+# ─── Environment ───────────────────────────────────
+ENV NODE_ENV=production
+ENV PORT=3000
+ENV HOSTNAME=0.0.0.0
+ENV DATABASE_URL="file:/app/data/custom.db"
+ENV PYTHONUNBUFFERED=1
+
+# ─── Build Next.js ─────────────────────────────────
+RUN npx next build --webpack 2>&1 || echo "Build failed — will use dev mode"
+
+# ─── Persistent data directory ─────────────────────
+RUN mkdir -p /app/data /app/db
+VOLUME ["/app/data"]
+
+EXPOSE 3000
+
+CMD ["bash", "-c", "export PATH=/root/.hermes/bin:$PATH && npx prisma db push --skip-generate --accept-data-loss && (node -e \"const {PrismaClient}=require('@prisma/client');const bcrypt=require('bcryptjs');(async()=>{const db=new PrismaClient();const email=process.env.ADMIN_EMAIL||'admin@anzaro.local';const password=process.env.ADMIN_PASSWORD||'admin123456';const existing=await db.user.findFirst({where:{role:'admin'}});if(existing){console.log('Admin exists:',existing.email);}else{const hash=await bcrypt.hash(password,12);const u=await db.user.create({data:{email,password:hash,name:'Admin',role:'admin',isVerified:true,isActive:true}});console.log('Admin created:',u.email);}const guest=await db.user.findUnique({where:{email:'guest@anzaro.ai'}});if(!guest){const g=await db.user.create({data:{email:'guest@anzaro.ai',name:'زائر',isVerified:true,role:'user'}});console.log('Guest created:',g.id);}await db.\\$disconnect();})().catch(e=>{console.error(e);process.exit(0);});\" || true) && if [ -f /app/.next/BUILD_ID ]; then npx next start -p 3000 -H 0.0.0.0; else npx next dev --webpack -p 3000 -H 0.0.0.0; fi"]

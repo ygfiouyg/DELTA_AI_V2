@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  delta-ai:
+    build:
+      context: .
+      dockerfile: Dockerfile.hermes
+    container_name: delta-ai
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - delta_data:/app/data
+      - delta_uploads:/app/upload
+      - delta_exports:/app/exports
+      - hermes_data:/root/.hermes
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:/app/data/custom.db
+      - SESSION_SECRET=${SESSION_SECRET:-anzaro-prod-secret-2026}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-anzaro-nextauth-prod-2026}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - ADMIN_EMAIL=${ADMIN_EMAIL:-admin@anzaro.local}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123456}
+      - ZAI_API_KEY=${ZAI_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY:-}
+      - HF_TOKEN=${HF_TOKEN:-}
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-}
+      - HERMES_HOME=/root/.hermes
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    deploy:
+      resources:
+        limits:
+          memory: 3G
+        reservations:
+          memory: 1G
+
+volumes:
+  delta_data:
+  delta_uploads:
+  delta_exports:
+  hermes_data:
