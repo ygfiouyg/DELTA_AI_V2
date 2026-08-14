@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  nova-agent:
+    build: .
+    container_name: nova-agent
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - nova_data:/root/.hermes
+    environment:
+      # AI Providers (من Delta AI .env)
+      - ZAI_API_KEY=${ZAI_API_KEY}
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - DEEPINFRA_API_KEY=${DEEPINFRA_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - HERMES_HOME=/root/.hermes
+
+volumes:
+  nova_data:

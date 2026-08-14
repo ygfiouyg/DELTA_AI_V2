@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 
-interface HermesMessage {
+interface NovaMessage {
   role: 'user' | 'assistant';
   content: string;
   timestamp: number;
@@ -12,55 +12,27 @@ interface HermesMessage {
   durationMs?: number;
 }
 
-interface HermesStatus {
-  installed: boolean;
-  version: string | null;
-  is_ready: boolean;
-  configured_providers: string[];
-  skills_count: number;
-}
-
-export default function HermesPage() {
-  const [status, setStatus] = useState<HermesStatus | null>(null);
-  const [messages, setMessages] = useState<HermesMessage[]>([]);
+export default function NovaAgentPage() {
+  const [messages, setMessages] = useState<NovaMessage[]>([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [loadingStatus, setLoadingStatus] = useState(true);
   const [activeTab, setActiveTab] = useState<'chat' | 'info'>('chat');
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    loadStatus();
-  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const loadStatus = async () => {
-    try {
-      const res = await fetch('/api/hermes/status');
-      if (res.ok) {
-        const data = await res.json();
-        setStatus(data);
-      }
-    } catch (e) {
-      // Silent fail
-    } finally {
-      setLoadingStatus(false);
-    }
-  };
-
   const handleSend = async () => {
     if (!input.trim() || sending) return;
 
-    const userMsg: HermesMessage = {
+    const userMsg: NovaMessage = {
       role: 'user',
       content: input.trim(),
       timestamp: Date.now(),
     };
 
-    const loadingMsg: HermesMessage = {
+    const loadingMsg: NovaMessage = {
       role: 'assistant',
       content: '',
       timestamp: Date.now(),
@@ -72,6 +44,7 @@ export default function HermesPage() {
     setSending(true);
 
     try {
+      // محاولة استخدام Nova Agent API المباشر
       const res = await fetch('/api/hermes/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,7 +65,7 @@ export default function HermesPage() {
             content: data.response || data.error || 'No response received',
             timestamp: Date.now(),
             error: !data.success,
-            source: data.source || 'unknown',
+            source: data.source === 'hermes-native' ? 'Nova Engine' : 'Platform Models',
             durationMs: data.duration_ms,
           },
         ];
@@ -128,12 +101,10 @@ export default function HermesPage() {
       <div className="sticky top-0 z-50 backdrop-blur-xl bg-background/80 border-b border-border">
         <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
           <a href="/" className="px-3 py-2 rounded-lg hover:bg-muted text-sm">→ رجوع</a>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-xl shadow-lg">☤</div>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-xl shadow-lg">⬡</div>
           <div className="flex-1">
             <h1 className="font-bold text-sm">Nova Agent</h1>
-            <p className="text-xs text-muted-foreground">
-              {loadingStatus ? '...' : status?.is_ready ? `✅ جاهز v${status.version}` : '⚠️ يستخدم موديلات المنصة'}
-            </p>
+            <p className="text-xs text-muted-foreground">Self-improving AI Engine</p>
           </div>
         </div>
         <div className="max-w-4xl mx-auto px-4 pb-2 flex gap-2">
@@ -149,7 +120,7 @@ export default function HermesPage() {
             <div className="space-y-4">
               {messages.length === 0 && (
                 <div className="text-center py-20">
-                  <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-3xl shadow-xl mb-4">☤</div>
+                  <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-br from-purple-600 to-indigo-600 flex items-center justify-center text-3xl shadow-xl mb-4">⬡</div>
                   <h3 className="text-lg font-bold mb-2">Nova Agent</h3>
                   <p className="text-muted-foreground text-sm max-w-md mx-auto mb-6">
                     وكيل ذكاء اصطناعي ذاتي التحسين. بينشئ مهارات من التجربة وبيبحث في المحادثات السابقة.
@@ -172,14 +143,14 @@ export default function HermesPage() {
                           <span className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '150ms' }} />
                           <span className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '300ms' }} />
                         </div>
-                        <span className="text-xs">يفكر...</span>
+                        <span className="text-xs">Nova يفكر...</span>
                       </div>
                     ) : (
                       <>
                         <div className="whitespace-pre-wrap text-sm break-words" dir="auto">{msg.content}</div>
                         {msg.source && (
                           <div className="mt-2 pt-2 border-t border-border/50 text-xs text-muted-foreground flex justify-between">
-                            <span>⚡ {msg.source === 'hermes-native' ? 'Hermes مباشر' : 'موديلات المنصة'}</span>
+                            <span>⚡ {msg.source}</span>
                             {msg.durationMs && <span>{(msg.durationMs / 1000).toFixed(1)}s</span>}
                           </div>
                         )}
@@ -195,41 +166,17 @@ export default function HermesPage() {
           {activeTab === 'info' && (
             <div className="space-y-4">
               <div className="rounded-xl border border-border bg-card p-6">
-                <h2 className="font-bold text-lg mb-4">حالة Hermes</h2>
-                {loadingStatus ? (
-                  <p className="text-muted-foreground">جارٍ التحميل...</p>
-                ) : status ? (
-                  <div className="space-y-3">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">مثبت:</span>
-                      <span className="text-sm font-medium">{status.installed ? '✅ نعم' : '❌ لا'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">الإصدار:</span>
-                      <span className="text-sm font-medium">{status.version || 'N/A'}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">جاهز:</span>
-                      <span className="text-sm font-medium">{status.is_ready ? '✅ نعم' : '⚠️ يستخدم موديلات المنصة'}</span>
-                    </div>
-                    {status.configured_providers && status.configured_providers.length > 0 && (
-                      <div className="flex justify-between">
-                        <span className="text-sm text-muted-foreground">المزودين:</span>
-                        <span className="text-sm font-medium">{status.configured_providers.join(', ')}</span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">تعذر تحميل الحالة</p>
-                )}
-              </div>
-
-              <div className="rounded-xl border border-border bg-card p-6">
-                <h2 className="font-bold text-lg mb-4">كيف يعمل؟</h2>
-                <div className="space-y-3 text-sm text-muted-foreground">
-                  <p>1. <strong>Hermes مباشر:</strong> لو Hermes مثبت ولديه API key، بيستخدم providers الخاصة بيه.</p>
-                  <p>2. <strong>موديلات المنصة:</strong> لو Hermes مش جاهز، بيستخدم موديلات المنصة (GLM, OpenRouter, إلخ) كـ fallback.</p>
-                  <p>3. <strong>النتيجة:</strong> الصفحة بتشتغل دائماً — حتى لو Hermes مش متثبت!</p>
+                <h2 className="font-bold text-lg mb-4">حالة Nova Agent</h2>
+                <div className="space-y-3 text-sm">
+                  <p>Nova Agent هو محرك ذكاء اصطناعي مستقل بيعمل في Docker container منفصل.</p>
+                  <p>بيـ integrate مع منصة Anzaro وبيـ provide:</p>
+                  <ul className="list-disc list-inside mt-2 space-y-1 text-muted-foreground">
+                    <li>15+ مهارة جاهزة (research, coding, email, ...)</li>
+                    <li>ذاكرة دائمة (persistent memory)</li>
+                    <li>تقفي أثر المحادثات (session search)</li>
+                    <li>جدولة المهام (cron scheduling)</li>
+                    <li>أتمتة المهام (task automation)</li>
+                  </ul>
                 </div>
               </div>
             </div>
@@ -246,7 +193,7 @@ export default function HermesPage() {
                 value={input}
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder="اكتب رسالة..."
+                placeholder="اكتب رسالة لـ Nova..."
                 disabled={sending}
                 rows={1}
                 className="flex-1 resize-none rounded-2xl bg-muted/50 border border-border px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 max-h-32"
