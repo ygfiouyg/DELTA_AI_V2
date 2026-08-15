@@ -1,56 +1,34 @@
 'use client';
-
-import { useEffect, useState } from 'react';
-
+import { useState, useEffect } from 'react';
 export default function AppearancePage() {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/draix/appearance');
-      if (res.ok) {
-        const result = await res.json();
-        setData(Array.isArray(result) ? result : (result.data || []));
-      }
-    } catch (e) {
-      console.error('Failed to fetch appearance:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const [theme, setTheme] = useState('dark');
+  const [font, setFont] = useState('Inter');
+  useEffect(() => { const saved = localStorage.getItem('draix-theme'); if (saved) setTheme(saved); }, []);
+  const changeTheme = (t: string) => { setTheme(t); localStorage.setItem('draix-theme', t); };
+  const themes = [
+    { id: 'dark', name: 'Dark', preview: '#1A1A1A' },
+    { id: 'light', name: 'Light', preview: '#FAF9F6' },
+  ];
+  const fonts = ['Inter', 'Playfair Display', 'monospace'];
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display font-bold mb-2">🎨 Appearance المظهر والسمات</h1>
-        <p className="text-draix-muted"></p>
+    <div style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '24px' }}>🎨 Appearance</h1>
+      <div className="draix-card" style={{ marginBottom: '24px' }}>
+        <h3 style={{ fontWeight: 'bold', marginBottom: '16px' }}>Theme</h3>
+        <div style={{ display: 'flex', gap: '16px' }}>
+          {themes.map(t => (
+            <div key={t.id} onClick={() => changeTheme(t.id)} style={{ cursor: 'pointer', border: theme === t.id ? '2px solid var(--draix-gold)' : '2px solid var(--draix-border)', borderRadius: '12px', padding: '16px', flex: 1 }}>
+              <div style={{ width: '100%', height: '60px', borderRadius: '8px', backgroundColor: t.preview, marginBottom: '8px' }}></div>
+              <p style={{ textAlign: 'center', fontWeight: 500 }}>{t.name}</p>
+            </div>
+          ))}
+        </div>
       </div>
-
       <div className="draix-card">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-draix-gold"></div>
-          </div>
-        ) : data.length > 0 ? (
-          <div className="space-y-3">
-            {data.map((item, i) => (
-              <div key={i} className="p-4 border border-draix-border-light dark:border-draix-border-dark rounded-lg hover:border-draix-gold transition-colors">
-                <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(item, null, 2)}</pre>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">🎨 Appearance</div>
-            <p className="text-draix-muted">No data available</p>
-            <p className="text-xs text-draix-muted mt-2">Connected to: /api/draix/appearance</p>
-          </div>
-        )}
+        <h3 style={{ fontWeight: 'bold', marginBottom: '16px' }}>Font</h3>
+        <select value={font} onChange={(e) => setFont(e.target.value)} className="draix-input">
+          {fonts.map(f => <option key={f} value={f}>{f}</option>)}
+        </select>
       </div>
     </div>
   );

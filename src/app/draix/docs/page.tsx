@@ -1,56 +1,30 @@
 'use client';
-
-import { useEffect, useState } from 'react';
-
 export default function DocsPage() {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/draix/docs');
-      if (res.ok) {
-        const result = await res.json();
-        setData(Array.isArray(result) ? result : (result.data || []));
-      }
-    } catch (e) {
-      console.error('Failed to fetch docs:', e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const docs = [
+    { title: 'Getting Started', url: 'https://hermes-agent.nousresearch.com/docs/getting-started/quickstart', icon: '🚀' },
+    { title: 'CLI Usage', url: 'https://hermes-agent.nousresearch.com/docs/user-guide/cli', icon: '⌨️' },
+    { title: 'Configuration', url: 'https://hermes-agent.nousresearch.com/docs/user-guide/configuration', icon: '⚙️' },
+    { title: 'Messaging Gateway', url: 'https://hermes-agent.nousresearch.com/docs/user-guide/messaging', icon: '📱' },
+    { title: 'Security', url: 'https://hermes-agent.nousresearch.com/docs/user-guide/security', icon: '🔒' },
+    { title: 'Tools & Toolsets', url: 'https://hermes-agent.nousresearch.com/docs/user-guide/features/tools', icon: '🛠️' },
+    { title: 'Skills System', url: 'https://hermes-agent.nousresearch.com/docs/user-guide/features/skills', icon: '🧠' },
+    { title: 'Memory', url: 'https://hermes-agent.nousresearch.com/docs/user-guide/features/memory', icon: '💾' },
+    { title: 'MCP Integration', url: 'https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp', icon: '🔗' },
+    { title: 'Cron Scheduling', url: 'https://hermes-agent.nousresearch.com/docs/user-guide/features/cron', icon: '⏰' },
+    { title: 'Architecture', url: 'https://hermes-agent.nousresearch.com/docs/developer-guide/architecture', icon: '🏗️' },
+    { title: 'Contributing', url: 'https://hermes-agent.nousresearch.com/docs/developer-guide/contributing', icon: '🤝' },
+  ];
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display font-bold mb-2">📚 Documentation الوثائق</h1>
-        <p className="text-draix-muted"></p>
-      </div>
-
-      <div className="draix-card">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-draix-gold"></div>
-          </div>
-        ) : data.length > 0 ? (
-          <div className="space-y-3">
-            {data.map((item, i) => (
-              <div key={i} className="p-4 border border-draix-border-light dark:border-draix-border-dark rounded-lg hover:border-draix-gold transition-colors">
-                <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(item, null, 2)}</pre>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">📚 Documentation</div>
-            <p className="text-draix-muted">No data available</p>
-            <p className="text-xs text-draix-muted mt-2">Connected to: /api/draix/docs</p>
-          </div>
-        )}
+    <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '24px' }}>📚 Documentation</h1>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
+        {docs.map(d => (
+          <a key={d.title} href={d.url} target="_blank" rel="noopener" className="draix-card" style={{ textDecoration: 'none', color: 'inherit' }}>
+            <div style={{ fontSize: '32px', marginBottom: '8px' }}>{d.icon}</div>
+            <h3 style={{ fontWeight: 'bold' }}>{d.title}</h3>
+            <p style={{ fontSize: '12px', color: 'var(--draix-gold)', marginTop: '4px' }}>Read →</p>
+          </a>
+        ))}
       </div>
     </div>
   );

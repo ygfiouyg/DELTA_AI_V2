@@ -1,56 +1,25 @@
 'use client';
-
 import { useEffect, useState } from 'react';
-
+interface Achievement { id: string; name: string; description?: string; unlocked?: boolean; date?: string; }
 export default function AchievementsPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/draix/achievements');
-      if (res.ok) {
-        const result = await res.json();
-        setData(Array.isArray(result) ? result : (result.data || []));
-      }
-    } catch (e) {
-      console.error('Failed to fetch achievements:', e);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => { fetchAchievements(); }, []);
+  const fetchAchievements = async () => {
+    try { const res = await fetch('/api/draix/achievements'); if (res.ok) { const d = await res.json(); setAchievements(Array.isArray(d) ? d : (d.achievements || [])); } } catch(e){} finally { setLoading(false); }
   };
-
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display font-bold mb-2">🏆 Achievements الإنجازات</h1>
-        <p className="text-draix-muted"></p>
-      </div>
-
-      <div className="draix-card">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-draix-gold"></div>
+    <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '24px' }}>🏆 Achievements</h1>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
+        {loading ? <p>Loading...</p> : achievements.map(a => (
+          <div key={a.id} className="draix-card" style={{ opacity: a.unlocked ? 1 : 0.5, textAlign: 'center' }}>
+            <div style={{ fontSize: '40px', marginBottom: '8px' }}>{a.unlocked ? '🏆' : '🔒'}</div>
+            <h3 style={{ fontWeight: 'bold', fontSize: '16px' }}>{a.name}</h3>
+            {a.description && <p style={{ fontSize: '12px', color: 'var(--draix-muted)', marginTop: '4px' }}>{a.description}</p>}
+            {a.date && <p style={{ fontSize: '11px', color: 'var(--draix-gold)', marginTop: '8px' }}>{new Date(a.date).toLocaleDateString()}</p>}
           </div>
-        ) : data.length > 0 ? (
-          <div className="space-y-3">
-            {data.map((item, i) => (
-              <div key={i} className="p-4 border border-draix-border-light dark:border-draix-border-dark rounded-lg hover:border-draix-gold transition-colors">
-                <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(item, null, 2)}</pre>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">🏆 Achievements</div>
-            <p className="text-draix-muted">No data available</p>
-            <p className="text-xs text-draix-muted mt-2">Connected to: /api/draix/achievements</p>
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );

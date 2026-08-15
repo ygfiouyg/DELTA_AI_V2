@@ -1,56 +1,24 @@
 'use client';
-
-import { useEffect, useState } from 'react';
-
+import { useState } from 'react';
 export default function BackupPage() {
-  const [data, setData] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/draix/backup');
-      if (res.ok) {
-        const result = await res.json();
-        setData(Array.isArray(result) ? result : (result.data || []));
-      }
-    } catch (e) {
-      console.error('Failed to fetch backup:', e);
-    } finally {
-      setLoading(false);
-    }
+  const [creating, setCreating] = useState(false);
+  const [message, setMessage] = useState('');
+  const createBackup = async () => {
+    setCreating(true); setMessage('');
+    try { const res = await fetch('/api/draix/ops/backup', { method: 'POST' }); if (res.ok) { const d = await res.json(); setMessage('✅ Backup created!'); } else { setMessage('❌ Failed'); } } catch(e: any) { setMessage(`❌ ${e.message}`); } finally { setCreating(false); }
   };
-
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display font-bold mb-2">🔄 Backup النسخ الاحتياطي</h1>
-        <p className="text-draix-muted"></p>
+    <div style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '24px' }}>🔄 Backup & Import</h1>
+      <div className="draix-card" style={{ marginBottom: '16px' }}>
+        <h3 style={{ fontWeight: 'bold', marginBottom: '12px' }}>Create Backup</h3>
+        <p style={{ color: 'var(--draix-muted)', marginBottom: '16px', fontSize: '14px' }}>Create a full backup of your Hermes Agent data, sessions, and configuration.</p>
+        <button onClick={createBackup} disabled={creating} className="draix-btn-primary">{creating ? 'Creating...' : '💾 Create Backup'}</button>
+        {message && <p style={{ marginTop: '12px' }}>{message}</p>}
       </div>
-
       <div className="draix-card">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-draix-gold"></div>
-          </div>
-        ) : data.length > 0 ? (
-          <div className="space-y-3">
-            {data.map((item, i) => (
-              <div key={i} className="p-4 border border-draix-border-light dark:border-draix-border-dark rounded-lg hover:border-draix-gold transition-colors">
-                <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(item, null, 2)}</pre>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">🔄 Backup</div>
-            <p className="text-draix-muted">No data available</p>
-            <p className="text-xs text-draix-muted mt-2">Connected to: /api/draix/backup</p>
-          </div>
-        )}
+        <h3 style={{ fontWeight: 'bold', marginBottom: '12px' }}>Download</h3>
+        <a href="/api/draix/ops/backup/download" className="draix-btn-secondary" style={{ display: 'inline-block', textDecoration: 'none' }}>⬇️ Download Last Backup</a>
       </div>
     </div>
   );
