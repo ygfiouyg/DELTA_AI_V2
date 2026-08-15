@@ -1,0 +1,47 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* DrAix Light Mode */
+    --draix-bg-light: #FAF9F6;        /* Warm off-white */
+    --draix-surface-light: #FFFFFF;     /* Ivory */
+    --draix-border-light: #E8E6E1;      /* Soft gray */
+    --draix-text-light: #1A1A1A;       /* Dark charcoal */
+    --draix-muted-light: #6B6B6B;      /* Muted gray */
+    --draix-hover-light: #F5F4F0;       /* Light beige */
+    
+    /* DrAix Dark Mode */
+    --draix-bg-dark: #1A1A1A;          /* Deep charcoal */
+    --draix-surface-dark: #242424;      /* Near-black */
+    --draix-border-dark: #333333;       /* Dark graphite */
+    --draix-text-dark: #E8E6E1;        /* Soft warm-gray */
+    --draix-muted-dark: #888888;        /* Muted gray */
+    --draix-hover-dark: #2A2A2A;        /* Dark hover */
+    
+    /* DrAix Gold/Bronze (Primary Accent) */
+    --draix-gold: #C5A572;             /* Warm gold */
+    --draix-gold-hover: #B8956A;       /* Darker gold */
+    --draix-gold-light: #E8D5B7;       /* Light gold */
+    --draix-gold-dark: #8A7454;        /* Dark gold */
+  }
+}
+
+@layer components {
+  .draix-card {
+    @apply bg-draix-surface-light dark:bg-draix-surface-dark border border-draix-border-light dark:border-draix-border-dark rounded-xl p-6 transition-all;
+  }
+  
+  .draix-btn-primary {
+    @apply bg-draix-gold text-white px-4 py-2 rounded-lg hover:bg-draix-gold-hover transition-colors font-medium;
+  }
+  
+  .draix-btn-secondary {
+    @apply border border-draix-border-light dark:border-draix-border-dark px-4 py-2 rounded-lg hover:bg-draix-hover-light dark:hover:bg-draix-hover-dark transition-colors font-medium;
+  }
+  
+  .draix-input {
+    @apply w-full bg-transparent border border-draix-border-light dark:border-draix-border-dark rounded-lg px-4 py-2 focus:outline-none focus:border-draix-gold transition-colors;
+  }
+}
