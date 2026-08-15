@@ -1,5 +1,5 @@
 # ═══════════════════════════════════════════════════
-# Dr. AIX Agent (Hermes) — Docker Container
+# Dr. AIX Agent (Hermes) — Docker Container (Fixed)
 # ═══════════════════════════════════════════════════
 FROM ubuntu:22.04
 
@@ -12,17 +12,18 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     ripgrep \
     ca-certificates \
+    xz-utils \
+    build-essential \
     && rm -rf /var/lib/apt/lists/*
 
 # ─── Install uv (Python package manager) ──────────
 RUN curl -LsSf https://astral.sh/uv/install.sh | sh
-ENV PATH="/root/.local/bin:$PATH"
+ENV PATH="/root/.local/bin:/root/.hermes/bin:/root/.hermes/node/bin:/usr/local/share/uv/bin:$PATH"
 
 # ─── Install Hermes Agent ──────────────────────────
 RUN curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --skip-setup
 
 ENV HERMES_HOME="/root/.hermes"
-ENV PATH="/root/.hermes/bin:/root/.local/bin:$PATH"
 
 # ─── Expose port ───────────────────────────────────
 EXPOSE 8000
