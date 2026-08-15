@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   hermes:
     build:
@@ -8,14 +6,11 @@ services:
     container_name: hermes-dashboard
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
-      # بيانات Hermes (config, skills, sessions, memory)
       - hermes_data:/root/.hermes
-      # ربط مجلد المشروع (عشان Hermes يقدر يشتغل على الملفات)
       - /opt/delta-ai:/workspace
     environment:
-      # ─── AI Providers ───
       - ZAI_API_KEY=${ZAI_API_KEY:-}
       - ZHIPUAI_API_KEY=${ZHIPUAI_API_KEY:-}
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
@@ -24,21 +19,15 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
       - HF_TOKEN=${HF_TOKEN:-}
-      
-      # ─── Hermes Config ───
       - HERMES_HOME=/root/.hermes
       - HERMES_NONINTERACTIVE=1
-      
-      # ─── Workspace ───
       - HERMES_WORKSPACE=/workspace
-
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 60s
-
     deploy:
       resources:
         limits:
