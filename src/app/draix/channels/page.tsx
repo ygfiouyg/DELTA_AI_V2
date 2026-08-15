@@ -1,56 +1,24 @@
 'use client';
-
 import { useEffect, useState } from 'react';
-
+interface Channel { id: string; name: string; status?: string; configured?: boolean; }
 export default function ChannelsPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [channels, setChannels] = useState<Channel[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/draix/channels');
-      if (res.ok) {
-        const result = await res.json();
-        setData(Array.isArray(result) ? result : (result.data || []));
-      }
-    } catch (e) {
-      console.error('Failed to fetch channels:', e);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => { fetchChannels(); }, []);
+  const fetchChannels = async () => {
+    try { const res = await fetch('/api/draix/channels'); if (res.ok) { const d = await res.json(); setChannels(Array.isArray(d) ? d : (d.channels || d.platforms || [])); } } catch(e){} finally { setLoading(false); }
   };
-
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display font-bold mb-2">📱 Channels قنوات المراسلة</h1>
-        <p className="text-draix-muted"></p>
-      </div>
-
-      <div className="draix-card">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-draix-gold"></div>
+    <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '16px' }}>📱 Channels</h1>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '16px' }}>
+        {loading ? <p>Loading...</p> : channels.map(c => (
+          <div key={c.id} className="draix-card">
+            <h3 style={{ fontWeight: 'bold' }}>{c.name}</h3>
+            <p style={{ fontSize: '14px', color: c.configured ? 'var(--draix-gold)' : 'var(--draix-muted)', marginTop: '4px' }}>{c.configured ? '✓ Configured' : 'Not configured'}</p>
+            {c.status && <span style={{ fontSize: '12px', marginTop: '8px', display: 'inline-block' }}>{c.status}</span>}
           </div>
-        ) : data.length > 0 ? (
-          <div className="space-y-3">
-            {data.map((item, i) => (
-              <div key={i} className="p-4 border border-draix-border-light dark:border-draix-border-dark rounded-lg hover:border-draix-gold transition-colors">
-                <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(item, null, 2)}</pre>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">📱 Channels</div>
-            <p className="text-draix-muted">No data available</p>
-            <p className="text-xs text-draix-muted mt-2">Connected to: /api/draix/channels</p>
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );

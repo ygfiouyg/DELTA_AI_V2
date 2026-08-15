@@ -1,57 +1,22 @@
 'use client';
-
 import { useEffect, useState } from 'react';
-
+interface Key { provider: string; status?: string; key_preview?: string; }
 export default function KeysPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [keys, setKeys] = useState<Key[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/draix/keys');
-      if (res.ok) {
-        const result = await res.json();
-        setData(Array.isArray(result) ? result : (result.data || []));
-      }
-    } catch (e) {
-      console.error('Failed to fetch keys:', e);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => { fetchKeys(); }, []);
+  const fetchKeys = async () => {
+    try { const res = await fetch('/api/draix/keys'); if (res.ok) { const d = await res.json(); setKeys(Array.isArray(d) ? d : (d.keys || d.credentials || [])); } } catch(e){} finally { setLoading(false); }
   };
-
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display font-bold mb-2">🔑 Keys المفاتيح والاعتمادات</h1>
-        <p className="text-draix-muted"></p>
-      </div>
-
-      <div className="draix-card">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-draix-gold"></div>
-          </div>
-        ) : data.length > 0 ? (
-          <div className="space-y-3">
-            {data.map((item, i) => (
-              <div key={i} className="p-4 border border-draix-border-light dark:border-draix-border-dark rounded-lg hover:border-draix-gold transition-colors">
-                <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(item, null, 2)}</pre>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">🔑 Keys</div>
-            <p className="text-draix-muted">No data available</p>
-            <p className="text-xs text-draix-muted mt-2">Connected to: /api/draix/keys</p>
-          </div>
-        )}
-      </div>
+    <div style={{ padding: '32px', maxWidth: '800px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '16px' }}>🔑 API Keys</h1>
+      {loading ? <p>Loading...</p> : keys.map(k => (
+        <div key={k.provider} className="draix-card" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+          <div><h3 style={{ fontWeight: 'bold' }}>{k.provider}</h3>{k.key_preview && <p style={{ fontSize: '14px', color: 'var(--draix-muted)' }}>{k.key_preview}</p>}</div>
+          <span style={{ fontSize: '14px', color: k.status === 'active' ? 'var(--draix-gold)' : 'var(--draix-muted)' }}>{k.status || 'Unknown'}</span>
+        </div>
+      ))}
     </div>
   );
 }

@@ -1,57 +1,25 @@
 'use client';
-
 import { useEffect, useState } from 'react';
-
+interface Webhook { name: string; url?: string; enabled?: boolean; }
 export default function WebhooksPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/draix/webhooks');
-      if (res.ok) {
-        const result = await res.json();
-        setData(Array.isArray(result) ? result : (result.data || []));
-      }
-    } catch (e) {
-      console.error('Failed to fetch webhooks:', e);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => { fetchWebhooks(); }, []);
+  const fetchWebhooks = async () => {
+    try { const res = await fetch('/api/draix/webhooks'); if (res.ok) { const d = await res.json(); setWebhooks(Array.isArray(d) ? d : (d.webhooks || [])); } } catch(e){} finally { setLoading(false); }
   };
-
+  const toggleWebhook = async (name: string, enabled: boolean) => {
+    try { await fetch(`/api/draix/webhooks/${name}/enabled`, { method: 'PUT', body: JSON.stringify({ enabled: !enabled }), headers: { 'Content-Type': 'application/json' } }); fetchWebhooks(); } catch(e){}
+  };
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display font-bold mb-2">🪝 Webhooks خطاطيف الويب</h1>
-        <p className="text-draix-muted"></p>
-      </div>
-
-      <div className="draix-card">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-draix-gold"></div>
-          </div>
-        ) : data.length > 0 ? (
-          <div className="space-y-3">
-            {data.map((item, i) => (
-              <div key={i} className="p-4 border border-draix-border-light dark:border-draix-border-dark rounded-lg hover:border-draix-gold transition-colors">
-                <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(item, null, 2)}</pre>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">🪝 Webhooks</div>
-            <p className="text-draix-muted">No data available</p>
-            <p className="text-xs text-draix-muted mt-2">Connected to: /api/draix/webhooks</p>
-          </div>
-        )}
-      </div>
+    <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '16px' }}>🪝 Webhooks</h1>
+      {loading ? <p>Loading...</p> : webhooks.map(w => (
+        <div key={w.name} className="draix-card" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+          <div><h3 style={{ fontWeight: 'bold' }}>{w.name}</h3>{w.url && <p style={{ fontSize: '14px', color: 'var(--draix-muted)' }}>{w.url}</p>}</div>
+          <button onClick={() => toggleWebhook(w.name, !!w.enabled)} className={w.enabled ? 'draix-btn-secondary' : 'draix-btn-primary'}>{w.enabled ? 'Disable' : 'Enable'}</button>
+        </div>
+      ))}
     </div>
   );
 }

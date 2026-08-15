@@ -1,56 +1,29 @@
 'use client';
-
 import { useEffect, useState } from 'react';
 
+interface Plugin { name: string; description?: string; enabled?: boolean; version?: string; }
 export default function PluginsPage() {
-  const [data, setData] = useState<any[]>([]);
+  const [plugins, setPlugins] = useState<Plugin[]>([]);
   const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const res = await fetch('/api/draix/plugins');
-      if (res.ok) {
-        const result = await res.json();
-        setData(Array.isArray(result) ? result : (result.data || []));
-      }
-    } catch (e) {
-      console.error('Failed to fetch plugins:', e);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => { fetchPlugins(); }, []);
+  const fetchPlugins = async () => {
+    try { const res = await fetch('/api/draix/plugins'); if (res.ok) { const d = await res.json(); setPlugins(Array.isArray(d) ? d : (d.plugins || [])); } } catch(e){} finally { setLoading(false); }
   };
-
+  const togglePlugin = async (name: string, enable: boolean) => {
+    try { await fetch(`/api/draix/plugins/${name}/${enable ? 'enable' : 'disable'}`, { method: 'POST' }); fetchPlugins(); } catch(e){}
+  };
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-display font-bold mb-2">🔌 Plugins الإضافات</h1>
-        <p className="text-draix-muted"></p>
-      </div>
-
-      <div className="draix-card">
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-draix-gold"></div>
+    <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
+      <h1 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '16px' }}>🔌 Plugins</h1>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '16px' }}>
+        {loading ? <p>Loading...</p> : plugins.map(p => (
+          <div key={p.name} className="draix-card">
+            <h3 style={{ fontWeight: 'bold' }}>{p.name}</h3>
+            <p style={{ fontSize: '14px', color: 'var(--draix-muted)', marginTop: '4px' }}>{p.description || 'No description'}</p>
+            {p.version && <p style={{ fontSize: '12px', color: 'var(--draix-muted)', marginTop: '8px' }}>v{p.version}</p>}
+            <button onClick={() => togglePlugin(p.name, !p.enabled)} className={p.enabled ? 'draix-btn-secondary' : 'draix-btn-primary'} style={{ marginTop: '12px', fontSize: '14px' }}>{p.enabled ? 'Disable' : 'Enable'}</button>
           </div>
-        ) : data.length > 0 ? (
-          <div className="space-y-3">
-            {data.map((item, i) => (
-              <div key={i} className="p-4 border border-draix-border-light dark:border-draix-border-dark rounded-lg hover:border-draix-gold transition-colors">
-                <pre className="text-sm whitespace-pre-wrap">{JSON.stringify(item, null, 2)}</pre>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <div className="text-4xl mb-3">🔌 Plugins</div>
-            <p className="text-draix-muted">No data available</p>
-            <p className="text-xs text-draix-muted mt-2">Connected to: /api/draix/plugins</p>
-          </div>
-        )}
+        ))}
       </div>
     </div>
   );

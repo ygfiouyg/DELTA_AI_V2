@@ -1,47 +1,126 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* DrAix Agent — Design System */
 
-@layer base {
-  :root {
-    /* DrAix Light Mode */
-    --draix-bg-light: #FAF9F6;        /* Warm off-white */
-    --draix-surface-light: #FFFFFF;     /* Ivory */
-    --draix-border-light: #E8E6E1;      /* Soft gray */
-    --draix-text-light: #1A1A1A;       /* Dark charcoal */
-    --draix-muted-light: #6B6B6B;      /* Muted gray */
-    --draix-hover-light: #F5F4F0;       /* Light beige */
-    
-    /* DrAix Dark Mode */
-    --draix-bg-dark: #1A1A1A;          /* Deep charcoal */
-    --draix-surface-dark: #242424;      /* Near-black */
-    --draix-border-dark: #333333;       /* Dark graphite */
-    --draix-text-dark: #E8E6E1;        /* Soft warm-gray */
-    --draix-muted-dark: #888888;        /* Muted gray */
-    --draix-hover-dark: #2A2A2A;        /* Dark hover */
-    
-    /* DrAix Gold/Bronze (Primary Accent) */
-    --draix-gold: #C5A572;             /* Warm gold */
-    --draix-gold-hover: #B8956A;       /* Darker gold */
-    --draix-gold-light: #E8D5B7;       /* Light gold */
-    --draix-gold-dark: #8A7454;        /* Dark gold */
-  }
+:root {
+  /* Light Mode */
+  --draix-bg: #FAF9F6;
+  --draix-surface: #FFFFFF;
+  --draix-border: #E8E6E1;
+  --draix-text: #1A1A1A;
+  --draix-muted: #6B6B6B;
+  --draix-hover: #F5F4F0;
+  
+  /* Gold/Bronze Accent */
+  --draix-gold: #C5A572;
+  --draix-gold-hover: #B8956A;
+  --draix-gold-light: #E8D5B7;
 }
 
-@layer components {
-  .draix-card {
-    @apply bg-draix-surface-light dark:bg-draix-surface-dark border border-draix-border-light dark:border-draix-border-dark rounded-xl p-6 transition-all;
-  }
+.dark {
+  /* Dark Mode */
+  --draix-bg: #1A1A1A;
+  --draix-surface: #242424;
+  --draix-border: #333333;
+  --draix-text: #E8E6E1;
+  --draix-muted: #888888;
+  --draix-hover: #2A2A2A;
   
-  .draix-btn-primary {
-    @apply bg-draix-gold text-white px-4 py-2 rounded-lg hover:bg-draix-gold-hover transition-colors font-medium;
-  }
-  
-  .draix-btn-secondary {
-    @apply border border-draix-border-light dark:border-draix-border-dark px-4 py-2 rounded-lg hover:bg-draix-hover-light dark:hover:bg-draix-hover-dark transition-colors font-medium;
-  }
-  
-  .draix-input {
-    @apply w-full bg-transparent border border-draix-border-light dark:border-draix-border-dark rounded-lg px-4 py-2 focus:outline-none focus:border-draix-gold transition-colors;
-  }
+  /* Gold/Bronze Accent (same) */
+  --draix-gold: #C5A572;
+  --draix-gold-hover: #B8956A;
+  --draix-gold-light: #8A7454;
+}
+
+/* Base Styles */
+body {
+  background-color: var(--draix-bg);
+  color: var(--draix-text);
+  font-family: 'Inter', system-ui, sans-serif;
+}
+
+/* Utility Classes */
+.draix-surface { background-color: var(--draix-surface); }
+.draix-border { border-color: var(--draix-border); }
+.draix-text { color: var(--draix-text); }
+.draix-muted { color: var(--draix-muted); }
+.draix-hover:hover { background-color: var(--draix-hover); }
+.draix-gold-bg { background-color: var(--draix-gold); }
+.draix-gold-text { color: var(--draix-gold); }
+.draix-gold-border { border-color: var(--draix-gold); }
+
+/* Components */
+.draix-card {
+  background-color: var(--draix-surface);
+  border: 1px solid var(--draix-border);
+  border-radius: 12px;
+  padding: 24px;
+  transition: all 0.2s;
+}
+
+.draix-card:hover {
+  border-color: var(--draix-gold);
+}
+
+.draix-btn-primary {
+  background-color: var(--draix-gold);
+  color: #FFFFFF;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+
+.draix-btn-primary:hover {
+  background-color: var(--draix-gold-hover);
+}
+
+.draix-btn-primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.draix-btn-secondary {
+  border: 1px solid var(--draix-border);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.draix-btn-secondary:hover {
+  background-color: var(--draix-hover);
+}
+
+.draix-input {
+  width: 100%;
+  background-color: transparent;
+  border: 1px solid var(--draix-border);
+  border-radius: 8px;
+  padding: 10px 16px;
+  transition: border-color 0.2s;
+}
+
+.draix-input:focus {
+  outline: none;
+  border-color: var(--draix-gold);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--draix-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--draix-border);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--draix-muted);
+}
+
+/* Animations */
+@keyframes pulse-gold {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
 }
