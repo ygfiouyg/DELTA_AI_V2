@@ -124,33 +124,33 @@ export default function DrAixChat() {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
       {/* Header */}
-      <div style={{ padding: '20px 32px', borderBottom: '1px solid var(--draix-border)' }}>
-        <h1 style={{ fontSize: '22px' }}>Chat</h1>
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+        <h1 style={{ fontSize: '20px' }}>Chat</h1>
       </div>
 
       {/* Messages */}
-      <div style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {messages.length === 0 && (
-            <div style={{ textAlign: 'center', padding: '80px 0' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⬡</div>
-              <h2 style={{ fontSize: '28px', marginBottom: '8px' }}>How can I help you?</h2>
-              <p style={{ color: 'var(--draix-muted)', fontSize: '15px' }}>Ask me anything, upload a file, or use voice.</p>
+            <div style={{ textAlign: 'center', padding: '60px 0' }}>
+              <div style={{ fontSize: '44px', marginBottom: '12px' }}>⬡</div>
+              <h2 style={{ fontSize: '24px', marginBottom: '6px' }}>How can I help you?</h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Ask me anything, upload a file, or use voice.</p>
             </div>
           )}
 
           {messages.map((msg, i) => (
-            <div key={i} className="draix-fade-in" style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+            <div key={i} className="drx-fade-in" style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
               {msg.loading ? (
-                <div className="draix-bubble-ai" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div className="draix-dots"><span></span><span></span><span></span></div>
-                  <span style={{ fontSize: '13px', color: 'var(--draix-muted)' }}>Thinking...</span>
+                <div className="drx-bubble-ai" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="drx-dots"><span></span><span></span><span></span></div>
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Thinking...</span>
                 </div>
               ) : (
-                <div className={msg.role === 'user' ? 'draix-bubble-user' : 'draix-bubble-ai'}>
+                <div className={msg.role === 'user' ? 'drx-bubble-user' : 'drx-bubble-ai'}>
                   <div style={{ whiteSpace: 'pre-wrap' }} dir="auto">{msg.content}</div>
                   {msg.source && (
-                    <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--draix-border)', fontSize: '11px', color: 'var(--draix-muted)' }}>
+                    <div style={{ marginTop: '6px', paddingTop: '6px', borderTop: '1px solid var(--border)', fontSize: '11px', color: 'var(--text-muted)' }}>
                       ⚡ {msg.source}
                     </div>
                   )}
@@ -163,13 +163,14 @@ export default function DrAixChat() {
       </div>
 
       {/* Input */}
-      <div style={{ padding: '20px 32px', borderTop: '1px solid var(--draix-border)' }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', flexShrink: 0 }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '10px' }}>
           <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} />
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading || sending}
-            style={{ background: 'none', border: '1px solid var(--draix-border)', borderRadius: '12px', padding: '12px', cursor: 'pointer', fontSize: '18px', color: 'var(--draix-text)' }}
+            className="drx-btn-ghost"
+            style={{ padding: '12px', fontSize: '18px' }}
           >
             {uploading ? '⏳' : '📎'}
           </button>
@@ -181,21 +182,14 @@ export default function DrAixChat() {
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Type a message..."
             disabled={sending}
-            className="draix-input"
+            className="drx-input"
             style={{ flex: 1 }}
           />
 
           <button
             onClick={recording ? stopRecording : startRecording}
-            style={{
-              background: recording ? '#EF4444' : 'none',
-              border: '1px solid var(--draix-border)',
-              borderRadius: '12px',
-              padding: '12px',
-              cursor: 'pointer',
-              fontSize: '18px',
-              color: recording ? '#FFFFFF' : 'var(--draix-text)',
-            }}
+            className={recording ? 'drx-btn-primary' : 'drx-btn-ghost'}
+            style={{ padding: '12px', fontSize: '18px', background: recording ? '#D4645A' : undefined }}
           >
             {recording ? '⏹️' : '🎤'}
           </button>
@@ -203,8 +197,8 @@ export default function DrAixChat() {
           <button
             onClick={handleSend}
             disabled={!input.trim() || sending}
-            className="draix-btn-primary"
-            style={{ padding: '12px 20px' }}
+            className="drx-btn-primary"
+            style={{ padding: '12px 18px', fontSize: '16px' }}
           >
             {sending ? '⏳' : '➤'}
           </button>
