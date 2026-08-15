@@ -1,0 +1,38 @@
+version: '3.8'
+
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: dr-aix-ui
+    restart: unless-stopped
+    ports:
+      - "4000:8080"
+    volumes:
+      - open-webui-data:/app/backend/data
+    environment:
+      # ─── ربط Hermes API ───
+      - OPENAI_API_BASE_URL=http://host.docker.internal:8000/v1
+      - OPENAI_API_KEY=dummy-key
+      
+      # ─── White Labeling ───
+      - WEBUI_NAME=Dr. AIX Agent
+      - WEBUI_FAVICON_PATH=/favicon.png
+      - WEBUI_BRAND_NAME=Dr. AIX Agent
+      - WEBUI_BRAND_DESCRIPTION=Excellence in Every Interaction.
+      
+      # ─── الإعدادات ───
+      - ENABLE_SIGNUP=true
+      - ENABLE_LOGIN_FORM=true
+      - DEFAULT_MODELS=default
+      - SHOW_ADMIN_DETAILS=false
+      - ENABLE_COMMUNITY_SHARING=false
+      - ENABLE_MESSAGE_RATING=false
+      
+      # ─── التخصيص ───
+      - CUSTOM_NAME=Dr. AIX Agent
+      - CUSTOM_URL=https://anov.ddns.net
+      - COPYRIGHT_BY=ANOVA Ventures
+      - COPYRIGHT_URL=https://anov.ddns.net
+
+volumes:
+  open-webui-data:

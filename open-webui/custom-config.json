@@ -1,0 +1,27 @@
+{
+  "ui": {
+    "name": "Dr. AIX Agent",
+    "description": "Excellence in Every Interaction.",
+    "favicon": "/favicon.svg",
+    "copyright": "© 2026 ANOVA Ventures. All rights reserved.",
+    "tagline": "by ANOVA Ventures"
+  },
+  "features": {
+    "enable_signup": true,
+    "enable_login_form": true,
+    "enable_community_sharing": false,
+    "enable_message_rating": false,
+    "show_admin_details": false
+  },
+  "models": {
+    "default": "default",
+    "api_base": "http://host.docker.internal:8000/v1",
+    "api_key": "dummy-key"
+  },
+  "branding": {
+    "primary_color": "#C5A572",
+    "background_color": "#1A1A1A",
+    "text_color": "#E8E6E1",
+    "font": "Inter, system-ui, sans-serif"
+  }
+}
