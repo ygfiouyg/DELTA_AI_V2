@@ -14,17 +14,26 @@ jobs:
           host: ${{ secrets.HETZNER_SERVER_IP }}
           username: root
           key: ${{ secrets.HETZNER_SSH_KEY }}
+          script_stop: true
           script: |
+            set -e
+            
+            echo "📥 Force pulling latest code..."
             cd /opt/delta-ai
+            git fetch --all
+            git reset --hard origin/main
             
-            echo "📥 Pulling latest code..."
-            git pull origin main
+            echo "🧹 Clearing Docker build cache..."
+            docker builder prune -f || true
             
-            echo "🏗️ Rebuilding..."
-            docker compose up -d --build
+            echo "🏗️ Rebuilding with --no-cache..."
+            docker compose build --no-cache
+            
+            echo "🚀 Starting..."
+            docker compose up -d
             
             echo "🧹 Cleaning old images..."
-            docker image prune -f
+            docker image prune -f || true
             
             echo "✅ Deploy complete!"
             docker compose ps
