@@ -2,131 +2,124 @@
 
 import { useEffect, useState } from 'react';
 
-interface Session {
-  id: string;
-  title: string;
-  model?: string;
-  updated_at?: string;
-}
-
 export default function DrAixWorkspace() {
-  const [stats, setStats] = useState({ agents: 0, success: 0, tasks: 0 });
-  const [sessions, setSessions] = useState<Session[]>([]);
+  const [sessions, setSessions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activity, setActivity] = useState<string>('Idle');
 
   useEffect(() => {
-    fetchStats();
     fetchSessions();
-    const interval = setInterval(fetchStats, 10000);
-    return () => clearInterval(interval);
   }, []);
-
-  const fetchStats = async () => {
-    try {
-      const res = await fetch('/api/draix/stats');
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-        setActivity(data.tasks > 0 ? 'Processing' : 'Idle');
-      }
-    } catch (e) {}
-  };
 
   const fetchSessions = async () => {
     try {
       const res = await fetch('/api/draix/sessions');
       if (res.ok) {
         const data = await res.json();
-        const list = Array.isArray(data) ? data : (data.sessions || data.data || []);
-        setSessions(list.slice(0, 5));
+        setSessions(Array.isArray(data) ? data.slice(0, 5) : []);
       }
-    } catch (e) {}
+    } catch {}
     finally { setLoading(false); }
   };
 
   const quickActions = [
-    { icon: '🔍', title: 'Research', desc: 'Deep insights', path: '/draix/chat?action=research' },
-    { icon: '📊', title: 'Analyze', desc: 'Smart analysis', path: '/draix/chat?action=analyze' },
-    { icon: '⚙️', title: 'Automate', desc: 'Workflows', path: '/draix/cron' },
-    { icon: '✨', title: 'Generate', desc: 'Content & more', path: '/draix/chat?action=generate' },
-    { icon: '🧪', title: 'Explore', desc: 'AI tools', path: '/draix/skills' },
+    { icon: '🔍', title: 'Research', desc: 'Deep insights' },
+    { icon: '📊', title: 'Analyze', desc: 'Smart analysis' },
+    { icon: '⚙️', title: 'Automate', desc: 'Workflows' },
+    { icon: '✨', title: 'Generate', desc: 'Content & more' },
+    { icon: '🧪', title: 'Explore', desc: 'AI tools' },
   ];
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="mb-12 text-center">
-        <h1 className="text-5xl font-display font-bold mb-3 text-draix-gold">DrAix Agent</h1>
-        <p className="text-draix-muted text-lg">Excellence in Every Interaction.</p>
+    <div style={{ padding: '48px 48px', maxWidth: '900px', margin: '0 auto' }}>
+      {/* Hero */}
+      <div style={{ textAlign: 'center', marginBottom: '56px' }}>
+        <h1 style={{ fontSize: '52px', lineHeight: 1.1, marginBottom: '12px' }}>
+          DrAix Agent
+        </h1>
+        <p style={{ fontSize: '18px', color: 'var(--draix-muted)', fontWeight: 300, letterSpacing: '0.01em' }}>
+          Excellence in Every Interaction.
+        </p>
       </div>
 
       {/* Composer */}
-      <div className="mb-8">
-        <form onSubmit={(e) => { e.preventDefault(); window.location.href = '/draix/chat'; }} className="relative">
+      <div style={{ marginBottom: '48px' }}>
+        <form onSubmit={(e) => { e.preventDefault(); window.location.href = '/draix/chat'; }} style={{ position: 'relative' }}>
           <input
             type="text"
             placeholder="Ask DrAix anything..."
-            className="w-full bg-draix-surface-light dark:bg-draix-surface-dark border border-draix-border-light dark:border-draix-border-dark rounded-2xl px-6 py-4 text-lg focus:outline-none focus:border-draix-gold transition-colors"
+            style={{
+              width: '100%',
+              background: 'var(--draix-surface)',
+              border: '1px solid var(--draix-border)',
+              borderRadius: '16px',
+              padding: '20px 64px 20px 24px',
+              fontSize: '17px',
+              color: 'var(--draix-text)',
+              outline: 'none',
+              transition: 'all 0.3s',
+              fontFamily: 'inherit',
+              boxShadow: 'var(--draix-shadow)',
+            }}
+            onFocus={(e) => { e.target.style.borderColor = 'var(--draix-gold)'; e.target.style.boxShadow = '0 0 0 4px rgba(197, 165, 114, 0.1)'; }}
+            onBlur={(e) => { e.target.style.borderColor = 'var(--draix-border)'; e.target.style.boxShadow = 'var(--draix-shadow)'; }}
           />
-          <button type="submit" className="absolute right-2 top-1/2 -translate-y-1/2 bg-draix-gold text-white p-3 rounded-xl hover:bg-draix-gold-hover transition-colors">
+          <button type="submit" style={{
+            position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)',
+            background: 'var(--draix-gold)', color: '#1A1A1A', border: 'none',
+            borderRadius: '12px', padding: '12px', cursor: 'pointer', fontSize: '18px',
+            transition: 'all 0.2s',
+          }}>
             ➤
           </button>
         </form>
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-12">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '16px', marginBottom: '56px' }}>
         {quickActions.map((action) => (
           <a
             key={action.title}
-            href={action.path}
-            className="draix-card hover:border-draix-gold transition-all text-center cursor-pointer"
+            href={`/draix/chat?action=${action.title.toLowerCase()}`}
+            className="draix-card"
+            style={{ textAlign: 'center', textDecoration: 'none', color: 'inherit', padding: '20px 12px' }}
           >
-            <div className="text-3xl mb-2">{action.icon}</div>
-            <h3 className="font-bold text-sm mb-1">{action.title}</h3>
-            <p className="text-xs text-draix-muted">{action.desc}</p>
+            <div style={{ fontSize: '28px', marginBottom: '8px' }}>{action.icon}</div>
+            <div style={{ fontWeight: 600, fontSize: '14px', marginBottom: '2px' }}>{action.title}</div>
+            <div style={{ fontSize: '11px', color: 'var(--draix-muted)' }}>{action.desc}</div>
           </a>
         ))}
       </div>
 
       {/* Recent Conversations */}
       <div>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">Recent Conversations</h2>
-          <a href="/draix/sessions" className="text-sm text-draix-gold hover:underline">View all →</a>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <h2 style={{ fontSize: '22px' }}>Recent Conversations</h2>
+          <a href="/draix/sessions" style={{ fontSize: '13px', color: 'var(--draix-gold)', textDecoration: 'none' }}>View all →</a>
         </div>
         
         {loading ? (
-          <div className="space-y-2">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             {[1,2,3].map(i => (
-              <div key={i} className="h-16 rounded-xl bg-draix-hover-light dark:bg-draix-hover-dark animate-pulse"></div>
+              <div key={i} style={{ height: '64px', borderRadius: '12px', background: 'var(--draix-hover)', animation: 'draix-pulse 1.5s ease-in-out infinite' }} />
             ))}
           </div>
         ) : sessions.length > 0 ? (
-          <div className="space-y-2">
-            {sessions.map((session) => (
-              <a
-                key={session.id}
-                href={`/draix/chat?session=${session.id}`}
-                className="block p-4 rounded-xl border border-draix-border-light dark:border-draix-border-dark hover:border-draix-gold transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">{session.title || 'Untitled'}</span>
-                  {session.model && <span className="text-xs text-draix-muted">{session.model}</span>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {sessions.map((s) => (
+              <a key={s.id} href={`/draix/chat?session=${s.id}`} className="draix-card" style={{ padding: '16px 20px', textDecoration: 'none', color: 'inherit' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 500, fontSize: '15px' }}>{s.title || `Session ${s.id.slice(0, 8)}`}</span>
+                  {s.model && <span style={{ fontSize: '12px', color: 'var(--draix-muted)' }}>{s.model}</span>}
                 </div>
               </a>
             ))}
           </div>
         ) : (
-          <div className="text-center py-8 text-draix-muted">
-            <p>No conversations yet. Start a new chat!</p>
+          <div style={{ textAlign: 'center', padding: '48px', color: 'var(--draix-muted)' }}>
+            <p style={{ fontSize: '15px' }}>No conversations yet. Start a new chat!</p>
           </div>
         )}
       </div>
-
-      {/* System Stats (for Right Panel injection) */}
-      <div className="hidden" id="system-stats" data-agents={stats.agents} data-success={stats.success} data-tasks={stats.tasks} data-activity={activity}></div>
     </div>
   );
 }

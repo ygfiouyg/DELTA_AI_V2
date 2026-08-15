@@ -7,7 +7,7 @@ interface Message {
   content: string;
   timestamp: number;
   loading?: boolean;
-  tool?: string;
+  source?: string;
 }
 
 export default function DrAixChat() {
@@ -35,7 +35,6 @@ export default function DrAixChat() {
     setSending(true);
 
     try {
-      // استخدام Hermes API مباشرة (عبر proxy)
       const res = await fetch('/api/draix/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -50,7 +49,7 @@ export default function DrAixChat() {
           role: 'assistant' as const,
           content: data.response || data.error || 'No response',
           timestamp: Date.now(),
-          tool: data.tool_used,
+          source: data.source,
         }];
       });
     } catch (e: any) {
@@ -67,23 +66,15 @@ export default function DrAixChat() {
     }
   };
 
-  // رفع الملفات
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setUploading(true);
     try {
       const formData = new FormData();
       formData.append('file', file);
-
-      const res = await fetch('/api/draix/files/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (data.success) {
+      const res = await fetch('/api/draix/files/upload', { method: 'POST', body: formData });
+      if (res.ok) {
         setMessages(prev => [...prev, {
           role: 'user' as const,
           content: `📎 Uploaded: ${file.name}`,
@@ -98,25 +89,27 @@ export default function DrAixChat() {
     }
   };
 
-  // تسجيل صوتي
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mediaRecorder = new MediaRecorder(stream);
       const chunks: Blob[] = [];
-
       mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(chunks, { type: 'audio/webm' });
-        await transcribeAudio(audioBlob);
+        try {
+          const formData = new FormData();
+          formData.append('audio', audioBlob, 'recording.webm');
+          const res = await fetch('/api/draix/audio/transcribe', { method: 'POST', body: formData });
+          const data = await res.json();
+          if (data.text) setInput(data.text);
+        } catch (e) { console.error('Transcribe error:', e); }
         stream.getTracks().forEach(track => track.stop());
       };
-
       mediaRecorder.start();
       mediaRecorderRef.current = mediaRecorder;
       setRecording(true);
     } catch (e) {
-      console.error('Mic error:', e);
       alert('Microphone access denied');
     }
   };
@@ -128,96 +121,59 @@ export default function DrAixChat() {
     }
   };
 
-  const transcribeAudio = async (audioBlob: Blob) => {
-    try {
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.webm');
-
-      const res = await fetch('/api/draix/audio/transcribe', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (data.text) {
-        setInput(data.text);
-      }
-    } catch (e) {
-      console.error('Transcribe error:', e);
-    }
-  };
-
   return (
-    <div className="flex flex-col h-screen">
-      {/* Chat Header */}
-      <div className="border-b border-draix-border-light dark:border-draix-border-dark p-4">
-        <h1 className="text-xl font-bold">DrAix Chat</h1>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100vh' }}>
+      {/* Header */}
+      <div style={{ padding: '20px 32px', borderBottom: '1px solid var(--draix-border)' }}>
+        <h1 style={{ fontSize: '22px' }}>Chat</h1>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4">
-        <div className="max-w-3xl mx-auto space-y-4">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '32px' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {messages.length === 0 && (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">⬡</div>
-              <h3 className="text-2xl font-display font-bold mb-2">How can I help you?</h3>
-              <p className="text-draix-muted">Ask me anything, upload a file, or use voice.</p>
+            <div style={{ textAlign: 'center', padding: '80px 0' }}>
+              <div style={{ fontSize: '48px', marginBottom: '16px' }}>⬡</div>
+              <h2 style={{ fontSize: '28px', marginBottom: '8px' }}>How can I help you?</h2>
+              <p style={{ color: 'var(--draix-muted)', fontSize: '15px' }}>Ask me anything, upload a file, or use voice.</p>
             </div>
           )}
 
           {messages.map((msg, i) => (
-            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                msg.role === 'user'
-                  ? 'bg-draix-gold text-white'
-                  : 'bg-draix-surface-light dark:bg-draix-surface-dark border border-draix-border-light dark:border-draix-border-dark'
-              }`}>
-                {msg.loading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      <span className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '0ms' }} />
-                      <span className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '150ms' }} />
-                      <span className="w-2 h-2 rounded-full bg-current animate-bounce" style={{ animationDelay: '300ms' }} />
+            <div key={i} className="draix-fade-in" style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+              {msg.loading ? (
+                <div className="draix-bubble-ai" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div className="draix-dots"><span></span><span></span><span></span></div>
+                  <span style={{ fontSize: '13px', color: 'var(--draix-muted)' }}>Thinking...</span>
+                </div>
+              ) : (
+                <div className={msg.role === 'user' ? 'draix-bubble-user' : 'draix-bubble-ai'}>
+                  <div style={{ whiteSpace: 'pre-wrap' }} dir="auto">{msg.content}</div>
+                  {msg.source && (
+                    <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--draix-border)', fontSize: '11px', color: 'var(--draix-muted)' }}>
+                      ⚡ {msg.source}
                     </div>
-                    <span className="text-xs">Thinking...</span>
-                  </div>
-                ) : (
-                  <>
-                    <div className="whitespace-pre-wrap text-sm" dir="auto">{msg.content}</div>
-                    {msg.tool && (
-                      <div className="mt-2 pt-2 border-t border-white/20 text-xs opacity-75">
-                        ⚡ {msg.tool}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
+                  )}
+                </div>
+              )}
             </div>
           ))}
           <div ref={messagesEndRef} />
         </div>
       </div>
 
-      {/* Input Area */}
-      <div className="border-t border-draix-border-light dark:border-draix-border-dark p-4">
-        <div className="max-w-3xl mx-auto flex items-center gap-2">
-          {/* File Upload Button */}
-          <input
-            type="file"
-            ref={fileInputRef}
-            onChange={handleFileUpload}
-            className="hidden"
-          />
+      {/* Input */}
+      <div style={{ padding: '20px 32px', borderTop: '1px solid var(--draix-border)' }}>
+        <div style={{ maxWidth: '800px', margin: '0 auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <input type="file" ref={fileInputRef} onChange={handleFileUpload} style={{ display: 'none' }} />
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={uploading || sending}
-            className="p-3 rounded-xl hover:bg-draix-hover-light dark:hover:bg-draix-hover-dark transition-colors"
-            title="Upload file"
+            style={{ background: 'none', border: '1px solid var(--draix-border)', borderRadius: '12px', padding: '12px', cursor: 'pointer', fontSize: '18px', color: 'var(--draix-text)' }}
           >
             {uploading ? '⏳' : '📎'}
           </button>
 
-          {/* Text Input */}
           <input
             type="text"
             value={input}
@@ -225,23 +181,30 @@ export default function DrAixChat() {
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
             placeholder="Type a message..."
             disabled={sending}
-            className="flex-1 bg-draix-surface-light dark:bg-draix-surface-dark border border-draix-border-light dark:border-draix-border-dark rounded-xl px-4 py-3 focus:outline-none focus:border-draix-gold"
+            className="draix-input"
+            style={{ flex: 1 }}
           />
 
-          {/* Mic Button */}
           <button
             onClick={recording ? stopRecording : startRecording}
-            className={`p-3 rounded-xl transition-colors ${recording ? 'bg-red-500 text-white animate-pulse' : 'hover:bg-draix-hover-light dark:hover:bg-draix-hover-dark'}`}
-            title={recording ? 'Stop recording' : 'Voice message'}
+            style={{
+              background: recording ? '#EF4444' : 'none',
+              border: '1px solid var(--draix-border)',
+              borderRadius: '12px',
+              padding: '12px',
+              cursor: 'pointer',
+              fontSize: '18px',
+              color: recording ? '#FFFFFF' : 'var(--draix-text)',
+            }}
           >
             {recording ? '⏹️' : '🎤'}
           </button>
 
-          {/* Send Button */}
           <button
             onClick={handleSend}
             disabled={!input.trim() || sending}
-            className="bg-draix-gold text-white p-3 rounded-xl hover:bg-draix-gold-hover transition-colors disabled:opacity-50"
+            className="draix-btn-primary"
+            style={{ padding: '12px 20px' }}
           >
             {sending ? '⏳' : '➤'}
           </button>

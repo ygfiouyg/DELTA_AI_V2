@@ -1,126 +1,243 @@
-/* DrAix Agent — Design System */
+/* DrAix Agent — Premium Design System */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap');
 
 :root {
-  /* Light Mode */
   --draix-bg: #FAF9F6;
   --draix-surface: #FFFFFF;
   --draix-border: #E8E6E1;
   --draix-text: #1A1A1A;
   --draix-muted: #6B6B6B;
   --draix-hover: #F5F4F0;
-  
-  /* Gold/Bronze Accent */
   --draix-gold: #C5A572;
   --draix-gold-hover: #B8956A;
   --draix-gold-light: #E8D5B7;
+  --draix-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.03);
+  --draix-shadow-lg: 0 10px 30px rgba(0,0,0,0.08), 0 3px 10px rgba(0,0,0,0.04);
 }
 
 .dark {
-  /* Dark Mode */
-  --draix-bg: #1A1A1A;
-  --draix-surface: #242424;
-  --draix-border: #333333;
+  --draix-bg: #141414;
+  --draix-surface: #1E1E1E;
+  --draix-border: #2A2A2A;
   --draix-text: #E8E6E1;
   --draix-muted: #888888;
-  --draix-hover: #2A2A2A;
-  
-  /* Gold/Bronze Accent (same) */
+  --draix-hover: #252525;
   --draix-gold: #C5A572;
-  --draix-gold-hover: #B8956A;
-  --draix-gold-light: #8A7454;
+  --draix-gold-hover: #D4B582;
+  --draix-gold-light: #3A3228;
+  --draix-shadow: 0 1px 3px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2);
+  --draix-shadow-lg: 0 10px 30px rgba(0,0,0,0.4), 0 3px 10px rgba(0,0,0,0.2);
 }
 
-/* Base Styles */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
 body {
   background-color: var(--draix-bg);
   color: var(--draix-text);
   font-family: 'Inter', system-ui, sans-serif;
+  font-weight: 400;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Utility Classes */
-.draix-surface { background-color: var(--draix-surface); }
-.draix-border { border-color: var(--draix-border); }
-.draix-text { color: var(--draix-text); }
-.draix-muted { color: var(--draix-muted); }
-.draix-hover:hover { background-color: var(--draix-hover); }
-.draix-gold-bg { background-color: var(--draix-gold); }
-.draix-gold-text { color: var(--draix-gold); }
-.draix-gold-border { border-color: var(--draix-gold); }
+h1, h2, h3 { font-family: 'Playfair Display', serif; font-weight: 700; letter-spacing: -0.02em; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--draix-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--draix-muted); }
 
 /* Components */
 .draix-card {
-  background-color: var(--draix-surface);
+  background: var(--draix-surface);
   border: 1px solid var(--draix-border);
-  border-radius: 12px;
+  border-radius: 16px;
   padding: 24px;
-  transition: all 0.2s;
+  box-shadow: var(--draix-shadow);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .draix-card:hover {
   border-color: var(--draix-gold);
+  box-shadow: var(--draix-shadow-lg);
+  transform: translateY(-1px);
 }
 
 .draix-btn-primary {
-  background-color: var(--draix-gold);
-  color: #FFFFFF;
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-weight: 500;
-  transition: background-color 0.2s;
+  background: var(--draix-gold);
+  color: #1A1A1A;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  letter-spacing: 0.01em;
 }
 
 .draix-btn-primary:hover {
-  background-color: var(--draix-gold-hover);
+  background: var(--draix-gold-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(197, 165, 114, 0.3);
 }
 
-.draix-btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.draix-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
 .draix-btn-secondary {
-  border: 1px solid var(--draix-border);
-  padding: 10px 20px;
-  border-radius: 8px;
+  background: transparent;
+  color: var(--draix-text);
+  padding: 12px 24px;
+  border-radius: 12px;
   font-weight: 500;
+  border: 1px solid var(--draix-border);
+  cursor: pointer;
   transition: all 0.2s;
+  font-size: 14px;
 }
 
 .draix-btn-secondary:hover {
-  background-color: var(--draix-hover);
+  background: var(--draix-hover);
+  border-color: var(--draix-gold);
 }
 
 .draix-input {
   width: 100%;
-  background-color: transparent;
+  background: var(--draix-surface);
   border: 1px solid var(--draix-border);
-  border-radius: 8px;
-  padding: 10px 16px;
-  transition: border-color 0.2s;
+  border-radius: 12px;
+  padding: 14px 18px;
+  color: var(--draix-text);
+  font-size: 15px;
+  font-family: inherit;
+  transition: all 0.2s;
+  outline: none;
 }
 
 .draix-input:focus {
-  outline: none;
   border-color: var(--draix-gold);
+  box-shadow: 0 0 0 3px rgba(197, 165, 114, 0.1);
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
+.draix-input::placeholder { color: var(--draix-muted); }
+
+/* Navigation item */
+.draix-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 16px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--draix-muted);
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s;
+  cursor: pointer;
 }
-::-webkit-scrollbar-track {
-  background: var(--draix-bg);
+
+.draix-nav-item:hover {
+  background: var(--draix-hover);
+  color: var(--draix-text);
 }
-::-webkit-scrollbar-thumb {
-  background: var(--draix-border);
-  border-radius: 3px;
+
+.draix-nav-item.active {
+  background: var(--draix-gold-light);
+  color: var(--draix-gold);
 }
-::-webkit-scrollbar-thumb:hover {
-  background: var(--draix-muted);
+
+.draix-nav-icon { font-size: 18px; width: 20px; text-align: center; }
+
+/* Chat bubble */
+.draix-bubble-user {
+  background: var(--draix-gold);
+  color: #1A1A1A;
+  padding: 14px 18px;
+  border-radius: 18px 18px 4px 18px;
+  max-width: 75%;
+  font-size: 15px;
+  line-height: 1.5;
+  align-self: flex-end;
+}
+
+.draix-bubble-ai {
+  background: var(--draix-surface);
+  border: 1px solid var(--draix-border);
+  color: var(--draix-text);
+  padding: 14px 18px;
+  border-radius: 18px 18px 18px 4px;
+  max-width: 75%;
+  font-size: 15px;
+  line-height: 1.5;
+  align-self: flex-start;
+}
+
+/* Stats */
+.draix-stat-value {
+  font-family: 'Playfair Display', serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--draix-gold);
+}
+
+.draix-stat-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--draix-muted);
+  margin-top: 4px;
+}
+
+/* Progress bar */
+.draix-progress {
+  width: 100%;
+  height: 4px;
+  background: var(--draix-hover);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.draix-progress-fill {
+  height: 100%;
+  background: var(--draix-gold);
+  border-radius: 2px;
+  transition: width 0.5s ease;
+}
+
+/* Badge */
+.draix-badge {
+  font-size: 11px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 /* Animations */
-@keyframes pulse-gold {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.5; }
+@keyframes draix-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
+
+.draix-fade-in { animation: draix-fade-in 0.4s ease forwards; }
+
+@keyframes draix-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.draix-pulse { animation: draix-pulse 1.5s ease-in-out infinite; }
+
+/* Loading dots */
+.draix-dots span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--draix-muted);
+  margin: 0 2px;
+  animation: draix-pulse 1.4s ease-in-out infinite;
+}
+.draix-dots span:nth-child(2) { animation-delay: 0.2s; }
+.draix-dots span:nth-child(3) { animation-delay: 0.4s; }
