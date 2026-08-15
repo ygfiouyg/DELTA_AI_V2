@@ -5,8 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: hermes-dashboard
     restart: unless-stopped
-    ports:
-      - "127.0.0.1:8000:8000"
+    network_mode: host
     volumes:
       - hermes_data:/root/.hermes
       - /opt/delta-ai:/workspace
@@ -22,18 +21,6 @@ services:
       - HERMES_HOME=/root/.hermes
       - HERMES_NONINTERACTIVE=1
       - HERMES_WORKSPACE=/workspace
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    deploy:
-      resources:
-        limits:
-          memory: 2G
-        reservations:
-          memory: 512M
 
 volumes:
   hermes_data:

@@ -12,10 +12,6 @@ terminal:
   cwd: "/workspace"
   timeout: 180
 
-dashboard:
-  bind: "127.0.0.1"
-  port: 8000
-
 agent:
   max_iterations: 10
   enable_tools: true
