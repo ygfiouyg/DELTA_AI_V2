@@ -25,12 +25,11 @@ RUN curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash -s -- --s
 
 ENV HERMES_HOME="/root/.hermes"
 
+# ─── Copy config ───────────────────────────────────
+COPY config.yaml /root/.hermes/config.yaml
+
 # ─── Expose port ───────────────────────────────────
 EXPOSE 8000
-
-# ─── Health check ──────────────────────────────────
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
 
 # ─── Start Hermes Dashboard ────────────────────────
 CMD ["hermes", "dashboard", "--host", "0.0.0.0", "--port", "8000"]
