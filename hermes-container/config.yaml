@@ -1,0 +1,27 @@
+# ═══ Dr. AIX Agent (Hermes) Configuration ═══
+
+model:
+  default: "openrouter:auto-select"
+  provider: "openrouter"
+
+database:
+  journal_mode: "wal"
+
+terminal:
+  backend: "local"
+  cwd: "/workspace"
+  timeout: 180
+
+# V.181: تفعيل Web UI
+web:
+  enabled: true
+  host: "0.0.0.0"
+  port: 8000
+
+# الإعدادات العامة
+agent:
+  max_iterations: 10
+  enable_tools: true
+  enable_skills: true
+  enable_memory: true
+  enable_cron: true
