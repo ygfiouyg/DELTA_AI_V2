@@ -1,4 +1,4 @@
-# ═══ Dr. AIX Agent (Hermes) Configuration ═══
+# ═══ Dr. AIX Agent Configuration ═══
 
 model:
   default: "openrouter:auto-select"
